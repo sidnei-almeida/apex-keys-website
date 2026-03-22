@@ -159,7 +159,7 @@ Create **`.env.local`** in the project root (never commit secrets):
 
 > **Production guidance:** Any `NEXT_PUBLIC_*` variable is **visible in the browser**. For RAWG or other third-party keys in production, prefer a **server route or BFF** that proxies authenticated requests.
 
-**Favicon / app icon:** `src/app/icon.png` (mascot mark, transparent background), per Next.js [metadata file conventions](https://nextjs.org/docs/app/api-reference/file-conventions/metadata/app-icons).
+**Favicon / app icon:** `src/app/icon.png` — sourced from `public/logos/apex logo.png` (mascot on solid background), per Next.js [metadata file conventions](https://nextjs.org/docs/app/api-reference/file-conventions/metadata/app-icons).
 
 ---
 
