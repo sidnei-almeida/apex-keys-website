@@ -42,7 +42,7 @@
 | Dimension | Detail |
 |-----------|--------|
 | **Role** | Presentation layer — consumes a REST API for auth, raffles, wallet, and purchases |
-| **Maturity** | UI and interaction patterns implemented; **live API wiring** is the next integration phase |
+| **Maturity** | UI complete; **typed API client** in `src/lib/api` + `src/types/api.ts` — wire screens to `getRaffles`, `login`, `buyTicket`, etc. |
 | **Audience** | End users (browse, buy numbers, wallet) and platform owners (admin back office) |
 
 ---
@@ -86,6 +86,7 @@ flowchart LR
   end
   subgraph External["External"]
     RAWG[RAWG API]
+    IGDB[IGDB via backend]
   end
   subgraph API["Your backend"]
     REST[REST + JWT]
@@ -93,6 +94,7 @@ flowchart LR
   P --> REST
   C --> REST
   P --> RAWG
+  REST --> IGDB
 ```
 
 ---
@@ -122,8 +124,10 @@ src/
 │   ├── layout/             # Header, WalletDrawer, AuthModal
 │   └── ui/                 # Shared primitives (reserved / incremental)
 ├── hooks/                  # Reusable React hooks
-├── lib/                    # Utilities
-└── types/                  # Shared TypeScript types
+├── lib/
+│   └── api/                # HTTP client, `getApiBaseUrl`, service wrappers (auth, wallet, raffles, admin, IGDB)
+└── types/
+    └── api.ts              # DTOs alinhados a FRONTEND_API.md
 public/
 ├── logos/                  # Wordmark & brand PNGs (static)
 images/                     # README & marketing assets (not necessarily served by app)
@@ -155,6 +159,7 @@ Create **`.env.local`** in the project root (never commit secrets):
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
+| `NEXT_PUBLIC_API_URL` | No | Base URL da API Apex Keys **sem barra final** (default produção Railway). Para API local: `http://127.0.0.1:8000`. Ver [`.env.example`](./.env.example). |
 | `NEXT_PUBLIC_RAWG_API_KEY` | No | Enables live **RAWG** search in **Admin**. Omitted or placeholder → **mock** game list for UI development |
 
 > **Production guidance:** Any `NEXT_PUBLIC_*` variable is **visible in the browser**. For RAWG or other third-party keys in production, prefer a **server route or BFF** that proxies authenticated requests.
@@ -168,7 +173,8 @@ Create **`.env.local`** in the project root (never commit secrets):
 | Topic | Guidance |
 |-------|----------|
 | **Contract** | REST, JSON, JWT bearer auth on protected routes |
-| **Base URL** | Example local: `http://127.0.0.1:8000` — configure per environment |
+| **Base URL** | Set `NEXT_PUBLIC_API_URL` (see `.env.example`); default em código: API Railway em produção |
+| **Client code** | `import { getRaffles, login, … } from "@/lib/api"` — throws `ApiError` with `status` / `detail` on failure |
 | **CORS** | Backend must allow the frontend origin (e.g. `http://localhost:3000` in development) |
 | **Reference** | See [`FRONTEND_API.md`](./FRONTEND_API.md) for endpoints, payloads, and error shapes |
 

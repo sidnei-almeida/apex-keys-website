@@ -1,20 +1,34 @@
 "use client";
 
-import { Menu, User, Wallet, X } from "lucide-react";
-import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import AuthModal from "@/components/layout/AuthModal";
 import WalletDrawer from "@/components/layout/WalletDrawer";
+import { Menu, User, Wallet, X } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 
 const MOCK_BALANCE = "R$ 45,00";
+
+function formatBalanceDisplay(balance: string): string {
+  const t = balance.trim();
+  if (!t) return MOCK_BALANCE;
+  if (/^r\$/i.test(t) || /^R\$\s?/.test(t)) return t;
+  return `R$ ${t}`;
+}
 
 /** Wordmark (só texto), sem fundo — mascote fica para outras secções */
 const LOGO_WORDMARK_NO_BG = "/logos/title no bakcground.png";
 
 export default function Header() {
+  const { user, logout, isAuthenticated } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [wordmarkError, setWordmarkError] = useState(false);
+
+  const walletLabel = user
+    ? formatBalanceDisplay(user.balance)
+    : MOCK_BALANCE;
 
   const openWallet = () => {
     setMenuOpen(false);
@@ -31,7 +45,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-apex-surface bg-apex-bg/90 backdrop-blur-md">
       <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-8">
-        <a href="/" className="flex min-w-0 shrink items-center">
+        <Link href="/" className="flex min-w-0 shrink items-center">
           {!wordmarkError ? (
             <img
               src={LOGO_WORDMARK_NO_BG}
@@ -44,7 +58,7 @@ export default function Header() {
               APEX KEYS
             </span>
           )}
-        </a>
+        </Link>
 
         <div className="hidden items-center gap-3 md:flex">
           <button
@@ -55,18 +69,43 @@ export default function Header() {
             <Wallet className="size-5 shrink-0 text-apex-accent" aria-hidden />
             <span className="font-medium">Carteira</span>
             <span className="font-semibold tabular-nums text-apex-accent">
-              {MOCK_BALANCE}
+              {walletLabel}
             </span>
           </button>
-          <button
-            type="button"
-            onClick={openAuth}
-            className="flex items-center gap-2 rounded-lg border border-apex-surface bg-apex-surface/40 px-3 py-2 text-sm text-apex-text transition hover:border-apex-primary/50 hover:bg-apex-surface/60"
-            aria-label="Perfil ou login"
-          >
-            <User className="size-5 shrink-0" aria-hidden />
-            <span className="font-medium">Perfil</span>
-          </button>
+          {isAuthenticated ? (
+            <div className="flex items-center gap-2">
+              <Link
+                href={user?.is_admin ? "/admin" : "/"}
+                className="flex items-center gap-2 rounded-lg border border-apex-surface bg-apex-surface/40 px-3 py-2 text-sm text-apex-text transition hover:border-apex-primary/50 hover:bg-apex-surface/60"
+                aria-label={user?.is_admin ? "Ir ao QG" : "Ir ao painel"}
+              >
+                <User className="size-5 shrink-0" aria-hidden />
+                <span className="font-medium">
+                  {user?.is_admin ? "QG" : "Painel"}
+                </span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  logout();
+                }}
+                className="rounded-lg border border-apex-surface/60 bg-transparent px-3 py-2 text-sm text-gray-400 transition hover:border-apex-primary/40 hover:text-apex-text"
+              >
+                Sair
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={openAuth}
+              className="flex items-center gap-2 rounded-lg border border-apex-surface bg-apex-surface/40 px-3 py-2 text-sm text-apex-text transition hover:border-apex-primary/50 hover:bg-apex-surface/60"
+              aria-label="Perfil ou login"
+            >
+              <User className="size-5 shrink-0" aria-hidden />
+              <span className="font-medium">Perfil</span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
@@ -78,7 +117,7 @@ export default function Header() {
           >
             <Wallet className="size-5 shrink-0 text-apex-accent" aria-hidden />
             <span className="text-sm font-semibold tabular-nums text-apex-accent">
-              {MOCK_BALANCE}
+              {walletLabel}
             </span>
           </button>
           <button
@@ -114,14 +153,39 @@ export default function Header() {
               </button>
             </div>
             <nav className="flex flex-col gap-2 p-4">
-              <button
-                type="button"
-                className="flex items-center gap-3 rounded-lg border border-apex-surface bg-apex-surface/30 px-3 py-3 text-left text-sm text-apex-text transition hover:bg-apex-surface/50"
-                onClick={openAuth}
-              >
-                <User className="size-5 shrink-0" aria-hidden />
-                <span className="font-medium">Perfil / Login</span>
-              </button>
+              {isAuthenticated ? (
+                <>
+                  <Link
+                    href={user?.is_admin ? "/admin" : "/"}
+                    className="flex items-center gap-3 rounded-lg border border-apex-surface bg-apex-surface/30 px-3 py-3 text-left text-sm text-apex-text transition hover:bg-apex-surface/50"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <User className="size-5 shrink-0" aria-hidden />
+                    <span className="font-medium">
+                      {user?.is_admin ? "QG" : "Painel"}
+                    </span>
+                  </Link>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-apex-surface/60 px-3 py-3 text-left text-sm text-gray-400 transition hover:bg-apex-surface/30 hover:text-apex-text"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      logout();
+                    }}
+                  >
+                    Sair
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="flex items-center gap-3 rounded-lg border border-apex-surface bg-apex-surface/30 px-3 py-3 text-left text-sm text-apex-text transition hover:bg-apex-surface/50"
+                  onClick={openAuth}
+                >
+                  <User className="size-5 shrink-0" aria-hidden />
+                  <span className="font-medium">Perfil / Login</span>
+                </button>
+              )}
             </nav>
           </div>
         </>

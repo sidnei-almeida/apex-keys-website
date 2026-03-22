@@ -2,6 +2,9 @@
 
 import {
   ArrowLeft,
+  Check,
+  Edit,
+  Link as LinkIcon,
   Loader2,
   Play,
   Plus,
@@ -11,6 +14,9 @@ import {
   Trash2,
 } from "lucide-react";
 import Image from "next/image";
+import { getApiBaseUrl } from "@/lib/api/config";
+import { getAccessToken } from "@/lib/auth/token-storage";
+import type { RafflePublic } from "@/types/api";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -23,8 +29,12 @@ type MockRaffle = {
   priceLabel: string;
   sold: number;
   total: number;
-  status: "Aberta";
+  status: string;
   coverUrl?: string;
+  /** Valores da API / formulário para modo edição */
+  imageUrlRaw?: string | null;
+  videoId?: string | null;
+  totalPriceNum?: number;
 };
 
 type GameSearchResult = {
@@ -63,6 +73,10 @@ const INITIAL_RAFFLES: MockRaffle[] = [
     sold: 75,
     total: 100,
     status: "Aberta",
+    imageUrlRaw:
+      "https://media.rawg.io/media/games/d58/d588947d428c20a53d210b82c51d257d.jpg",
+    videoId: null,
+    totalPriceNum: 300,
   },
   {
     id: "2",
@@ -71,6 +85,10 @@ const INITIAL_RAFFLES: MockRaffle[] = [
     sold: 42,
     total: 100,
     status: "Aberta",
+    imageUrlRaw:
+      "https://media.rawg.io/media/games/5c0/5c0ddfc02ee5f3d621a5b37b293fdb9f.jpg",
+    videoId: null,
+    totalPriceNum: 200,
   },
   {
     id: "3",
@@ -79,6 +97,9 @@ const INITIAL_RAFFLES: MockRaffle[] = [
     sold: 12,
     total: 50,
     status: "Aberta",
+    imageUrlRaw: null,
+    videoId: null,
+    totalPriceNum: 75,
   },
 ];
 
@@ -109,16 +130,50 @@ async function fetchRawgGames(query: string): Promise<GameSearchResult[]> {
   return data.results ?? [];
 }
 
+function mapRafflePublicToRow(r: RafflePublic): MockRaffle {
+  const ticket = parseFloat(r.ticket_price);
+  const priceLabel = Number.isFinite(ticket)
+    ? `R$ ${ticket.toFixed(2).replace(".", ",")}`
+    : `R$ ${r.ticket_price}`;
+  const totalPriceNum = parseFloat(r.total_price);
+  return {
+    id: r.id,
+    title: r.title,
+    priceLabel,
+    sold: 0,
+    total: r.total_tickets,
+    status: r.status,
+    coverUrl: r.image_url ?? undefined,
+    imageUrlRaw: r.image_url,
+    videoId: r.video_id,
+    totalPriceNum: Number.isFinite(totalPriceNum) ? totalPriceNum : undefined,
+  };
+}
+
 export default function AdminPage() {
   const [raffles, setRaffles] = useState<MockRaffle[]>(INITIAL_RAFFLES);
   const [title, setTitle] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [videoId, setVideoId] = useState("");
+  const [totalPrice, setTotalPrice] = useState<number>(0);
+  const [totalTickets, setTotalTickets] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [editingRaffleId, setEditingRaffleId] = useState<string | null>(null);
+  const [copiedRaffleId, setCopiedRaffleId] = useState<string | null>(null);
+  const copyFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  const isEditing = editingRaffleId !== null;
+
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<GameSearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const [price, setPrice] = useState("");
-  const [totalNumbers, setTotalNumbers] = useState("");
-  const [coverUrl, setCoverUrl] = useState("");
   const blurCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -152,6 +207,14 @@ export default function AdminPage() {
     };
   }, [searchQuery]);
 
+  useEffect(() => {
+    return () => {
+      if (copyFeedbackTimerRef.current) {
+        clearTimeout(copyFeedbackTimerRef.current);
+      }
+    };
+  }, []);
+
   const openSuggestions = useCallback(() => {
     if (blurCloseRef.current) clearTimeout(blurCloseRef.current);
     setSuggestionsOpen(true);
@@ -164,33 +227,165 @@ export default function AdminPage() {
   const selectGame = useCallback((game: GameSearchResult) => {
     if (blurCloseRef.current) clearTimeout(blurCloseRef.current);
     setTitle(game.name);
-    setCoverUrl(game.background_image ?? "");
+    setImageUrl(game.background_image ?? "");
     setSearchResults([]);
     setSuggestionsOpen(false);
   }, []);
 
-  const handleLaunch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const total = Math.max(1, parseInt(totalNumbers, 10) || 100);
-    const newRaffle: MockRaffle = {
-      id: crypto.randomUUID(),
-      title: title.trim() || "Sem título",
-      priceLabel: price.trim().startsWith("R$")
-        ? price.trim()
-        : `R$ ${price.trim() || "0,00"}`,
-      sold: 0,
-      total,
-      status: "Aberta",
-      coverUrl: coverUrl.trim() || undefined,
-    };
-    setRaffles((prev) => [newRaffle, ...prev]);
+  const resetCreateForm = useCallback(() => {
     setTitle("");
     setSearchQuery("");
     setSearchResults([]);
-    setPrice("");
-    setTotalNumbers("");
-    setCoverUrl("");
+    setImageUrl("");
+    setVideoId("");
+    setTotalPrice(0);
+    setTotalTickets(0);
     setSuggestionsOpen(false);
+    setEditingRaffleId(null);
+  }, []);
+
+  const copyRafflePublicLink = useCallback((raffleId: string) => {
+    if (copyFeedbackTimerRef.current) {
+      clearTimeout(copyFeedbackTimerRef.current);
+    }
+    const url =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/raffle/${raffleId}`
+        : `/raffle/${raffleId}`;
+    void navigator.clipboard.writeText(url).then(() => {
+      setCopiedRaffleId(raffleId);
+      copyFeedbackTimerRef.current = setTimeout(() => {
+        setCopiedRaffleId(null);
+        copyFeedbackTimerRef.current = null;
+      }, 2000);
+    });
+  }, []);
+
+  const loadRaffleIntoForm = useCallback((raffle: MockRaffle) => {
+    setEditingRaffleId(raffle.id);
+    setTitle(raffle.title);
+    setImageUrl(
+      (raffle.imageUrlRaw?.trim() || raffle.coverUrl || "").trim(),
+    );
+    setVideoId((raffle.videoId ?? "").trim());
+    setTotalPrice(raffle.totalPriceNum ?? 0);
+    setTotalTickets(raffle.total);
+    setMessage(null);
+    setSuggestionsOpen(false);
+    setSearchResults([]);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    resetCreateForm();
+    setMessage(null);
+  }, [resetCreateForm]);
+
+  const handleCreateOrUpdateRaffle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage(null);
+
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      setMessage({ type: "error", text: "Informe o título do sorteio." });
+      return;
+    }
+    if (totalPrice <= 0) {
+      setMessage({
+        type: "error",
+        text: "O preço total da rifa deve ser maior que zero.",
+      });
+      return;
+    }
+    if (!Number.isInteger(totalTickets) || totalTickets < 1) {
+      setMessage({
+        type: "error",
+        text: "O total de bilhetes deve ser um inteiro ≥ 1.",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const token = getAccessToken();
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const body = JSON.stringify({
+        title: trimmedTitle,
+        image_url: imageUrl.trim() || null,
+        video_id: videoId.trim() || null,
+        total_price: totalPrice,
+        total_tickets: totalTickets,
+      });
+
+      const url = editingRaffleId
+        ? `${getApiBaseUrl()}/admin/raffles/${editingRaffleId}`
+        : `${getApiBaseUrl()}/admin/raffles`;
+
+      const res = await fetch(url, {
+        method: editingRaffleId ? "PATCH" : "POST",
+        headers,
+        body,
+      });
+
+      const text = await res.text();
+      let data: unknown = null;
+      if (text) {
+        try {
+          data = JSON.parse(text) as unknown;
+        } catch {
+          data = text;
+        }
+      }
+
+      if (!res.ok) {
+        const detail =
+          data &&
+          typeof data === "object" &&
+          data !== null &&
+          "detail" in data &&
+          typeof (data as { detail: unknown }).detail === "string"
+            ? (data as { detail: string }).detail
+            : `Erro ${res.status}`;
+        setMessage({ type: "error", text: detail });
+        return;
+      }
+
+      const saved = data as RafflePublic;
+      if (editingRaffleId) {
+        setRaffles((prev) =>
+          prev.map((row) =>
+            row.id === editingRaffleId ? mapRafflePublicToRow(saved) : row,
+          ),
+        );
+        resetCreateForm();
+        setMessage({
+          type: "success",
+          text: "Alterações guardadas com sucesso.",
+        });
+      } else {
+        setRaffles((prev) => [mapRafflePublicToRow(saved), ...prev]);
+        resetCreateForm();
+        setMessage({
+          type: "success",
+          text: "Sorteio criado com sucesso.",
+        });
+      }
+    } catch (err) {
+      setMessage({
+        type: "error",
+        text:
+          err instanceof Error
+            ? err.message
+            : "Falha de rede ao contactar a API.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -221,12 +416,14 @@ export default function AdminPage() {
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_2fr]">
         <section className="rounded-xl border border-apex-primary/20 bg-apex-surface p-6">
           <h2 className="text-lg font-bold text-apex-text">
-            Iniciar Novo Sorteio
+            {isEditing ? "Editar Sorteio" : "Iniciar Novo Sorteio"}
           </h2>
           <p className="mt-1 text-sm text-apex-text/50">
-            Nova operação na vitrine
+            {isEditing
+              ? "Atualize os dados da operação selecionada"
+              : "Nova operação na vitrine"}
           </p>
-          <form className="mt-6 space-y-4" onSubmit={handleLaunch}>
+          <form className="mt-6 space-y-4" onSubmit={handleCreateOrUpdateRaffle}>
             <div className="relative">
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
@@ -310,10 +507,10 @@ export default function AdminPage() {
                 Preview da capa
               </p>
               <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-lg border border-apex-primary/15 bg-apex-bg">
-                {coverUrl ? (
+                {imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- URL editável (qualquer host)
                   <img
-                    src={coverUrl}
+                    src={imageUrl}
                     alt={title || "Capa do jogo"}
                     className="size-full object-cover"
                   />
@@ -332,49 +529,103 @@ export default function AdminPage() {
 
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
-                Preço da Cota (R$)
-              </span>
-              <input
-                type="text"
-                inputMode="decimal"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className={inputClass}
-                placeholder="9,90"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
-                Total de Números
-              </span>
-              <input
-                type="number"
-                min={1}
-                value={totalNumbers}
-                onChange={(e) => setTotalNumbers(e.target.value)}
-                className={inputClass}
-                placeholder="100"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
                 URL da Imagem de Capa
               </span>
               <input
                 type="url"
-                value={coverUrl}
-                onChange={(e) => setCoverUrl(e.target.value)}
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
                 className={inputClass}
                 placeholder="Preenchido ao escolher o jogo — editável"
               />
             </label>
-            <button
-              type="submit"
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-apex-accent py-3 font-bold text-apex-bg transition-opacity hover:opacity-90"
-            >
-              <Plus className="size-5 shrink-0" aria-hidden />
-              Lançar Operação
-            </button>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                ID do vídeo YouTube (opcional)
+              </span>
+              <input
+                type="text"
+                value={videoId}
+                onChange={(e) => setVideoId(e.target.value)}
+                className={inputClass}
+                placeholder="ex.: dQw4w9WgXcQ"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                Preço total da rifa
+              </span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="0.01"
+                value={totalPrice > 0 ? totalPrice : ""}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  setTotalPrice(Number.isFinite(v) ? v : 0);
+                }}
+                className={inputClass}
+                placeholder="Ex.: 300 (valor total a arrecadar)"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                Total de bilhetes
+              </span>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={totalTickets > 0 ? totalTickets : ""}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  setTotalTickets(Number.isFinite(v) ? v : 0);
+                }}
+                className={inputClass}
+                placeholder="100"
+              />
+            </label>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-apex-accent py-3 font-bold text-apex-bg transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isEditing ? (
+                  <Check className="size-5 shrink-0" aria-hidden />
+                ) : (
+                  <Plus className="size-5 shrink-0" aria-hidden />
+                )}
+                {isLoading
+                  ? "Processando…"
+                  : isEditing
+                    ? "Salvar Alterações"
+                    : "Lançar Operação"}
+              </button>
+              {isEditing ? (
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={handleCancelEdit}
+                  className="shrink-0 rounded-xl border border-apex-text/20 bg-transparent px-5 py-3 text-sm font-medium text-apex-text/55 transition-colors hover:border-apex-text/35 hover:bg-apex-bg/50 hover:text-apex-text/80 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              ) : null}
+            </div>
+            {message ? (
+              <p
+                role="status"
+                className={
+                  message.type === "success"
+                    ? "mt-3 text-center text-sm text-apex-success"
+                    : "mt-3 text-center text-sm text-red-400"
+                }
+              >
+                {message.text}
+              </p>
+            ) : null}
           </form>
         </section>
 
@@ -419,9 +670,29 @@ export default function AdminPage() {
                         </p>
                       </div>
                     </div>
-                    <span className="shrink-0 rounded-md border border-apex-primary/25 bg-apex-surface px-2.5 py-1 text-xs font-medium text-apex-text/80">
-                      {raffle.status}
-                    </span>
+                    <div className="relative flex shrink-0 items-center gap-1">
+                      <span className="rounded-md border border-apex-primary/25 bg-apex-surface px-2.5 py-1 text-xs font-medium text-apex-text/80">
+                        {raffle.status}
+                      </span>
+                      <div className="relative flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => copyRafflePublicLink(raffle.id)}
+                          className="rounded-md p-1 text-apex-text/50 transition-colors hover:text-apex-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-apex-accent/35"
+                          aria-label="Copiar link público da rifa"
+                        >
+                          <LinkIcon className="size-3.5" aria-hidden />
+                        </button>
+                        {copiedRaffleId === raffle.id ? (
+                          <span
+                            role="status"
+                            className="pointer-events-none absolute right-0 top-full z-10 mt-1 whitespace-nowrap rounded border border-apex-accent/25 bg-apex-bg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-apex-accent shadow-lg"
+                          >
+                            Copiado
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="mt-3">
@@ -446,6 +717,14 @@ export default function AdminPage() {
                     >
                       <Target className="size-3.5 shrink-0" aria-hidden />
                       Sortear Vencedor
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => loadRaffleIntoForm(raffle)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-apex-accent px-3 py-2 text-xs font-semibold text-apex-accent transition-colors hover:bg-apex-accent/10"
+                    >
+                      <Edit className="size-3.5 shrink-0" aria-hidden />
+                      Editar Dados
                     </button>
                     <button
                       type="button"

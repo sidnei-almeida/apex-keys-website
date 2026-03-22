@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Header from "@/components/layout/Header";
+import { AppProviders } from "@/components/providers/AppProviders";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -36,10 +37,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-apex-bg text-apex-text">
-        <Header />
-        <main className="flex-1 w-full px-4 pb-8 pt-6 sm:px-6 lg:px-8">
-          {children}
-        </main>
+        <AppProviders>
+          <Header />
+          <main className="flex-1 w-full px-4 pb-8 pt-6 sm:px-6 lg:px-8">
+            {children}
+          </main>
+        </AppProviders>
       </body>
     </html>
   );

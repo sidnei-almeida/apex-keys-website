@@ -1,11 +1,15 @@
 "use client";
 
-import { X } from "lucide-react";
+import { ApiError } from "@/lib/api/http";
+import { useAuth } from "@/contexts/AuthContext";
+import { Eye, EyeOff, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 const inputClass =
   "w-full rounded-lg border border-apex-surface bg-apex-bg px-3 py-2.5 text-apex-text placeholder:text-gray-500 focus:border-apex-accent focus:outline-none";
+
+const passwordInputClass = `${inputClass} pr-10`;
 
 type AuthModalProps = {
   isOpen: boolean;
@@ -13,15 +17,34 @@ type AuthModalProps = {
 };
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
+  const { login, signup } = useAuth();
+
   const [isLogin, setIsLogin] = useState(true);
   const [mounted, setMounted] = useState(false);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!isOpen) setIsLogin(true);
+    if (!isOpen) {
+      setIsLogin(true);
+      setEmail("");
+      setPassword("");
+      setFullName("");
+      setWhatsapp("");
+      setError(null);
+      setIsLoading(false);
+      setShowPassword(false);
+    }
   }, [isOpen]);
 
   useEffect(() => {
@@ -32,6 +55,51 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [isOpen, onClose]);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+    try {
+      await login(email.trim(), password);
+      onClose();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.detail ?? "Credenciais inválidas.");
+      } else {
+        setError(
+          err instanceof Error ? err.message : "Não foi possível entrar.",
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleSignup(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+    try {
+      await signup({
+        full_name: fullName.trim(),
+        email: email.trim(),
+        password,
+        whatsapp: whatsapp.trim(),
+      });
+      onClose();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.detail ?? "Não foi possível criar a conta.");
+      } else {
+        setError(
+          err instanceof Error ? err.message : "Não foi possível criar a conta.",
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   if (!mounted || !isOpen) return null;
 
@@ -66,9 +134,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
         <form
           className="mt-6"
-          onSubmit={(e) => {
-            e.preventDefault();
-          }}
+          onSubmit={isLogin ? handleLogin : handleSignup}
         >
           {isLogin ? (
             <>
@@ -81,29 +147,47 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   name="email"
                   autoComplete="email"
                   required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className={inputClass}
                   placeholder="seu@email.com"
+                  disabled={isLoading}
                 />
               </label>
               <label className="mt-4 block">
                 <span className="mb-1.5 block text-sm font-medium text-apex-text/90">
                   Senha
                 </span>
-                <input
-                  type="password"
-                  name="password"
-                  autoComplete="current-password"
-                  required
-                  className={inputClass}
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={passwordInputClass}
+                    placeholder="••••••••"
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-gray-400 transition-colors hover:text-apex-text disabled:pointer-events-none disabled:opacity-40"
+                    aria-label={
+                      showPassword ? "Ocultar senha" : "Mostrar senha"
+                    }
+                    aria-pressed={showPassword}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="size-5" aria-hidden />
+                    ) : (
+                      <Eye className="size-5" aria-hidden />
+                    )}
+                  </button>
+                </div>
               </label>
-              <button
-                type="submit"
-                className="mt-6 w-full rounded-lg bg-apex-primary py-3 font-bold text-white transition-colors hover:bg-apex-accent"
-              >
-                Entrar na Arena
-              </button>
             </>
           ) : (
             <>
@@ -113,11 +197,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </span>
                 <input
                   type="text"
-                  name="name"
+                  name="full_name"
                   autoComplete="name"
                   required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
                   className={inputClass}
                   placeholder="Seu nome"
+                  disabled={isLoading}
                 />
               </label>
               <label className="mt-4 block">
@@ -129,8 +216,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   name="whatsapp"
                   autoComplete="tel"
                   required
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
                   className={inputClass}
                   placeholder="+5511999999999"
+                  disabled={isLoading}
                 />
               </label>
               <label className="mt-4 block">
@@ -142,31 +232,67 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   name="email"
                   autoComplete="email"
                   required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className={inputClass}
                   placeholder="seu@email.com"
+                  disabled={isLoading}
                 />
               </label>
               <label className="mt-4 block">
                 <span className="mb-1.5 block text-sm font-medium text-apex-text/90">
                   Senha
                 </span>
-                <input
-                  type="password"
-                  name="password"
-                  autoComplete="new-password"
-                  required
-                  className={inputClass}
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    autoComplete="new-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={passwordInputClass}
+                    placeholder="••••••••"
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-gray-400 transition-colors hover:text-apex-text disabled:pointer-events-none disabled:opacity-40"
+                    aria-label={
+                      showPassword ? "Ocultar senha" : "Mostrar senha"
+                    }
+                    aria-pressed={showPassword}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="size-5" aria-hidden />
+                    ) : (
+                      <Eye className="size-5" aria-hidden />
+                    )}
+                  </button>
+                </div>
               </label>
-              <button
-                type="submit"
-                className="mt-6 w-full rounded-lg bg-apex-primary py-3 font-bold text-white transition-colors hover:bg-apex-accent"
-              >
-                Criar Conta
-              </button>
             </>
           )}
+
+          {error ? (
+            <p className="mt-4 text-center text-sm text-red-400/90" role="alert">
+              {error}
+            </p>
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="mt-6 w-full rounded-lg bg-apex-primary py-3 font-bold text-white transition-colors hover:bg-apex-accent disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isLoading
+              ? "A processar…"
+              : isLogin
+                ? "Entrar na Arena"
+                : "Criar Conta"}
+          </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-400">
@@ -175,8 +301,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               Não tem conta?{" "}
               <button
                 type="button"
-                onClick={() => setIsLogin(false)}
-                className="cursor-pointer font-medium text-apex-accent hover:underline"
+                disabled={isLoading}
+                onClick={() => {
+                  setIsLogin(false);
+                  setError(null);
+                  setShowPassword(false);
+                }}
+                className="cursor-pointer font-medium text-apex-accent hover:underline disabled:opacity-50"
               >
                 Criar agora
               </button>
@@ -186,8 +317,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               Já tem conta?{" "}
               <button
                 type="button"
-                onClick={() => setIsLogin(true)}
-                className="cursor-pointer font-medium text-apex-accent hover:underline"
+                disabled={isLoading}
+                onClick={() => {
+                  setIsLogin(true);
+                  setError(null);
+                  setShowPassword(false);
+                }}
+                className="cursor-pointer font-medium text-apex-accent hover:underline disabled:opacity-50"
               >
                 Fazer login
               </button>
