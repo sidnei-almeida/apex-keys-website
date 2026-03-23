@@ -18,10 +18,11 @@ import type {
   TicketPurchaseResponse,
   TokenResponse,
   TransactionOut,
+  UserProfileUpdate,
   UserPublic,
   WalletBalanceResponse,
 } from "@/types/api";
-import { deleteRequest, getJson, postJson } from "./http";
+import { deleteRequest, getJson, patchJson, postJson } from "./http";
 
 export async function getHealth(): Promise<{ status: string }> {
   return getJson("/health");
@@ -43,6 +44,13 @@ export async function login(
 
 export async function getMe(token: string): Promise<UserPublic> {
   return getJson<UserPublic>("/auth/me", token);
+}
+
+export async function updateProfile(
+  token: string,
+  body: UserProfileUpdate,
+): Promise<UserPublic> {
+  return patchJson<UserPublic, UserProfileUpdate>("/users/me", body, token);
 }
 
 export async function getWalletBalance(token: string): Promise<WalletBalanceResponse> {

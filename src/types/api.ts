@@ -10,6 +10,8 @@ export type UserPublic = {
   full_name: string;
   email: string;
   whatsapp: string;
+  /** Chave PIX para recebimento (reembolsos, prêmios) — CPF, e-mail, telefone ou aleatória */
+  pix_key?: string | null;
   is_admin: boolean;
   balance: string;
   created_at: string;
@@ -69,6 +71,15 @@ export type SignupRequest = {
   email: string;
   password: string;
   whatsapp: string;
+  /** Chave PIX (CPF, e-mail, telefone ou aleatória) para recebimentos */
+  pix_key: string;
+};
+
+/** Atualização parcial do perfil do usuário */
+export type UserProfileUpdate = {
+  full_name?: string;
+  whatsapp?: string;
+  pix_key?: string;
 };
 
 export type AdminRaffleCreate = {

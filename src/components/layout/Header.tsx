@@ -18,7 +18,7 @@ import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 
 const PROFILE_DROPDOWN_LINKS = [
-  { href: "#", label: "Configuração", icon: Settings },
+  { href: "/conta", label: "Configuração", icon: Settings },
   { href: "#", label: "Minhas Rifas", icon: Ticket },
   { href: "#", label: "Minhas Transações", icon: ShoppingBag },
   { href: "#", label: "Histórico de Rifas", icon: History },

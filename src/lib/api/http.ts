@@ -98,6 +98,18 @@ export function postJson<T, B extends object = object>(
   });
 }
 
+export function patchJson<T, B extends object = object>(
+  path: string,
+  body: B,
+  token?: string | null,
+): Promise<T> {
+  return apiRequest<T>(path, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+    token,
+  });
+}
+
 /** DELETE sem corpo; respostas 204 / vazias sem parse JSON. */
 export function deleteRequest<T = void>(
   path: string,

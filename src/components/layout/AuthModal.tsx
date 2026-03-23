@@ -32,6 +32,7 @@ export default function AuthModal({
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [pixKey, setPixKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -46,6 +47,7 @@ export default function AuthModal({
       setPassword("");
       setFullName("");
       setWhatsapp("");
+      setPixKey("");
       setError(null);
       setIsLoading(false);
       setShowPassword(false);
@@ -93,6 +95,7 @@ export default function AuthModal({
         email: email.trim(),
         password,
         whatsapp: whatsapp.trim(),
+        pix_key: pixKey.trim(),
       });
       onClose();
     } catch (err) {
@@ -229,6 +232,24 @@ export default function AuthModal({
                   placeholder="+5511999999999"
                   disabled={isLoading}
                 />
+              </label>
+              <label className="mt-4 block">
+                <span className="mb-1.5 block text-sm font-medium text-apex-text/90">
+                  Chave PIX
+                </span>
+                <input
+                  type="text"
+                  name="pix_key"
+                  required
+                  value={pixKey}
+                  onChange={(e) => setPixKey(e.target.value)}
+                  className={inputClass}
+                  placeholder="CPF, e-mail, telefone ou chave aleatória"
+                  disabled={isLoading}
+                />
+                <p className="mt-1 text-xs text-apex-text-muted/60">
+                  Para receber reembolsos e prêmios
+                </p>
               </label>
               <label className="mt-4 block">
                 <span className="mb-1.5 block text-sm font-medium text-apex-text/90">
