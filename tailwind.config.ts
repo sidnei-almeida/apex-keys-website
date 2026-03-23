@@ -10,11 +10,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        "apex-bg": "#040B16",
-        "apex-surface": "#0B1B36",
+        /** Base – Deep Space Navy */
+        "apex-bg": "#0A111F",
+        /** Superfície – Strategic Slate */
+        "apex-surface": "#111A2E",
+        /** Azul cobalto (bordas estruturais, hover estados) */
         "apex-primary": "#004DE6",
-        "apex-accent": "#00D4FF",
-        "apex-text": "#F0F4F8",
+        /** Ciano refinado Tático – acento principal */
+        "apex-accent": "#00E5FF",
+        /** Âmbar tático – acento secundário / avisos */
+        "apex-secondary": "#FFB300",
+        /** Texto de precisão – Ice White */
+        "apex-text": "#F0F4FF",
+        /** Texto muted – Steel Blue-Gray */
+        "apex-text-muted": "#A1AABF",
+        /** Sucesso / progresso */
         "apex-success": "#34D399",
       },
     },

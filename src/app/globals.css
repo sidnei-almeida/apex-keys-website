@@ -17,7 +17,7 @@
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: #0b1b36 #040b16;
+    scrollbar-color: #111a2e #0a111f;
   }
 
   *::-webkit-scrollbar {
@@ -26,15 +26,15 @@
   }
 
   *::-webkit-scrollbar-track {
-    background: #040b16;
+    background: #0a111f;
   }
 
   *::-webkit-scrollbar-thumb {
-    background: #0b1b36;
+    background: #111a2e;
     border-radius: 4px;
   }
 
   *::-webkit-scrollbar-thumb:hover {
-    background: #004de6;
+    background: #00e5ff40;
   }
 }

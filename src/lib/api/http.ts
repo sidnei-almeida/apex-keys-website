@@ -97,3 +97,11 @@ export function postJson<T, B extends object = object>(
     token,
   });
 }
+
+/** DELETE sem corpo; respostas 204 / vazias sem parse JSON. */
+export function deleteRequest<T = void>(
+  path: string,
+  token?: string | null,
+): Promise<T> {
+  return apiRequest<T>(path, { method: "DELETE", token, parseJson: false });
+}

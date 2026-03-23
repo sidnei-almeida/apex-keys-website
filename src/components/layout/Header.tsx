@@ -43,7 +43,7 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-apex-surface bg-apex-bg/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-apex-bg/92 shadow-[0_4px_20px_rgb(0,0,0,0.4)] backdrop-blur-md">
       <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-8">
         <Link href="/" className="flex min-w-0 shrink items-center">
           {!wordmarkError ? (
@@ -64,7 +64,7 @@ export default function Header() {
           <button
             type="button"
             onClick={openWallet}
-            className="flex items-center gap-2 rounded-lg border border-apex-surface bg-apex-surface/40 px-3 py-2 text-sm text-apex-text transition hover:border-apex-primary/50 hover:bg-apex-surface/60"
+            className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-apex-surface/50 px-3 py-2 text-sm text-apex-text-muted shadow-[0_2px_8px_rgb(0,0,0,0.2)] transition-all hover:border-apex-accent/30 hover:bg-apex-surface/70 hover:text-apex-text"
           >
             <Wallet className="size-5 shrink-0 text-apex-accent" aria-hidden />
             <span className="font-medium">Carteira</span>
@@ -76,7 +76,7 @@ export default function Header() {
             <div className="flex items-center gap-2">
               <Link
                 href={user?.is_admin ? "/admin" : "/"}
-                className="flex items-center gap-2 rounded-lg border border-apex-surface bg-apex-surface/40 px-3 py-2 text-sm text-apex-text transition hover:border-apex-primary/50 hover:bg-apex-surface/60"
+                className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-apex-surface/50 px-3 py-2 text-sm text-apex-text-muted shadow-[0_2px_8px_rgb(0,0,0,0.2)] transition-all hover:border-apex-accent/30 hover:bg-apex-surface/70 hover:text-apex-text"
                 aria-label={user?.is_admin ? "Ir ao QG" : "Ir ao painel"}
               >
                 <User className="size-5 shrink-0" aria-hidden />
@@ -90,7 +90,7 @@ export default function Header() {
                   setMenuOpen(false);
                   logout();
                 }}
-                className="rounded-lg border border-apex-surface/60 bg-transparent px-3 py-2 text-sm text-gray-400 transition hover:border-apex-primary/40 hover:text-apex-text"
+                className="rounded-lg border border-white/[0.06] bg-transparent px-3 py-2 text-sm text-apex-text-muted transition hover:border-red-500/30 hover:text-red-400"
               >
                 Sair
               </button>
@@ -99,7 +99,7 @@ export default function Header() {
             <button
               type="button"
               onClick={openAuth}
-              className="flex items-center gap-2 rounded-lg border border-apex-surface bg-apex-surface/40 px-3 py-2 text-sm text-apex-text transition hover:border-apex-primary/50 hover:bg-apex-surface/60"
+              className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-apex-surface/50 px-3 py-2 text-sm text-apex-text-muted shadow-[0_2px_8px_rgb(0,0,0,0.2)] transition-all hover:border-apex-accent/30 hover:bg-apex-surface/70 hover:text-apex-text"
               aria-label="Perfil ou login"
             >
               <User className="size-5 shrink-0" aria-hidden />
@@ -140,8 +140,8 @@ export default function Header() {
             aria-label="Fechar menu"
             onClick={() => setMenuOpen(false)}
           />
-          <div className="fixed inset-y-0 right-0 z-50 flex w-[min(18rem,85vw)] flex-col border-l border-apex-surface bg-apex-bg shadow-xl md:hidden">
-            <div className="flex items-center justify-between border-b border-apex-surface px-4 py-3">
+          <div className="fixed inset-y-0 right-0 z-50 flex w-[min(18rem,85vw)] flex-col border-l border-white/[0.07] bg-apex-bg shadow-[−4px_0_40px_rgb(0,0,0,0.5)] md:hidden">
+            <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
               <span className="text-sm font-semibold text-apex-text">Menu</span>
               <button
                 type="button"
@@ -157,7 +157,7 @@ export default function Header() {
                 <>
                   <Link
                     href={user?.is_admin ? "/admin" : "/"}
-                    className="flex items-center gap-3 rounded-lg border border-apex-surface bg-apex-surface/30 px-3 py-3 text-left text-sm text-apex-text transition hover:bg-apex-surface/50"
+                    className="flex items-center gap-3 rounded-lg border border-white/[0.07] bg-apex-surface/40 px-3 py-3 text-left text-sm text-apex-text-muted transition-all hover:border-apex-accent/25 hover:bg-apex-surface/60 hover:text-apex-text"
                     onClick={() => setMenuOpen(false)}
                   >
                     <User className="size-5 shrink-0" aria-hidden />
@@ -167,7 +167,7 @@ export default function Header() {
                   </Link>
                   <button
                     type="button"
-                    className="rounded-lg border border-apex-surface/60 px-3 py-3 text-left text-sm text-gray-400 transition hover:bg-apex-surface/30 hover:text-apex-text"
+                    className="rounded-lg border border-white/[0.06] px-3 py-3 text-left text-sm text-apex-text-muted transition hover:border-red-500/25 hover:text-red-400"
                     onClick={() => {
                       setMenuOpen(false);
                       logout();
@@ -179,7 +179,7 @@ export default function Header() {
               ) : (
                 <button
                   type="button"
-                  className="flex items-center gap-3 rounded-lg border border-apex-surface bg-apex-surface/30 px-3 py-3 text-left text-sm text-apex-text transition hover:bg-apex-surface/50"
+                  className="flex items-center gap-3 rounded-lg border border-white/[0.07] bg-apex-surface/40 px-3 py-3 text-left text-sm text-apex-text-muted transition-all hover:border-apex-accent/25 hover:bg-apex-surface/60 hover:text-apex-text"
                   onClick={openAuth}
                 >
                   <User className="size-5 shrink-0" aria-hidden />

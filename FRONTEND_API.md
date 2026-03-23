@@ -68,6 +68,7 @@ Exemplos (produção):
 | `POST` | `/buy-ticket` | Utilizador | Compra um número de bilhete (saldo debitado na hora) |
 | `POST` | `/admin/raffles` | **Admin** | Cria rifa (preço por bilhete calculado no servidor) |
 | `POST` | `/admin/raffles/{raffle_id}/cancel` | **Admin** | Cancela rifa ativa e estorna bilhetes pagos |
+| `DELETE` | `/admin/raffles/{raffle_id}` | **Admin** | Remove a rifa (comportamento exacto conforme backend) |
 | `POST` | `/admin/users/{user_id}/adjust-balance` | **Admin** | Crédito ou débito manual de saldo |
 | `POST` | `/webhook/mp` | — | Mock de webhook (normalmente **backend**; ver nota abaixo) |
 | `POST` | `/igdb/game` | — | Metadados de jogo a partir da URL pública do IGDB |
@@ -184,6 +185,10 @@ Todas exigem `Authorization: Bearer <token>` de um utilizador com `is_admin=true
 O servidor calcula `ticket_price` = `total_price / total_tickets` arredondado a **2 casas** (half-up).
 
 **Resposta `201`:** `RafflePublic`.
+
+### `DELETE /admin/raffles/{raffle_id}`
+
+Apaga a rifa. **Autenticação:** JWT admin. Resposta típica: `204 No Content` ou `200` (conforme implementação).
 
 ### `POST /admin/raffles/{raffle_id}/cancel`
 

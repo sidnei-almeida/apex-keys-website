@@ -1,32 +1,51 @@
 "use client";
 
 import {
+  Activity,
   ArrowLeft,
+  BadgeCheck,
   Check,
   CirclePause,
+  Clock,
   Edit,
+  ExternalLink,
+  Hash,
   Link as LinkIcon,
   Loader2,
   Plus,
   ReceiptText,
   Rocket,
-  Search,
   ShieldAlert,
   TableProperties,
+  Trash2,
+  TrendingUp,
+  Wand2,
   XCircle,
 } from "lucide-react";
-import Image from "next/image";
+import type React from "react";
+import { ApiError } from "@/lib/api/http";
+import { adminDeleteRaffle } from "@/lib/api/services";
 import { getApiBaseUrl } from "@/lib/api/config";
+import { translateLabelList, translateToPtBr } from "@/lib/translate/client";
 import { getAccessToken } from "@/lib/auth/token-storage";
-import type { RafflePublic } from "@/types/api";
+import { fetchIgdbGame } from "@/services/api";
+import type { IgdbGameInfoResponse, RafflePublic } from "@/types/api";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const inputClass =
   "w-full rounded-lg border border-apex-surface bg-apex-bg px-3 py-2.5 text-apex-text placeholder:text-gray-500 focus:border-apex-accent focus:outline-none";
 
+const IGDB_LOADING_STEPS = [
+  "Conectando ao IGDB…",
+  "Scraper iniciado — aguardando servidor…",
+  "Coletando metadados do jogo…",
+  "Processando informações…",
+  "Quase lá, finalizando…",
+] as const;
+
 const thClass =
-  "px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-apex-text/60";
+  "px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-apex-text-muted";
 const tdClass = "px-3 py-3 align-middle text-sm text-apex-text/90";
 const rowClass =
   "border-t border-white/[0.06] transition-colors hover:bg-white/5";
@@ -68,6 +87,11 @@ type MockRaffle = {
   ticketPriceNum?: number;
   reservedPending: number;
   paused: boolean;
+  summaryPt?: string | null;
+  genresPt?: string[];
+  seriesPt?: string[];
+  gameModesPt?: string[];
+  perspectivesPt?: string[];
 };
 
 type PendingTxnRow = {
@@ -79,33 +103,6 @@ type PendingTxnRow = {
   amountLabel: string;
   status: "Aguardando Pagamento" | "Pago" | "Expirado/Caído";
 };
-
-type GameSearchResult = {
-  id: number;
-  name: string;
-  background_image: string | null;
-};
-
-const MOCK_GAMES: GameSearchResult[] = [
-  {
-    id: 101,
-    name: "Elden Ring",
-    background_image:
-      "https://media.rawg.io/media/games/5c0/5c0ddfc02ee5f3d621a5b37b293fdb9f.jpg",
-  },
-  {
-    id: 102,
-    name: "Dead Space (2023)",
-    background_image:
-      "https://media.rawg.io/media/games/d58/d588947d428c20a53d210b82c51d257d.jpg",
-  },
-  {
-    id: 103,
-    name: "Counter-Strike 2",
-    background_image:
-      "https://media.rawg.io/media/games/736/73619bd336c2d05d4d929d60a1777c60.jpg",
-  },
-];
 
 const INITIAL_RAFFLES: MockRaffle[] = [
   {
@@ -221,31 +218,59 @@ function txnStatusClass(
   return "text-red-400/90";
 }
 
-async function fetchRawgGames(query: string): Promise<GameSearchResult[]> {
-  const key = process.env.NEXT_PUBLIC_RAWG_API_KEY;
-  const useMock =
-    !key ||
-    key === "SUA_CHAVE_AQUI" ||
-    key.trim() === "";
+function IgdbChipRow({
+  label,
+  items,
+}: {
+  label: string;
+  items: string[];
+}) {
+  if (!items.length) return null;
+  return (
+    <div className="mt-2.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-apex-text/45">
+        {label}
+      </p>
+      <div className="mt-1 flex flex-wrap gap-1.5">
+        {items.map((x, i) => (
+          <span
+            key={`${label}-${i}-${x}`}
+            className="rounded-md border border-apex-accent/20 bg-apex-accent/5 px-2 py-0.5 text-xs text-apex-text/85"
+          >
+            {x}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-  if (useMock) {
-    await new Promise((r) => setTimeout(r, 450));
-    const q = query.toLowerCase();
-    if (!q) return [];
-    return MOCK_GAMES.filter((g) => g.name.toLowerCase().includes(q));
-  }
-
-  const url = new URL("https://api.rawg.io/api/games");
-  url.searchParams.set("key", key);
-  url.searchParams.set("search", query);
-  url.searchParams.set("page_size", "8");
-
-  const res = await fetch(url.toString());
-  if (!res.ok) return [];
-  const data = (await res.json()) as {
-    results?: GameSearchResult[];
-  };
-  return data.results ?? [];
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  accentClass = "text-apex-accent",
+}: {
+  title: string;
+  value: string | number;
+  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  accentClass?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-apex-surface p-5 shadow-[0_4px_20px_rgb(0,0,0,0.25)]">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-apex-text-muted">
+          {title}
+        </p>
+        <div className="shrink-0 rounded-md bg-white/[0.04] p-1.5">
+          <Icon className={`size-4 ${accentClass}`} aria-hidden />
+        </div>
+      </div>
+      <p className="mt-3 text-2xl font-bold tabular-nums text-apex-text">
+        {value}
+      </p>
+    </div>
+  );
 }
 
 function mapRafflePublicToRow(r: RafflePublic): MockRaffle {
@@ -268,6 +293,11 @@ function mapRafflePublicToRow(r: RafflePublic): MockRaffle {
     ticketPriceNum: Number.isFinite(ticket) ? ticket : undefined,
     reservedPending: 0,
     paused: false,
+    summaryPt: r.summary ?? undefined,
+    genresPt: r.genres,
+    seriesPt: r.series,
+    gameModesPt: r.game_modes,
+    perspectivesPt: r.player_perspectives,
   };
 }
 
@@ -304,42 +334,24 @@ export default function AdminPage() {
 
   const isEditing = editingRaffleId !== null;
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<GameSearchResult[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const blurCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [igdbInputUrl, setIgdbInputUrl] = useState("");
+  const [isFetchingIgdb, setIsFetchingIgdb] = useState(false);
+  const [igdbStep, setIgdbStep] = useState(0);
+  const [igdbError, setIgdbError] = useState<string | null>(null);
+  const [igdbMeta, setIgdbMeta] = useState<IgdbGameInfoResponse | null>(null);
+  const [isTranslatingMeta, setIsTranslatingMeta] = useState(false);
+  const [summaryPt, setSummaryPt] = useState("");
+  const [genresPt, setGenresPt] = useState<string[]>([]);
+  const [seriesPt, setSeriesPt] = useState<string[]>([]);
+  const [gameModesPt, setGameModesPt] = useState<string[]>([]);
+  const [perspectivesPt, setPerspectivesPt] = useState<string[]>([]);
 
-  useEffect(() => {
-    const id = setTimeout(() => setSearchQuery(title.trim()), 500);
-    return () => clearTimeout(id);
-  }, [title]);
-
-  useEffect(() => {
-    if (searchQuery.length < 2) {
-      setSearchResults([]);
-      setSearchLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setSearchLoading(true);
-
-    (async () => {
-      try {
-        const results = await fetchRawgGames(searchQuery);
-        if (!cancelled) {
-          setSearchResults(results);
-        }
-      } finally {
-        if (!cancelled) setSearchLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [searchQuery]);
+  const [deletingRaffleId, setDeletingRaffleId] = useState<string | null>(
+    null,
+  );
+  const [rafflesDeleteError, setRafflesDeleteError] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     return () => {
@@ -349,34 +361,128 @@ export default function AdminPage() {
     };
   }, []);
 
-  const openSuggestions = useCallback(() => {
-    if (blurCloseRef.current) clearTimeout(blurCloseRef.current);
-    setSuggestionsOpen(true);
-  }, []);
-
-  const scheduleCloseSuggestions = useCallback(() => {
-    blurCloseRef.current = setTimeout(() => setSuggestionsOpen(false), 180);
-  }, []);
-
-  const selectGame = useCallback((game: GameSearchResult) => {
-    if (blurCloseRef.current) clearTimeout(blurCloseRef.current);
-    setTitle(game.name);
-    setImageUrl(game.background_image ?? "");
-    setSearchResults([]);
-    setSuggestionsOpen(false);
-  }, []);
-
   const resetCreateForm = useCallback(() => {
     setTitle("");
-    setSearchQuery("");
-    setSearchResults([]);
+    setIgdbInputUrl("");
+    setIgdbError(null);
+    setIgdbMeta(null);
+    setIsTranslatingMeta(false);
+    setSummaryPt("");
+    setGenresPt([]);
+    setSeriesPt([]);
+    setGameModesPt([]);
+    setPerspectivesPt([]);
     setImageUrl("");
     setVideoId("");
     setTotalPrice(0);
     setTotalTickets(0);
-    setSuggestionsOpen(false);
     setEditingRaffleId(null);
   }, []);
+
+  useEffect(() => {
+    if (!isFetchingIgdb) {
+      setIgdbStep(0);
+      return;
+    }
+    setIgdbStep(0);
+    const id = setInterval(() => {
+      setIgdbStep((s) =>
+        s < IGDB_LOADING_STEPS.length - 1 ? s + 1 : s,
+      );
+    }, 2200);
+    return () => clearInterval(id);
+  }, [isFetchingIgdb]);
+
+  const handleFetchIgdb = useCallback(async () => {
+    const url = igdbInputUrl.trim();
+    if (!url) {
+      setIgdbError("Cole a URL da ficha do jogo no IGDB.");
+      return;
+    }
+    setIgdbError(null);
+    setIsFetchingIgdb(true);
+    const debugIgdb =
+      process.env.NODE_ENV === "development" ||
+      process.env.NEXT_PUBLIC_DEBUG_IGDB === "1";
+    if (debugIgdb) {
+      console.log(
+        "[Apex IGDB][admin]",
+        JSON.stringify({
+          phase: "handleFetchIgdb:start",
+          igdbPageUrlPreview: url.slice(0, 100),
+        }),
+      );
+    }
+    try {
+      const data = await fetchIgdbGame(url);
+      setIgdbMeta(data);
+      const nextTitle =
+        (data.title?.trim() || data.name?.trim() || "").trim();
+      if (nextTitle) setTitle(nextTitle);
+      if (data.image_url) setImageUrl(data.image_url);
+      const yt = data.youtube_url?.trim();
+      if (yt) {
+        const idFromUrl = extractYoutubeVideoId(yt);
+        setVideoId(idFromUrl ?? yt);
+      }
+
+      setSummaryPt("");
+      setGenresPt([]);
+      setSeriesPt([]);
+      setGameModesPt([]);
+      setPerspectivesPt([]);
+      setIsTranslatingMeta(true);
+      try {
+        if (data.summary?.trim()) {
+          const { translated } = await translateToPtBr(data.summary.trim());
+          setSummaryPt(translated);
+        }
+        setGenresPt(await translateLabelList(data.genres ?? []));
+        setSeriesPt(await translateLabelList(data.series ?? []));
+        setGameModesPt(await translateLabelList(data.game_modes ?? []));
+        setPerspectivesPt(
+          await translateLabelList(data.player_perspectives ?? []),
+        );
+      } catch {
+        if (data.summary?.trim()) setSummaryPt(data.summary.trim());
+        setGenresPt([...(data.genres ?? [])]);
+        setSeriesPt([...(data.series ?? [])]);
+        setGameModesPt([...(data.game_modes ?? [])]);
+        setPerspectivesPt([...(data.player_perspectives ?? [])]);
+      } finally {
+        setIsTranslatingMeta(false);
+      }
+
+      if (debugIgdb) {
+        console.log(
+          "[Apex IGDB][admin]",
+          JSON.stringify({
+            phase: "handleFetchIgdb:success",
+            titleSet: Boolean(nextTitle),
+            imageSet: Boolean(data.image_url),
+            youtubePrefilled: Boolean(data.youtube_url?.trim()),
+            genres: data.genres?.length ?? 0,
+          }),
+        );
+      }
+    } catch (err) {
+      if (debugIgdb) {
+        console.warn(
+          "[Apex IGDB][admin]",
+          JSON.stringify({
+            phase: "handleFetchIgdb:error",
+            name: err instanceof Error ? err.name : typeof err,
+            message: err instanceof Error ? err.message : String(err),
+          }),
+        );
+      }
+      setIgdbError(
+        err instanceof Error ? err.message : "Falha ao buscar dados no IGDB.",
+      );
+    } finally {
+      setIsFetchingIgdb(false);
+    }
+  }, [igdbInputUrl]);
 
   const copyRafflePublicLink = useCallback((raffleId: string) => {
     if (copyFeedbackTimerRef.current) {
@@ -406,8 +512,14 @@ export default function AdminPage() {
     setTotalPrice(raffle.totalPriceNum ?? 0);
     setTotalTickets(raffle.total);
     setMessage(null);
-    setSuggestionsOpen(false);
-    setSearchResults([]);
+    setIgdbInputUrl("");
+    setIgdbError(null);
+    setIgdbMeta(null);
+    setSummaryPt(raffle.summaryPt ?? "");
+    setGenresPt(raffle.genresPt ?? []);
+    setSeriesPt(raffle.seriesPt ?? []);
+    setGameModesPt(raffle.gameModesPt ?? []);
+    setPerspectivesPt(raffle.perspectivesPt ?? []);
   }, []);
 
   const toggleRafflePause = useCallback((id: string) => {
@@ -415,6 +527,33 @@ export default function AdminPage() {
       prev.map((r) => (r.id === id ? { ...r, paused: !r.paused } : r)),
     );
   }, []);
+
+  const handleDeleteRaffle = useCallback(
+    async (raffleId: string) => {
+      setRafflesDeleteError(null);
+      setDeletingRaffleId(raffleId);
+      try {
+        const token = getAccessToken();
+        await adminDeleteRaffle(token ?? "", raffleId);
+        setRaffles((prev) => prev.filter((r) => r.id !== raffleId));
+        if (editingRaffleId === raffleId) {
+          resetCreateForm();
+          setMessage(null);
+        }
+      } catch (err) {
+        const msg =
+          err instanceof ApiError
+            ? (err.detail ?? err.message)
+            : err instanceof Error
+              ? err.message
+              : "Não foi possível apagar a rifa.";
+        setRafflesDeleteError(msg);
+      } finally {
+        setDeletingRaffleId(null);
+      }
+    },
+    [editingRaffleId, resetCreateForm],
+  );
 
   const handleCancelEdit = useCallback(() => {
     resetCreateForm();
@@ -475,13 +614,21 @@ export default function AdminPage() {
         headers.Authorization = `Bearer ${token}`;
       }
 
-      const body = JSON.stringify({
+      const bodyPayload: Record<string, unknown> = {
         title: trimmedTitle,
         image_url: imageUrl.trim() || null,
         video_id: videoIdForApi(videoId),
         total_price: totalPrice,
         total_tickets: totalTickets,
-      });
+      };
+      const s = summaryPt.trim();
+      if (s) bodyPayload.summary = s;
+      if (genresPt.length) bodyPayload.genres = genresPt;
+      if (seriesPt.length) bodyPayload.series = seriesPt;
+      if (gameModesPt.length) bodyPayload.game_modes = gameModesPt;
+      if (perspectivesPt.length)
+        bodyPayload.player_perspectives = perspectivesPt;
+      const body = JSON.stringify(bodyPayload);
 
       const url = editingRaffleId
         ? `${getApiBaseUrl()}/admin/raffles/${editingRaffleId}`
@@ -527,6 +674,23 @@ export default function AdminPage() {
               sold: existing.sold,
               reservedPending: existing.reservedPending,
               paused: existing.paused,
+              summaryPt: row.summaryPt ?? existing.summaryPt,
+              genresPt:
+                row.genresPt && row.genresPt.length > 0
+                  ? row.genresPt
+                  : existing.genresPt,
+              seriesPt:
+                row.seriesPt && row.seriesPt.length > 0
+                  ? row.seriesPt
+                  : existing.seriesPt,
+              gameModesPt:
+                row.gameModesPt && row.gameModesPt.length > 0
+                  ? row.gameModesPt
+                  : existing.gameModesPt,
+              perspectivesPt:
+                row.perspectivesPt && row.perspectivesPt.length > 0
+                  ? row.perspectivesPt
+                  : existing.perspectivesPt,
             };
           }),
         );
@@ -556,504 +720,911 @@ export default function AdminPage() {
     }
   };
 
+  // KPI derivations — raffles
+  const activeRafflesCount = raffles.filter(
+    (r) => raffleDisplayStatus(r) === "Aberta",
+  ).length;
+  const totalCollected = raffles.reduce((acc, r) => {
+    const ticket =
+      r.ticketPriceNum ??
+      (r.total > 0 && r.totalPriceNum ? r.totalPriceNum / r.total : 0);
+    return acc + ticket * r.sold;
+  }, 0);
+  const totalSoldTickets = raffles.reduce((acc, r) => acc + r.sold, 0);
+  const totalPendingPix = raffles.reduce(
+    (acc, r) => acc + r.reservedPending,
+    0,
+  );
+
+  // KPI derivations — transactions
+  const pendingTxnsCount = txns.filter(
+    (t) => t.status === "Aguardando Pagamento",
+  ).length;
+  const paidTxnsCount = txns.filter((t) => t.status === "Pago").length;
+  const expiredTxnsCount = txns.filter(
+    (t) => t.status === "Expirado/Caído",
+  ).length;
+
+  const innerTitle =
+    activeTab === "launch"
+      ? isEditing
+        ? "Editar Sorteio"
+        : "Lançar Nova Operação"
+      : activeTab === "raffles"
+        ? "Gestão de Rifas"
+        : "Transações & Controle";
+
+  const innerSubtitle =
+    activeTab === "launch"
+      ? isEditing
+        ? "Atualize os dados da operação selecionada"
+        : "Cadastre um novo sorteio na vitrine pública"
+      : activeTab === "raffles"
+        ? `${raffles.length} operação(ões) registada(s)`
+        : "Aprovação manual e controle de pagamentos";
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <header className="flex flex-col gap-4 border-b border-apex-surface pb-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex size-11 items-center justify-center rounded-lg border border-apex-primary/30 bg-apex-surface text-apex-accent">
-            <ShieldAlert className="size-6" aria-hidden />
+    // Full-bleed: escapa o padding do <main> do layout
+    <div className="-mx-4 -mb-8 -mt-6 flex min-h-[calc(100vh-4rem)] sm:-mx-6 lg:-mx-8">
+
+      {/* ── SIDEBAR ────────────────────────────────────────────── */}
+      <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 flex-col overflow-y-auto border-r border-white/5 bg-apex-surface lg:flex">
+        {/* Brand */}
+        <div className="flex items-center gap-3 border-b border-white/5 px-5 py-5">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-apex-accent/10 text-apex-accent">
+            <ShieldAlert className="size-4" aria-hidden />
           </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-apex-text sm:text-2xl">
-              Comando Central - Apex Keys
-            </h1>
-            <p className="text-sm text-apex-text/50">
-              Gestão de sorteios e operações
-            </p>
-          </div>
+          <span className="font-bold tracking-tight text-apex-text">
+            Apex QG
+          </span>
         </div>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm text-apex-text/50 transition-colors hover:text-apex-accent"
+
+        {/* Nav items */}
+        <nav
+          className="flex-1 space-y-0.5 px-3 py-4"
+          aria-label="Secções do painel"
         >
-          <ArrowLeft className="size-4 shrink-0" aria-hidden />
-          Voltar ao Site
-        </Link>
-      </header>
-
-      <nav
-        className="mt-8 flex flex-wrap gap-1 border-b border-apex-primary/15"
-        aria-label="Secções do painel"
-      >
-        {TAB_DEF.map(({ id, label, icon: Icon }) => {
-          const active = activeTab === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
-                active
-                  ? "border-apex-accent text-apex-accent"
-                  : "border-transparent text-apex-text/50 hover:text-apex-text/80"
-              }`}
-            >
-              <Icon className="size-4 shrink-0" aria-hidden />
-              {label}
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="mt-6">
-        {activeTab === "launch" ? (
-          <div className="grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-start">
-            <section className="rounded-xl border border-apex-primary/20 bg-apex-surface p-6">
-              <h2 className="text-lg font-bold text-apex-text">
-                {isEditing ? "Editar Sorteio" : "Iniciar Novo Sorteio"}
-              </h2>
-              <p className="mt-1 text-sm text-apex-text/50">
-                {isEditing
-                  ? "Atualize os dados da operação selecionada"
-                  : "Nova operação na vitrine"}
-              </p>
-              <form
-                className="mt-6 space-y-4"
-                onSubmit={handleCreateOrUpdateRaffle}
+          {TAB_DEF.map(({ id, label, icon: Icon }) => {
+            const active = activeTab === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setActiveTab(id)}
+                className={`relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  active
+                    ? "bg-white/[0.06] text-apex-accent"
+                    : "text-apex-text-muted hover:bg-white/[0.04] hover:text-apex-text"
+                }`}
               >
-                <div className="relative">
-                  <label className="block">
-                    <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
-                      Buscar jogo (RAWG)
-                    </span>
-                    <div className="relative">
-                      <Search
-                        className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-apex-accent/70"
-                        aria-hidden
-                      />
+                {active && (
+                  <span
+                    className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-apex-accent"
+                    aria-hidden
+                  />
+                )}
+                <Icon className="size-4 shrink-0" aria-hidden />
+                {label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Footer */}
+        <div className="border-t border-white/5 px-4 py-4">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-sm text-apex-text-muted transition-colors hover:text-apex-accent"
+          >
+            <ArrowLeft className="size-4 shrink-0" aria-hidden />
+            Voltar ao Site
+          </Link>
+        </div>
+      </aside>
+
+      {/* ── MAIN WORKSPACE ─────────────────────────────────────── */}
+      <div className="flex min-w-0 flex-1 flex-col">
+
+        {/* Mobile tab bar (< lg) */}
+        <nav
+          className="flex flex-wrap gap-1 border-b border-apex-primary/15 px-4 py-2 lg:hidden"
+          aria-label="Secções do painel"
+        >
+          {TAB_DEF.map(({ id, label, icon: Icon }) => {
+            const active = activeTab === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setActiveTab(id)}
+                className={`flex items-center gap-2 border-b-2 px-3 py-2 text-xs font-semibold transition-colors ${
+                  active
+                    ? "border-apex-accent text-apex-accent"
+                    : "border-transparent text-apex-text-muted hover:text-apex-text"
+                }`}
+              >
+                <Icon className="size-3.5 shrink-0" aria-hidden />
+                {label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Inner header (desktop) */}
+        <header className="sticky top-16 z-10 hidden items-center justify-between border-b border-white/[0.06] bg-apex-bg/95 px-6 py-4 backdrop-blur-sm lg:flex">
+          <div>
+            <h1 className="text-base font-bold text-apex-text lg:text-lg">
+              {innerTitle}
+            </h1>
+            <p className="text-xs text-apex-text-muted">{innerSubtitle}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {activeTab === "launch" && isEditing && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="text-sm text-apex-text-muted transition-colors hover:text-red-400"
+              >
+                Cancelar edição
+              </button>
+            )}
+            <Link
+              href="/"
+              className="hidden items-center gap-1.5 text-sm text-apex-text-muted transition-colors hover:text-apex-accent xl:flex"
+            >
+              <ArrowLeft className="size-4 shrink-0" aria-hidden />
+              Voltar ao Site
+            </Link>
+          </div>
+        </header>
+
+        {/* ── CONTENT ──────────────────────────────────────────── */}
+        <div className="flex-1 p-4 sm:p-6">
+
+          {/* ── TAB: LANÇAR OPERAÇÃO ─────────────────────────── */}
+          {activeTab === "launch" ? (
+            <form
+              onSubmit={handleCreateOrUpdateRaffle}
+              className="grid gap-6 xl:grid-cols-[1fr_320px] xl:items-start"
+            >
+              {/* Left — metadata */}
+              <div className="space-y-5 rounded-xl border border-apex-primary/20 bg-apex-surface p-5 shadow-[0_8px_30px_rgb(0,0,0,0.3)] sm:p-6">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  {/* IGDB URL */}
+                  <div className="sm:col-span-2">
+                    <label className="block">
+                      <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                        URL da ficha do jogo no IGDB
+                      </span>
                       <input
-                        type="text"
-                        value={title}
+                        type="url"
+                        value={igdbInputUrl}
                         onChange={(e) => {
-                          setTitle(e.target.value);
-                          openSuggestions();
+                          setIgdbInputUrl(e.target.value);
+                          setIgdbError(null);
                         }}
-                        onFocus={openSuggestions}
-                        onBlur={scheduleCloseSuggestions}
-                        className={`${inputClass} pl-10`}
-                        placeholder="Digite para buscar (ex: Elden)…"
+                        className={inputClass}
+                        placeholder="https://www.igdb.com/games/…"
                         autoComplete="off"
+                        disabled={isFetchingIgdb}
                       />
+                    </label>
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleFetchIgdb()}
+                        disabled={isFetchingIgdb}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-apex-accent/50 px-4 py-2 text-sm font-semibold text-apex-text-muted transition-colors hover:border-apex-accent hover:text-apex-accent disabled:cursor-not-allowed disabled:opacity-45"
+                      >
+                        {isFetchingIgdb ? (
+                          <Loader2
+                            className="size-4 shrink-0 animate-spin"
+                            aria-hidden
+                          />
+                        ) : (
+                          <Wand2 className="size-4 shrink-0" aria-hidden />
+                        )}
+                        {isFetchingIgdb ? "Buscando…" : "Buscar Dados"}
+                      </button>
                     </div>
+
+                    {isFetchingIgdb ? (
+                      <div
+                        role="status"
+                        aria-live="polite"
+                        className="mt-3 flex items-center gap-3 rounded-lg border border-apex-accent/20 bg-apex-bg/70 px-4 py-3 backdrop-blur-sm"
+                      >
+                        <div className="relative shrink-0">
+                          <span className="absolute inset-0 animate-ping rounded-full bg-apex-accent/20" />
+                          <Wand2
+                            className="relative size-4 text-apex-accent/80"
+                            aria-hidden
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p
+                            key={igdbStep}
+                            className="text-sm font-medium text-apex-accent/90"
+                          >
+                            {IGDB_LOADING_STEPS[igdbStep]}
+                          </p>
+                          <p className="mt-0.5 text-xs text-apex-text-muted">
+                            O scraper pode levar até 10 s na primeira tentativa
+                          </p>
+                        </div>
+                        <div className="ml-auto flex shrink-0 items-end gap-[3px] pb-[1px]">
+                          {[0, 1, 2].map((i) => (
+                            <span
+                              key={i}
+                              className="block w-[3px] animate-pulse rounded-full bg-apex-accent/50"
+                              style={{
+                                height: `${8 + i * 4}px`,
+                                animationDelay: `${i * 200}ms`,
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {!isFetchingIgdb && igdbError ? (
+                      <p
+                        role="alert"
+                        className="mt-2 text-sm text-red-400/90"
+                      >
+                        {igdbError}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  {/* Título */}
+                  <label className="block sm:col-span-2">
+                    <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                      Título da rifa
+                    </span>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className={inputClass}
+                      placeholder="Preenchido pela busca IGDB ou edite manualmente"
+                      autoComplete="off"
+                    />
                   </label>
 
-                  {suggestionsOpen &&
-                    (searchLoading || searchResults.length > 0) &&
-                    title.trim().length >= 2 && (
-                      <ul
-                        className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-apex-primary/20 bg-apex-surface shadow-2xl"
-                        role="listbox"
-                      >
-                        {searchLoading ? (
-                          <li className="flex items-center justify-center gap-2 px-3 py-4 text-sm text-apex-text/60">
-                            <Loader2
-                              className="size-4 shrink-0 animate-spin text-apex-accent"
-                              aria-hidden
-                            />
-                            Buscando jogos…
-                          </li>
-                        ) : searchResults.length === 0 ? (
-                          <li className="px-3 py-4 text-center text-sm text-apex-text/50">
-                            Nenhum jogo encontrado.
-                          </li>
-                        ) : (
-                          searchResults.map((game) => (
-                            <li key={game.id}>
-                              <button
-                                type="button"
-                                role="option"
-                                aria-selected={false}
-                                className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-apex-bg"
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => selectGame(game)}
-                              >
-                                <div className="relative size-12 shrink-0 overflow-hidden rounded-md bg-apex-bg">
-                                  {game.background_image ? (
-                                    <Image
-                                      src={game.background_image}
-                                      alt=""
-                                      fill
-                                      className="object-cover"
-                                      sizes="48px"
-                                    />
-                                  ) : null}
-                                </div>
-                                <span className="min-w-0 flex-1 truncate text-sm font-medium text-apex-text">
-                                  {game.name}
-                                </span>
-                              </button>
-                            </li>
-                          ))
-                        )}
-                      </ul>
-                    )}
+                  {/* URL capa */}
+                  <label className="block sm:col-span-2">
+                    <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                      URL da Imagem de Capa
+                    </span>
+                    <input
+                      type="url"
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      className={inputClass}
+                      placeholder="Preenchido pela busca IGDB ou cole uma URL"
+                    />
+                  </label>
                 </div>
 
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
-                    URL da Imagem de Capa
-                  </span>
-                  <input
-                    type="url"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    className={inputClass}
-                    placeholder="Preenchido ao escolher o jogo — editável"
-                  />
-                </label>
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
-                    Link do vídeo no YouTube (opcional)
-                  </span>
-                  <input
-                    type="text"
-                    value={videoId}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      const extracted = extractYoutubeVideoId(v);
-                      setVideoId(extracted ?? v);
-                    }}
-                    onBlur={(e) => {
-                      const v = e.target.value;
-                      const extracted = extractYoutubeVideoId(v);
-                      if (extracted) setVideoId(extracted);
-                    }}
-                    className={inputClass}
-                    placeholder="Ex.: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-                  />
-                </label>
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
-                    Preço total da rifa
-                  </span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    step="0.01"
-                    value={totalPrice > 0 ? totalPrice : ""}
-                    onChange={(e) => {
-                      const v = parseFloat(e.target.value);
-                      setTotalPrice(Number.isFinite(v) ? v : 0);
-                    }}
-                    className={inputClass}
-                    placeholder="Ex.: 300 (valor total a arrecadar)"
-                  />
-                </label>
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
-                    Total de bilhetes
-                  </span>
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={totalTickets > 0 ? totalTickets : ""}
-                    onChange={(e) => {
-                      const v = parseInt(e.target.value, 10);
-                      setTotalTickets(Number.isFinite(v) ? v : 0);
-                    }}
-                    className={inputClass}
-                    placeholder="100"
-                  />
-                </label>
-                <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-stretch">
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-apex-accent py-3 font-bold text-apex-bg transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isEditing ? (
-                      <Check className="size-5 shrink-0" aria-hidden />
-                    ) : (
-                      <Plus className="size-5 shrink-0" aria-hidden />
-                    )}
-                    {isLoading
-                      ? "Processando…"
-                      : isEditing
-                        ? "Salvar Alterações"
-                        : "Lançar Operação"}
-                  </button>
-                  {isEditing ? (
-                    <button
-                      type="button"
-                      disabled={isLoading}
-                      onClick={handleCancelEdit}
-                      className="shrink-0 rounded-xl border border-apex-text/20 bg-transparent px-5 py-3 text-sm font-medium text-apex-text/55 transition-colors hover:border-apex-text/35 hover:bg-apex-bg/50 hover:text-apex-text/80 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Cancelar
-                    </button>
-                  ) : null}
-                </div>
-                {message ? (
-                  <p
-                    role="status"
-                    className={
-                      message.type === "success"
-                        ? "mt-3 text-center text-sm text-apex-success"
-                        : "mt-3 text-center text-sm text-red-400"
-                    }
-                  >
-                    {message.text}
+                {/* Traduzindo */}
+                {isTranslatingMeta ? (
+                  <p className="flex items-center gap-2 text-sm text-apex-accent/90">
+                    <Loader2
+                      className="size-4 shrink-0 animate-spin"
+                      aria-hidden
+                    />
+                    A traduzir resumo e rótulos (EN → pt-BR)…
                   </p>
                 ) : null}
-              </form>
-            </section>
 
-            <section className="rounded-xl border border-apex-accent/10 bg-apex-surface p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]">
-              <p className="text-xs font-semibold uppercase tracking-wide text-apex-text/45">
-                Preview da capa
-              </p>
-              <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-lg border border-apex-primary/15 bg-apex-bg">
-                {imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- URL editável (qualquer host)
-                  <img
-                    src={imageUrl}
-                    alt={title || "Capa do jogo"}
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full min-h-[10rem] items-center justify-center text-sm text-apex-text/40">
-                    Selecione um jogo na busca ou cole uma URL
+                {/* Resumo */}
+                <div>
+                  <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                    Resumo (trecho IGDB)
+                  </span>
+                  <div
+                    className={`${inputClass} min-h-[7rem] cursor-default bg-apex-bg/70 text-apex-text/90`}
+                    aria-readonly
+                  >
+                    {isTranslatingMeta ? (
+                      <p className="text-sm text-apex-text/40">…</p>
+                    ) : summaryPt.trim() ? (
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                        {summaryPt.trim()}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-apex-text/45">
+                        Use «Buscar Dados» para carregar o resumo público da
+                        ficha.
+                      </p>
+                    )}
                   </div>
-                )}
-              </div>
-              {title ? (
-                <p className="mt-3 truncate text-sm font-semibold text-apex-text/90">
-                  {title}
-                </p>
-              ) : null}
-            </section>
-          </div>
-        ) : null}
-
-        {activeTab === "raffles" ? (
-          <section className="rounded-xl border border-apex-primary/20 bg-apex-surface p-4 sm:p-6">
-            <h2 className="text-lg font-bold text-apex-text">
-              Gestão de Rifas
-            </h2>
-            <p className="mt-1 text-sm text-apex-text/50">
-              {raffles.length} operação(ões) — visão em tabela
-            </p>
-
-            <div className="mt-6 overflow-x-auto rounded-lg border border-apex-primary/15">
-              <table className="w-full min-w-[920px] border-collapse text-left">
-                <thead>
-                  <tr className="bg-apex-bg/60">
-                    <th className={thClass}>Jogo / Título</th>
-                    <th className={`${thClass} min-w-[140px]`}>Progresso</th>
-                    <th className={thClass}>Reservados</th>
-                    <th className={thClass}>Cota / Total</th>
-                    <th className={thClass}>Arrecadado</th>
-                    <th className={thClass}>Status</th>
-                    <th className={`${thClass} text-right`}>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {raffles.map((raffle) => {
-                    const pct = Math.round(
-                      (raffle.sold / Math.max(raffle.total, 1)) * 100,
-                    );
-                    const ticket =
-                      raffle.ticketPriceNum ??
-                      (raffle.total > 0 && raffle.totalPriceNum
-                        ? raffle.totalPriceNum / raffle.total
-                        : 0);
-                    const collected = ticket * raffle.sold;
-                    const disp = raffleDisplayStatus(raffle);
+                  {(() => {
+                    const moreUrl = (
+                      igdbMeta?.igdb_url?.trim() || igdbInputUrl.trim()
+                    ).trim();
+                    if (!moreUrl) return null;
                     return (
-                      <tr key={raffle.id} className={rowClass}>
-                        <td className={tdClass}>
-                          <div className="flex min-w-0 items-center gap-3">
-                            {raffle.coverUrl ? (
-                              <div className="relative size-10 shrink-0 overflow-hidden rounded-md border border-apex-primary/20">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={raffle.coverUrl}
-                                  alt=""
-                                  className="size-full object-cover"
-                                />
-                              </div>
-                            ) : (
-                              <div className="size-10 shrink-0 rounded-md border border-dashed border-apex-text/20 bg-apex-bg" />
-                            )}
-                            <span className="min-w-0 font-medium text-apex-text">
-                              {raffle.title}
-                            </span>
+                      <a
+                        href={moreUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-apex-accent transition-colors hover:text-apex-accent/85"
+                      >
+                        Ver mais no IGDB
+                        <ExternalLink
+                          className="size-3.5 shrink-0 opacity-80"
+                          aria-hidden
+                        />
+                      </a>
+                    );
+                  })()}
+                </div>
+
+                {/* Chips PT-BR */}
+                <IgdbChipRow label="Géneros (PT-BR)" items={genresPt} />
+                <IgdbChipRow label="Séries (PT-BR)" items={seriesPt} />
+                <IgdbChipRow
+                  label="Modos de jogo (PT-BR)"
+                  items={gameModesPt}
+                />
+                <IgdbChipRow
+                  label="Perspectiva (PT-BR)"
+                  items={perspectivesPt}
+                />
+
+                {/* IGDB ref */}
+                {igdbMeta ? (
+                  <div className="rounded-lg border border-apex-primary/15 bg-apex-bg/45 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-apex-text-muted">
+                      Referência IGDB
+                    </p>
+                    {(() => {
+                      const igdbName = igdbMeta.name?.trim();
+                      const igdbTitle = igdbMeta.title?.trim();
+                      if (!igdbName || (igdbTitle && igdbName === igdbTitle))
+                        return null;
+                      return (
+                        <p className="mt-2 text-xs text-apex-text/55">
+                          <span className="text-apex-text/40">
+                            Nome (IGDB):{" "}
+                          </span>
+                          {igdbName}
+                        </p>
+                      );
+                    })()}
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-apex-text/55">
+                      <span>
+                        <span className="text-apex-text/40">slug: </span>
+                        <code className="text-apex-text/70">
+                          {igdbMeta.slug}
+                        </code>
+                      </span>
+                      {igdbMeta.igdb_game_id ? (
+                        <span>
+                          <span className="text-apex-text/40">id: </span>
+                          <code className="text-apex-text/70">
+                            {igdbMeta.igdb_game_id}
+                          </code>
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Right — preview + config */}
+              <div className="space-y-5">
+                {/* Preview card */}
+                <section className="rounded-xl border border-apex-accent/10 bg-apex-surface p-5 shadow-[0_8px_30px_rgb(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.02)]">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-apex-text-muted">
+                    Preview da capa
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-apex-text/40">
+                    Prop. vertical IGDB{" "}
+                    <span className="tabular-nums">264×352</span>
+                  </p>
+                  <div className="relative mt-3 flex justify-center">
+                    <div className="group relative w-full max-w-[240px] overflow-hidden rounded-lg border border-apex-primary/15 bg-apex-bg shadow-[0_4px_20px_rgb(0,0,0,0.4)] transition-all duration-300 hover:border-apex-secondary/40 hover:shadow-[0_6px_28px_rgb(0,0,0,0.5),0_0_0_1px_rgba(255,179,0,0.15)]">
+                      <div
+                        className={`relative aspect-[264/352] w-full transition-opacity ${isFetchingIgdb ? "opacity-40" : ""}`}
+                      >
+                        {imageUrl ? (
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element -- URL editável (qualquer host) */}
+                            <img
+                              src={imageUrl}
+                              alt=""
+                              aria-hidden
+                              className="pointer-events-none absolute inset-0 size-full scale-110 object-cover opacity-30 blur-2xl"
+                            />
+                            {/* eslint-disable-next-line @next/next/no-img-element -- URL editável (qualquer host) */}
+                            <img
+                              src={imageUrl}
+                              alt={title || "Capa do jogo"}
+                              className="absolute inset-0 z-10 size-full object-contain object-center drop-shadow-[0_6px_20px_rgba(0,0,0,0.7)] ring-1 ring-apex-secondary/25"
+                            />
+                          </>
+                        ) : (
+                          <div className="flex size-full min-h-0 items-center justify-center px-3 py-8 text-center text-sm text-apex-text/40">
+                            Busque no IGDB ou cole uma URL de imagem
                           </div>
-                        </td>
-                        <td className={tdClass}>
-                          <div className="flex flex-col gap-1.5">
-                            <span className="text-xs text-apex-text/55">
-                              {raffle.sold}/{raffle.total}
-                            </span>
-                            <div className="h-1.5 w-full max-w-[120px] overflow-hidden rounded-full border border-white/[0.06] bg-apex-bg">
-                              <div
-                                className="h-full rounded-full bg-apex-accent/85"
-                                style={{ width: `${pct}%` }}
-                              />
+                        )}
+                      </div>
+                      {isFetchingIgdb ? (
+                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 rounded-lg bg-apex-bg/80 backdrop-blur-sm">
+                          <div className="relative">
+                            <span className="absolute inset-0 animate-ping rounded-full bg-apex-accent/15" />
+                            <Wand2
+                              className="relative size-8 animate-pulse text-apex-accent"
+                              aria-hidden
+                            />
+                          </div>
+                          <div className="flex flex-col items-center gap-1 px-4 text-center">
+                            <p
+                              key={igdbStep}
+                              className="text-xs font-semibold text-apex-accent/85"
+                            >
+                              {IGDB_LOADING_STEPS[igdbStep]}
+                            </p>
+                            <div className="mt-1 flex gap-1">
+                              {IGDB_LOADING_STEPS.map((_, i) => (
+                                <span
+                                  key={i}
+                                  className={`block h-[3px] w-4 rounded-full transition-all duration-500 ${
+                                    i <= igdbStep
+                                      ? "bg-apex-accent/80"
+                                      : "bg-apex-text-muted/25"
+                                  }`}
+                                />
+                              ))}
                             </div>
                           </div>
-                        </td>
-                        <td className={`${tdClass} text-apex-text/75`}>
-                          {raffle.reservedPending} aguard. Pix
-                        </td>
-                        <td className={`${tdClass} text-apex-text/80`}>
-                          <span className="text-apex-accent/90">
-                            {raffle.priceLabel}
-                          </span>
-                          <span className="text-apex-text/45"> · </span>
-                          <span>
-                            {raffle.totalPriceNum != null
-                              ? formatBrl(raffle.totalPriceNum)
-                              : "—"}
-                          </span>
-                        </td>
-                        <td className={`${tdClass} font-medium tabular-nums text-apex-text`}>
-                          {formatBrl(collected)}
-                        </td>
-                        <td className={tdClass}>
-                          <span
-                            className={`inline-flex rounded-md border px-2 py-0.5 text-xs font-medium ${statusBadgeClass(disp)}`}
-                          >
-                            {disp}
-                          </span>
-                        </td>
-                        <td className={`${tdClass} text-right`}>
-                          <div className="flex items-center justify-end gap-0.5">
-                            <button
-                              type="button"
-                              onClick={() => loadRaffleIntoForm(raffle)}
-                              className="rounded-md p-2 text-apex-text/50 transition-colors hover:bg-white/5 hover:text-apex-accent"
-                              aria-label="Editar dados da rifa"
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                  {title ? (
+                    <p className="mt-3 truncate text-center text-sm font-semibold text-apex-text/90">
+                      {title}
+                    </p>
+                  ) : null}
+                </section>
+
+                {/* Config card — YouTube + price + tickets + submit */}
+                <section className="rounded-xl border border-apex-primary/20 bg-apex-surface p-5 shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+                  <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-apex-text-muted">
+                    Configuração financeira
+                  </p>
+                  <div className="space-y-4">
+                    <label className="block">
+                      <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                        Link do vídeo no YouTube (opcional)
+                      </span>
+                      <input
+                        type="text"
+                        value={videoId}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          const extracted = extractYoutubeVideoId(v);
+                          setVideoId(extracted ?? v);
+                        }}
+                        onBlur={(e) => {
+                          const v = e.target.value;
+                          const extracted = extractYoutubeVideoId(v);
+                          if (extracted) setVideoId(extracted);
+                        }}
+                        className={inputClass}
+                        placeholder="https://www.youtube.com/watch?v=…"
+                      />
+                    </label>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="block">
+                        <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                          Preço total (R$)
+                        </span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          step="0.01"
+                          value={totalPrice > 0 ? totalPrice : ""}
+                          onChange={(e) => {
+                            const v = parseFloat(e.target.value);
+                            setTotalPrice(Number.isFinite(v) ? v : 0);
+                          }}
+                          className={inputClass}
+                          placeholder="300"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                          Total de bilhetes
+                        </span>
+                        <input
+                          type="number"
+                          min={1}
+                          step={1}
+                          value={totalTickets > 0 ? totalTickets : ""}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value, 10);
+                            setTotalTickets(Number.isFinite(v) ? v : 0);
+                          }}
+                          className={inputClass}
+                          placeholder="100"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-stretch">
+                      <button
+                        type="submit"
+                        disabled={isLoading || isFetchingIgdb || isTranslatingMeta}
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-apex-accent to-teal-500 py-3 font-bold text-apex-bg shadow-[0_4px_16px_rgba(0,229,255,0.3)] transition-all hover:shadow-[0_6px_22px_rgba(0,229,255,0.4)] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isEditing ? (
+                          <Check className="size-5 shrink-0" aria-hidden />
+                        ) : (
+                          <Plus className="size-5 shrink-0" aria-hidden />
+                        )}
+                        {isLoading
+                          ? "Processando…"
+                          : isTranslatingMeta
+                            ? "Traduzindo metadados…"
+                            : isEditing
+                              ? "Salvar Alterações"
+                              : "Lançar Operação"}
+                      </button>
+                      {isEditing ? (
+                        <button
+                          type="button"
+                          disabled={isLoading}
+                          onClick={handleCancelEdit}
+                          className="shrink-0 rounded-xl border border-apex-text/20 bg-transparent px-5 py-3 text-sm font-medium text-apex-text/55 transition-colors hover:border-apex-text/35 hover:bg-apex-bg/50 hover:text-apex-text/80 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Cancelar
+                        </button>
+                      ) : null}
+                    </div>
+
+                    {message ? (
+                      <p
+                        role="status"
+                        className={
+                          message.type === "success"
+                            ? "text-center text-sm text-apex-success"
+                            : "text-center text-sm text-red-400"
+                        }
+                      >
+                        {message.text}
+                      </p>
+                    ) : null}
+                  </div>
+                </section>
+              </div>
+            </form>
+          ) : null}
+
+          {/* ── TAB: GESTÃO DE RIFAS ─────────────────────────── */}
+          {activeTab === "raffles" ? (
+            <div className="space-y-6">
+              {/* KPI cards */}
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <StatCard
+                  title="Rifas Ativas"
+                  value={activeRafflesCount}
+                  icon={Activity}
+                  accentClass="text-emerald-400"
+                />
+                <StatCard
+                  title="Arrecadado Total"
+                  value={formatBrl(totalCollected)}
+                  icon={TrendingUp}
+                  accentClass="text-apex-accent"
+                />
+                <StatCard
+                  title="Bilhetes Vendidos"
+                  value={totalSoldTickets}
+                  icon={Hash}
+                  accentClass="text-apex-secondary"
+                />
+                <StatCard
+                  title="Aguardando PIX"
+                  value={totalPendingPix}
+                  icon={Clock}
+                  accentClass="text-amber-400"
+                />
+              </div>
+
+              {/* Table */}
+              <section className="rounded-xl border border-apex-primary/20 bg-apex-surface shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+                {rafflesDeleteError ? (
+                  <p
+                    role="alert"
+                    className="px-5 pt-4 text-sm text-red-400/90"
+                  >
+                    {rafflesDeleteError}
+                  </p>
+                ) : null}
+                <div className="overflow-x-auto rounded-xl">
+                  <table className="w-full min-w-[920px] border-collapse text-left">
+                    <thead>
+                      <tr className="bg-apex-bg/50">
+                        <th className={thClass}>Jogo / Título</th>
+                        <th className={`${thClass} min-w-[140px]`}>
+                          Progresso
+                        </th>
+                        <th className={thClass}>Reservados</th>
+                        <th className={thClass}>Cota / Total</th>
+                        <th className={thClass}>Arrecadado</th>
+                        <th className={thClass}>Status</th>
+                        <th className={`${thClass} text-right`}>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {raffles.map((raffle) => {
+                        const pct = Math.round(
+                          (raffle.sold / Math.max(raffle.total, 1)) * 100,
+                        );
+                        const ticket =
+                          raffle.ticketPriceNum ??
+                          (raffle.total > 0 && raffle.totalPriceNum
+                            ? raffle.totalPriceNum / raffle.total
+                            : 0);
+                        const collected = ticket * raffle.sold;
+                        const disp = raffleDisplayStatus(raffle);
+                        return (
+                          <tr key={raffle.id} className={rowClass}>
+                            <td className={tdClass}>
+                              <div className="flex min-w-0 items-center gap-3">
+                                {raffle.coverUrl ? (
+                                  <div className="relative size-10 shrink-0 overflow-hidden rounded-md border border-apex-primary/20">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={raffle.coverUrl}
+                                      alt=""
+                                      className="size-full object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="size-10 shrink-0 rounded-md border border-dashed border-apex-text/20 bg-apex-bg" />
+                                )}
+                                <span className="min-w-0 font-medium text-apex-text">
+                                  {raffle.title}
+                                </span>
+                              </div>
+                            </td>
+                            <td className={tdClass}>
+                              <div className="flex flex-col gap-1.5">
+                                <span className="text-xs text-apex-text/55">
+                                  {raffle.sold}/{raffle.total}
+                                </span>
+                                <div className="h-1.5 w-full max-w-[120px] overflow-hidden rounded-full border border-white/[0.06] bg-apex-bg">
+                                  <div
+                                    className="h-full rounded-full bg-apex-accent/85"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                            <td className={`${tdClass} text-apex-text/75`}>
+                              {raffle.reservedPending} aguard. Pix
+                            </td>
+                            <td className={`${tdClass} text-apex-text/80`}>
+                              <span className="text-apex-accent/90">
+                                {raffle.priceLabel}
+                              </span>
+                              <span className="text-apex-text/45"> · </span>
+                              <span>
+                                {raffle.totalPriceNum != null
+                                  ? formatBrl(raffle.totalPriceNum)
+                                  : "—"}
+                              </span>
+                            </td>
+                            <td
+                              className={`${tdClass} font-medium tabular-nums text-apex-text`}
                             >
-                              <Edit className="size-4" aria-hidden />
-                            </button>
-                            <div className="relative inline-flex">
+                              {formatBrl(collected)}
+                            </td>
+                            <td className={tdClass}>
+                              <span
+                                className={`inline-flex rounded-md border px-2 py-0.5 text-xs font-medium ${statusBadgeClass(disp)}`}
+                              >
+                                {disp}
+                              </span>
+                            </td>
+                            <td className={`${tdClass} text-right`}>
+                              <div className="flex items-center justify-end gap-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => loadRaffleIntoForm(raffle)}
+                                  className="rounded-md p-2 text-apex-text-muted transition-colors hover:bg-apex-accent/5 hover:text-apex-accent"
+                                  aria-label="Editar dados da rifa"
+                                >
+                                  <Edit className="size-4" aria-hidden />
+                                </button>
+                                <div className="relative inline-flex">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      copyRafflePublicLink(raffle.id)
+                                    }
+                                    className="rounded-md p-2 text-apex-text-muted transition-colors hover:bg-apex-accent/5 hover:text-apex-accent"
+                                    aria-label="Copiar link público"
+                                  >
+                                    <LinkIcon className="size-4" aria-hidden />
+                                  </button>
+                                  {copiedRaffleId === raffle.id ? (
+                                    <span className="pointer-events-none absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap rounded border border-apex-accent/25 bg-apex-bg px-1.5 py-0.5 text-[10px] font-semibold text-apex-accent">
+                                      Copiado
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleRafflePause(raffle.id)}
+                                  className="rounded-md p-2 text-apex-text-muted transition-colors hover:bg-apex-secondary/5 hover:text-apex-secondary"
+                                  aria-label={
+                                    raffle.paused
+                                      ? "Retomar rifa"
+                                      : "Pausar rifa"
+                                  }
+                                >
+                                  <CirclePause
+                                    className="size-4"
+                                    aria-hidden
+                                  />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void handleDeleteRaffle(raffle.id)
+                                  }
+                                  disabled={deletingRaffleId === raffle.id}
+                                  className="rounded-md p-2 text-apex-text-muted transition-colors hover:bg-red-500/8 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+                                  aria-label="Apagar rifa"
+                                >
+                                  {deletingRaffleId === raffle.id ? (
+                                    <Loader2
+                                      className="size-4 animate-spin"
+                                      aria-hidden
+                                    />
+                                  ) : (
+                                    <Trash2 className="size-4" aria-hidden />
+                                  )}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          ) : null}
+
+          {/* ── TAB: TRANSAÇÕES ──────────────────────────────── */}
+          {activeTab === "transactions" ? (
+            <div className="space-y-6">
+              {/* KPI cards */}
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <StatCard
+                  title="Total Transações"
+                  value={txns.length}
+                  icon={ReceiptText}
+                  accentClass="text-apex-accent"
+                />
+                <StatCard
+                  title="Aguardando"
+                  value={pendingTxnsCount}
+                  icon={Clock}
+                  accentClass="text-amber-400"
+                />
+                <StatCard
+                  title="Aprovados"
+                  value={paidTxnsCount}
+                  icon={BadgeCheck}
+                  accentClass="text-emerald-400"
+                />
+                <StatCard
+                  title="Cancelados"
+                  value={expiredTxnsCount}
+                  icon={XCircle}
+                  accentClass="text-red-400"
+                />
+              </div>
+
+              {/* Table */}
+              <section className="rounded-xl border border-apex-primary/20 bg-apex-surface shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+                <div className="overflow-x-auto rounded-xl">
+                  <table className="w-full min-w-[860px] border-collapse text-left">
+                    <thead>
+                      <tr className="bg-apex-bg/50">
+                        <th className={thClass}>Cliente</th>
+                        <th className={thClass}>Rifa</th>
+                        <th className={thClass}>Números</th>
+                        <th className={thClass}>Valor</th>
+                        <th className={thClass}>Status</th>
+                        <th className={`${thClass} text-right`}>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {txns.map((t) => (
+                        <tr key={t.id} className={rowClass}>
+                          <td className={tdClass}>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-medium text-apex-text">
+                                {t.clientName}
+                              </span>
+                              <span className="text-xs text-apex-text/50">
+                                {t.clientEmail}
+                              </span>
+                            </div>
+                          </td>
+                          <td className={`${tdClass} max-w-[200px]`}>
+                            <span className="line-clamp-2">
+                              {t.raffleTitle}
+                            </span>
+                          </td>
+                          <td
+                            className={`${tdClass} font-mono text-xs text-apex-accent/90`}
+                          >
+                            {t.numbersLabel}
+                          </td>
+                          <td
+                            className={`${tdClass} font-medium tabular-nums`}
+                          >
+                            {t.amountLabel}
+                          </td>
+                          <td className={tdClass}>
+                            <span
+                              className={`text-sm font-medium ${txnStatusClass(t.status)}`}
+                            >
+                              {t.status}
+                            </span>
+                          </td>
+                          <td className={`${tdClass} text-right`}>
+                            <div className="flex flex-wrap items-center justify-end gap-2">
                               <button
                                 type="button"
-                                onClick={() => copyRafflePublicLink(raffle.id)}
-                                className="rounded-md p-2 text-apex-text/50 transition-colors hover:bg-white/5 hover:text-apex-accent"
-                                aria-label="Copiar link público"
+                                disabled={
+                                  t.status !== "Aguardando Pagamento"
+                                }
+                                onClick={() => approveTxn(t.id)}
+                                className="rounded-lg border border-emerald-500/40 px-2.5 py-1.5 text-xs font-semibold text-emerald-400/95 transition-colors hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-35"
                               >
-                                <LinkIcon className="size-4" aria-hidden />
+                                Aprovar Manualmente
                               </button>
-                              {copiedRaffleId === raffle.id ? (
-                                <span className="pointer-events-none absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap rounded border border-apex-accent/25 bg-apex-bg px-1.5 py-0.5 text-[10px] font-semibold text-apex-accent">
-                                  Copiado
-                                </span>
-                              ) : null}
+                              <button
+                                type="button"
+                                disabled={
+                                  t.status !== "Aguardando Pagamento"
+                                }
+                                onClick={() => cancelTxnRelease(t.id)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-red-500/45 px-2.5 py-1.5 text-xs font-semibold text-red-400/95 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-35"
+                              >
+                                <XCircle
+                                  className="size-3.5 shrink-0"
+                                  aria-hidden
+                                />
+                                Cancelar / Libertar
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => toggleRafflePause(raffle.id)}
-                              className="rounded-md p-2 text-apex-text/50 transition-colors hover:bg-white/5 hover:text-amber-400/90"
-                              aria-label={
-                                raffle.paused
-                                  ? "Retomar rifa"
-                                  : "Pausar rifa"
-                              }
-                            >
-                              <CirclePause className="size-4" aria-hidden />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
             </div>
-          </section>
-        ) : null}
+          ) : null}
 
-        {activeTab === "transactions" ? (
-          <section className="rounded-xl border border-apex-primary/20 bg-apex-surface p-4 sm:p-6">
-            <h2 className="text-lg font-bold text-apex-text">
-              Transações &amp; Controle
-            </h2>
-            <p className="mt-1 text-sm text-apex-text/50">
-              Aprovação manual e libertação de números (dados de demonstração —
-              integrar com API quando disponível)
-            </p>
-
-            <div className="mt-6 overflow-x-auto rounded-lg border border-apex-primary/15">
-              <table className="w-full min-w-[860px] border-collapse text-left">
-                <thead>
-                  <tr className="bg-apex-bg/60">
-                    <th className={thClass}>Cliente</th>
-                    <th className={thClass}>Rifa</th>
-                    <th className={thClass}>Números</th>
-                    <th className={thClass}>Valor</th>
-                    <th className={thClass}>Status</th>
-                    <th className={`${thClass} text-right`}>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {txns.map((t) => (
-                    <tr key={t.id} className={rowClass}>
-                      <td className={tdClass}>
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-medium text-apex-text">
-                            {t.clientName}
-                          </span>
-                          <span className="text-xs text-apex-text/50">
-                            {t.clientEmail}
-                          </span>
-                        </div>
-                      </td>
-                      <td className={`${tdClass} max-w-[200px]`}>
-                        <span className="line-clamp-2">{t.raffleTitle}</span>
-                      </td>
-                      <td className={`${tdClass} font-mono text-xs text-apex-accent/90`}>
-                        {t.numbersLabel}
-                      </td>
-                      <td className={`${tdClass} font-medium tabular-nums`}>
-                        {t.amountLabel}
-                      </td>
-                      <td className={tdClass}>
-                        <span className={`text-sm font-medium ${txnStatusClass(t.status)}`}>
-                          {t.status}
-                        </span>
-                      </td>
-                      <td className={`${tdClass} text-right`}>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            disabled={t.status !== "Aguardando Pagamento"}
-                            onClick={() => approveTxn(t.id)}
-                            className="rounded-lg border border-emerald-500/40 px-2.5 py-1.5 text-xs font-semibold text-emerald-400/95 transition-colors hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-35"
-                          >
-                            Aprovar Manualmente
-                          </button>
-                          <button
-                            type="button"
-                            disabled={t.status !== "Aguardando Pagamento"}
-                            onClick={() => cancelTxnRelease(t.id)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-red-500/45 px-2.5 py-1.5 text-xs font-semibold text-red-400/95 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-35"
-                          >
-                            <XCircle className="size-3.5 shrink-0" aria-hidden />
-                            Cancelar / Libertar
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        ) : null}
+        </div>
       </div>
     </div>
   );

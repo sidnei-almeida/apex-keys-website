@@ -21,7 +21,7 @@ import type {
   UserPublic,
   WalletBalanceResponse,
 } from "@/types/api";
-import { getJson, postJson } from "./http";
+import { deleteRequest, getJson, postJson } from "./http";
 
 export async function getHealth(): Promise<{ status: string }> {
   return getJson("/health");
@@ -103,6 +103,13 @@ export async function adminCancelRaffle(
     {},
     token,
   );
+}
+
+export async function adminDeleteRaffle(
+  token: string,
+  raffleId: string,
+): Promise<void> {
+  await deleteRequest(`/admin/raffles/${raffleId}`, token);
 }
 
 export async function adminAdjustBalance(

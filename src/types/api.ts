@@ -41,6 +41,12 @@ export type RafflePublic = {
   ticket_price: string;
   status: string;
   created_at: string;
+  /** Metadados IGDB / copy — opcionais até o backend expor no OpenAPI */
+  summary?: string | null;
+  genres?: string[];
+  series?: string[];
+  game_modes?: string[];
+  player_perspectives?: string[];
 };
 
 export type TicketPurchaseRequest = {
@@ -69,6 +75,11 @@ export type AdminRaffleCreate = {
   video_id: string | null;
   total_price: number;
   total_tickets: number;
+  summary?: string | null;
+  genres?: string[];
+  series?: string[];
+  game_modes?: string[];
+  player_perspectives?: string[];
 };
 
 export type RaffleCancelResponse = {
