@@ -12,6 +12,7 @@ import type {
   IgdbGameUrlRequest,
   MyTicketOut,
   RaffleCancelResponse,
+  RaffleDetailOut,
   RaffleListOut,
   RafflePublic,
   RaffleStatusApi,
@@ -92,6 +93,10 @@ export async function getRaffles(params?: {
     ? `?status=${encodeURIComponent(params.status)}`
     : "";
   return getJson<RaffleListOut[]>(`/raffles${q}`);
+}
+
+export async function getRaffleById(id: string): Promise<RaffleDetailOut> {
+  return getJson<RaffleDetailOut>(`/raffles/${encodeURIComponent(id)}`);
 }
 
 export async function buyTicket(

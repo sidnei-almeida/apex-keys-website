@@ -56,6 +56,9 @@ export type RafflePublic = {
 /** RafflePublic + sold (quantidade vendida) — retorno de GET /raffles */
 export type RaffleListOut = RafflePublic & { sold: number };
 
+/** RaffleListOut + sold_numbers — retorno de GET /raffles/{id} */
+export type RaffleDetailOut = RaffleListOut & { sold_numbers: number[] };
+
 export type TicketPurchaseRequest = {
   raffle_id: string;
   ticket_number: number;

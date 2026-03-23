@@ -1,45 +1,120 @@
 "use client";
 
-import { ArrowLeft, Gamepad2 } from "lucide-react";
+import { getRaffleById } from "@/lib/api/services";
+import { getApiBaseUrl } from "@/lib/api/config";
+import type { RaffleDetailOut } from "@/types/api";
+import { ArrowLeft, Gamepad2, Loader2 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-const SOLD_NUMBERS = new Set([13, 42, 99]);
-const PRICE_PER_NUMBER = 3;
-const RAFFLE_TITLE = "Dead Space Remake - Steam Key";
+function formatBRL(value: string | number) {
+  const n = typeof value === "string" ? parseFloat(value) : value;
+  return isNaN(n)
+    ? "R$ 0,00"
+    : n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
-function formatBRL(value: number) {
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
+function raffleImageUrl(url: string | null) {
+  if (!url) return null;
+  if (url.startsWith("http")) return url;
+  return `${getApiBaseUrl()}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
 export default function RafflePage() {
+  const params = useParams<{ id: string }>();
+  const raffleId = params?.id ?? null;
+  const [raffle, setRaffle] = useState<RaffleDetailOut | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
+
+  useEffect(() => {
+    if (!raffleId) {
+      setLoading(false);
+      setError("ID da rifa não encontrado");
+      return;
+    }
+    getRaffleById(raffleId)
+      .then(setRaffle)
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Erro ao carregar rifa")
+      )
+      .finally(() => setLoading(false));
+  }, [raffleId]);
+
+  const soldSet = useMemo(
+    () => new Set(raffle?.sold_numbers ?? []),
+    [raffle?.sold_numbers]
+  );
 
   const selectedSet = useMemo(
     () => new Set(selectedNumbers),
-    [selectedNumbers],
+    [selectedNumbers]
   );
 
-  const toggleNumber = useCallback((num: number) => {
-    if (SOLD_NUMBERS.has(num)) return;
-    setSelectedNumbers((prev) => {
-      if (prev.includes(num)) {
-        return prev.filter((n) => n !== num);
-      }
-      return [...prev, num].sort((a, b) => a - b);
-    });
-  }, []);
+  const toggleNumber = useCallback(
+    (num: number) => {
+      if (!raffle || soldSet.has(num)) return;
+      setSelectedNumbers((prev) => {
+        if (prev.includes(num)) {
+          return prev.filter((n) => n !== num);
+        }
+        return [...prev, num].sort((a, b) => a - b);
+      });
+    },
+    [raffle, soldSet]
+  );
 
-  const totalPay = selectedNumbers.length * PRICE_PER_NUMBER;
+  const ticketPrice = raffle ? parseFloat(raffle.ticket_price) : 0;
+  const totalPay = selectedNumbers.length * ticketPrice;
   const canPay = selectedNumbers.length > 0;
 
   const numbers = useMemo(
-    () => Array.from({ length: 100 }, (_, i) => i + 1),
-    [],
+    () =>
+      raffle
+        ? Array.from({ length: raffle.total_tickets }, (_, i) => i + 1)
+        : [],
+    [raffle?.total_tickets]
   );
+
+  const imageUrl = raffle ? raffleImageUrl(raffle.image_url) : null;
+  const videoId = raffle?.video_id ?? null;
+  const hasIgdbData =
+    raffle &&
+    ((raffle.summary && raffle.summary.trim()) ||
+      (raffle.genres && raffle.genres.length > 0));
+
+  if (loading) {
+    return (
+      <div className="mx-auto flex min-h-[60vh] max-w-7xl items-center justify-center px-4">
+        <Loader2
+          className="size-12 animate-spin text-apex-accent"
+          aria-hidden
+        />
+      </div>
+    );
+  }
+
+  if (error || !raffle) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-12">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-apex-accent"
+        >
+          <ArrowLeft className="size-4 shrink-0" aria-hidden />
+          Voltar
+        </Link>
+        <div className="mt-8 rounded-xl border border-red-500/30 bg-red-500/10 p-8 text-center">
+          <p className="text-red-400">
+            {error ?? "Rifa não encontrada"}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12">
@@ -55,19 +130,72 @@ export default function RafflePage() {
         <div className="flex flex-col gap-6">
           <div className="mx-auto w-full max-w-xs">
             <div className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-xl bg-apex-surface shadow-[0_0_30px_rgba(0,212,255,0.15)]">
-              <Gamepad2
-                className="size-20 text-apex-accent/35 sm:size-24"
-                strokeWidth={1.15}
-                aria-hidden
-              />
+              {imageUrl ? (
+                <Image
+                  src={imageUrl}
+                  alt={raffle.title}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              ) : (
+                <Gamepad2
+                  className="size-20 text-apex-accent/35 sm:size-24"
+                  strokeWidth={1.15}
+                  aria-hidden
+                />
+              )}
             </div>
           </div>
+
+          {videoId && (
+            <div className="mx-auto w-full max-w-xs">
+              <h3 className="mb-2 text-sm font-semibold text-apex-text/80">
+                Trailer
+              </h3>
+              <div className="relative aspect-video overflow-hidden rounded-xl bg-apex-bg">
+                <iframe
+                  src={`https://www.youtube.com/embed/${videoId}`}
+                  title="Trailer do jogo"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 h-full w-full"
+                />
+              </div>
+            </div>
+          )}
+
+          {hasIgdbData && (
+            <div className="rounded-xl border border-apex-primary/20 bg-apex-surface/60 p-4">
+              <h3 className="mb-2 text-sm font-semibold text-apex-accent">
+                Sobre o jogo
+              </h3>
+              {raffle.summary?.trim() && (
+                <p className="text-sm leading-relaxed text-apex-text/85">
+                  {raffle.summary}
+                </p>
+              )}
+              {raffle.genres && raffle.genres.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {raffle.genres.map((g) => (
+                    <span
+                      key={g}
+                      className="rounded-md bg-apex-accent/15 px-2 py-0.5 text-xs text-apex-accent"
+                    >
+                      {g}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-apex-text sm:text-3xl">
-              {RAFFLE_TITLE}
+              {raffle.title}
             </h1>
             <p className="mt-2 text-apex-success">
-              {formatBRL(PRICE_PER_NUMBER)} / cota
+              {formatBRL(raffle.ticket_price)} / cota
             </p>
           </div>
 
@@ -124,7 +252,7 @@ export default function RafflePage() {
 
           <div className="mt-6 grid grid-cols-5 gap-2 sm:grid-cols-10">
             {numbers.map((num) => {
-              const sold = SOLD_NUMBERS.has(num);
+              const sold = soldSet.has(num);
               const selected = selectedSet.has(num);
 
               let className =
