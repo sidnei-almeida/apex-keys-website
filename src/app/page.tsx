@@ -139,21 +139,21 @@ export default function Home() {
                 key={raffle.id}
                 className={`group overflow-hidden rounded-xl bg-apex-surface ${edgeSurface} transition-all duration-300 hover:-translate-y-1 hover:border-apex-accent/40 hover:shadow-[0_12px_40px_rgb(0,0,0,0.45),0_0_0_1px_rgba(0,229,255,0.1),inset_0_1px_1px_rgba(255,255,255,0.04)]`}
               >
-                <div className="relative flex aspect-video items-center justify-center overflow-hidden border-b border-white/[0.05] bg-apex-bg transition-colors duration-300 group-hover:border-apex-accent/15">
+                <div className="relative flex aspect-[1060/9] w-full items-center justify-center overflow-hidden border-b border-white/[0.05] bg-apex-bg transition-colors duration-300 group-hover:border-apex-accent/15">
                   {raffle.imageUrl ? (
                     <>
-                      {/* Camada de fundo — mesma imagem esticada + desfoque pesado */}
+                      {/* Camada de fundo — mesma imagem + desfoque pesado */}
                       <img
                         src={raffle.imageUrl}
                         alt=""
                         aria-hidden
-                        className="pointer-events-none absolute inset-0 size-full scale-110 object-cover opacity-30 blur-2xl"
+                        className="pointer-events-none absolute inset-0 size-full scale-110 object-cover object-center opacity-30 blur-2xl"
                       />
-                      {/* Imagem original centralizada e nítida */}
+                      {/* Imagem preenche o container (object-cover para resoluções variadas) */}
                       <img
                         src={raffle.imageUrl}
                         alt={raffle.title}
-                        className="relative z-10 h-full object-contain drop-shadow-[0_4px_16px_rgba(0,0,0,0.65)] ring-1 ring-apex-secondary/20"
+                        className="relative z-10 size-full object-cover object-center drop-shadow-[0_4px_16px_rgba(0,0,0,0.65)] ring-1 ring-apex-secondary/20"
                       />
                     </>
                   ) : (

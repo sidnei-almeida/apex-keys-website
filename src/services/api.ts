@@ -41,8 +41,6 @@ export interface IgdbGameInfoResponse {
   name: string | null;
   title: string | null;
   summary: string | null;
-  image_url: string | null;
-  youtube_url: string | null;
   igdb_url: string;
   igdb_game_id: string | null;
   genres: string[];
@@ -190,7 +188,6 @@ export async function fetchIgdbGame(
   igdbLog("request:success", {
     hasTitle: !!(payload as { title?: string }).title,
     hasName: !!(payload as { name?: string }).name,
-    hasImage: !!(payload as { image_url?: string }).image_url,
   });
 
   return payload as IgdbGameInfoResponse;

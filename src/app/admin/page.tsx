@@ -419,12 +419,6 @@ export default function AdminPage() {
       const nextTitle =
         (data.title?.trim() || data.name?.trim() || "").trim();
       if (nextTitle) setTitle(nextTitle);
-      if (data.image_url) setImageUrl(data.image_url);
-      const yt = data.youtube_url?.trim();
-      if (yt) {
-        const idFromUrl = extractYoutubeVideoId(yt);
-        setVideoId(idFromUrl ?? yt);
-      }
 
       setSummaryPt("");
       setGenresPt([]);
@@ -459,8 +453,6 @@ export default function AdminPage() {
           JSON.stringify({
             phase: "handleFetchIgdb:success",
             titleSet: Boolean(nextTitle),
-            imageSet: Boolean(data.image_url),
-            youtubePrefilled: Boolean(data.youtube_url?.trim()),
             genres: data.genres?.length ?? 0,
           }),
         );
@@ -1002,8 +994,11 @@ export default function AdminPage() {
                       value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
                       className={inputClass}
-                      placeholder="Preenchido pela busca IGDB ou cole uma URL"
+                      placeholder="Cole a URL da imagem de alta qualidade (ex: alphacoders.com)"
                     />
+                    <p className="mt-1 text-[11px] text-apex-text/40">
+                      Inserir manualmente — use imagens de alta qualidade do AlphaCoders ou similar.
+                    </p>
                   </label>
                 </div>
 
@@ -1116,19 +1111,18 @@ export default function AdminPage() {
 
               {/* Right — preview + config */}
               <div className="space-y-5">
-                {/* Preview card */}
+                {/* Preview card — aspecto 1060:9, reativo ao campo manual "URL da Imagem de Capa" */}
                 <section className="rounded-xl border border-apex-accent/10 bg-apex-surface p-5 shadow-[0_8px_30px_rgb(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.02)]">
                   <p className="text-xs font-semibold uppercase tracking-wide text-apex-text-muted">
                     Preview da capa
                   </p>
                   <p className="mt-0.5 text-[11px] text-apex-text/40">
-                    Prop. vertical IGDB{" "}
-                    <span className="tabular-nums">264×352</span>
+                    Proporção 1060:9 — imagens de qualquer resolução são redimensionadas
                   </p>
                   <div className="relative mt-3 flex justify-center">
-                    <div className="group relative w-full max-w-[240px] overflow-hidden rounded-lg border border-apex-primary/15 bg-apex-bg shadow-[0_4px_20px_rgb(0,0,0,0.4)] transition-all duration-300 hover:border-apex-secondary/40 hover:shadow-[0_6px_28px_rgb(0,0,0,0.5),0_0_0_1px_rgba(255,179,0,0.15)]">
+                    <div className="group relative w-full overflow-hidden rounded-lg border border-apex-primary/15 bg-apex-bg shadow-[0_4px_20px_rgb(0,0,0,0.4)] transition-all duration-300 hover:border-apex-secondary/40 hover:shadow-[0_6px_28px_rgb(0,0,0,0.5),0_0_0_1px_rgba(255,179,0,0.15)]">
                       <div
-                        className={`relative aspect-[264/352] w-full transition-opacity ${isFetchingIgdb ? "opacity-40" : ""}`}
+                        className={`relative aspect-[1060/9] w-full transition-opacity ${isFetchingIgdb ? "opacity-40" : ""}`}
                       >
                         {imageUrl ? (
                           <>
@@ -1137,13 +1131,13 @@ export default function AdminPage() {
                               src={imageUrl}
                               alt=""
                               aria-hidden
-                              className="pointer-events-none absolute inset-0 size-full scale-110 object-cover opacity-30 blur-2xl"
+                              className="pointer-events-none absolute inset-0 size-full scale-110 object-cover object-center opacity-30 blur-2xl"
                             />
                             {/* eslint-disable-next-line @next/next/no-img-element -- URL editável (qualquer host) */}
                             <img
                               src={imageUrl}
                               alt={title || "Capa do jogo"}
-                              className="absolute inset-0 z-10 size-full object-contain object-center drop-shadow-[0_6px_20px_rgba(0,0,0,0.7)] ring-1 ring-apex-secondary/25"
+                              className="absolute inset-0 z-10 size-full object-cover object-center drop-shadow-[0_6px_20px_rgba(0,0,0,0.7)] ring-1 ring-apex-secondary/25"
                             />
                           </>
                         ) : (
@@ -1216,9 +1210,33 @@ export default function AdminPage() {
                           if (extracted) setVideoId(extracted);
                         }}
                         className={inputClass}
-                        placeholder="https://www.youtube.com/watch?v=…"
+                        placeholder="Cole a URL ou o ID do vídeo (ex: dQw4w9WgXcQ)"
                       />
                     </label>
+
+                    {/* Preview do vídeo YouTube — reativo ao campo acima */}
+                    {videoIdForApi(videoId) ? (
+                      <div className="overflow-hidden rounded-lg border border-apex-primary/15 bg-apex-bg">
+                        <p className="border-b border-white/[0.06] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-apex-text-muted">
+                          Preview do vídeo
+                        </p>
+                        <div className="relative aspect-video w-full">
+                          <iframe
+                            title="Preview do vídeo do YouTube"
+                            src={`https://www.youtube.com/embed/${videoIdForApi(videoId)}?rel=0`}
+                            className="absolute inset-0 size-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex aspect-video w-full items-center justify-center rounded-lg border border-dashed border-apex-primary/20 bg-apex-bg/50">
+                        <p className="text-center text-xs text-apex-text/40">
+                          Cole a URL do YouTube para ver o preview
+                        </p>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-3">
                       <label className="block">
@@ -1385,7 +1403,7 @@ export default function AdminPage() {
                                     <img
                                       src={raffle.coverUrl}
                                       alt=""
-                                      className="size-full object-cover"
+                                      className="size-full object-cover object-center"
                                     />
                                   </div>
                                 ) : (
