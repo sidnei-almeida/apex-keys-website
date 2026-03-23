@@ -139,7 +139,7 @@ export default function Home() {
                 key={raffle.id}
                 className={`group overflow-hidden rounded-xl bg-apex-surface ${edgeSurface} transition-all duration-300 hover:-translate-y-1 hover:border-apex-accent/40 hover:shadow-[0_12px_40px_rgb(0,0,0,0.45),0_0_0_1px_rgba(0,229,255,0.1),inset_0_1px_1px_rgba(255,255,255,0.04)]`}
               >
-                <div className="relative flex aspect-[1060/9] w-full items-center justify-center overflow-hidden border-b border-white/[0.05] bg-apex-bg transition-colors duration-300 group-hover:border-apex-accent/15">
+                <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden border-b border-white/[0.05] bg-apex-bg transition-colors duration-300 group-hover:border-apex-accent/15">
                   {raffle.imageUrl ? (
                     <>
                       {/* Camada de fundo — mesma imagem + desfoque pesado */}

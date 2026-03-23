@@ -877,11 +877,11 @@ export default function AdminPage() {
           {activeTab === "launch" ? (
             <form
               onSubmit={handleCreateOrUpdateRaffle}
-              className="grid gap-6 xl:grid-cols-[1fr_320px] xl:items-start"
+              className="grid min-h-0 grid-cols-1 gap-4 lg:max-h-[calc(100vh-8rem)] lg:grid-cols-2 lg:items-stretch"
             >
-              {/* Left — metadata */}
-              <div className="space-y-5 rounded-xl border border-apex-primary/20 bg-apex-surface p-5 shadow-[0_8px_30px_rgb(0,0,0,0.3)] sm:p-6">
-                <div className="grid gap-5 sm:grid-cols-2">
+              {/* Left — formulário compacto, scroll interno */}
+              <div className="flex min-h-0 flex-col gap-3 overflow-y-auto rounded-xl border border-apex-primary/20 bg-apex-surface p-4 shadow-[0_8px_30px_rgb(0,0,0,0.3)] sm:p-5">
+                <div className="grid gap-3 sm:grid-cols-2">
                   {/* IGDB URL */}
                   <div className="sm:col-span-2">
                     <label className="block">
@@ -1019,7 +1019,7 @@ export default function AdminPage() {
                     Resumo (trecho IGDB)
                   </span>
                   <div
-                    className={`${inputClass} min-h-[7rem] cursor-default bg-apex-bg/70 text-apex-text/90`}
+                    className={`${inputClass} min-h-[3.5rem] max-h-[5rem] overflow-y-auto cursor-default bg-apex-bg/70 text-apex-text/90`}
                     aria-readonly
                   >
                     {isTranslatingMeta ? (
@@ -1069,9 +1069,95 @@ export default function AdminPage() {
                   items={perspectivesPt}
                 />
 
+                {/* Valores e lançamento — separado dos previews */}
+                <div className="rounded-lg border border-apex-primary/20 bg-apex-bg/50 p-3">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-apex-text-muted">
+                    Valores e lançamento
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="block">
+                      <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                        Preço total (R$)
+                      </span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="0.01"
+                        value={totalPrice > 0 ? totalPrice : ""}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value);
+                          setTotalPrice(Number.isFinite(v) ? v : 0);
+                        }}
+                        className={inputClass}
+                        placeholder="300"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                        Total de bilhetes
+                      </span>
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={totalTickets > 0 ? totalTickets : ""}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          setTotalTickets(Number.isFinite(v) ? v : 0);
+                        }}
+                        className={inputClass}
+                        placeholder="100"
+                      />
+                    </label>
+                  </div>
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                    <button
+                      type="submit"
+                      disabled={isLoading || isFetchingIgdb || isTranslatingMeta}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-apex-accent to-teal-500 py-3 font-bold text-apex-bg shadow-[0_4px_16px_rgba(0,229,255,0.3)] transition-all hover:shadow-[0_6px_22px_rgba(0,229,255,0.4)] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isEditing ? (
+                        <Check className="size-5 shrink-0" aria-hidden />
+                      ) : (
+                        <Plus className="size-5 shrink-0" aria-hidden />
+                      )}
+                      {isLoading
+                        ? "Processando…"
+                        : isTranslatingMeta
+                          ? "Traduzindo metadados…"
+                          : isEditing
+                            ? "Salvar Alterações"
+                            : "Lançar Operação"}
+                    </button>
+                    {isEditing ? (
+                      <button
+                        type="button"
+                        disabled={isLoading}
+                        onClick={handleCancelEdit}
+                        className="shrink-0 rounded-xl border border-apex-text/20 bg-transparent px-5 py-3 text-sm font-medium text-apex-text/55 transition-colors hover:border-apex-text/35 hover:bg-apex-bg/50 hover:text-apex-text/80 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Cancelar
+                      </button>
+                    ) : null}
+                  </div>
+                  {message ? (
+                    <p
+                      role="status"
+                      className={
+                        message.type === "success"
+                          ? "mt-3 text-center text-sm text-apex-success"
+                          : "mt-3 text-center text-sm text-red-400"
+                      }
+                    >
+                      {message.text}
+                    </p>
+                  ) : null}
+                </div>
+
                 {/* IGDB ref */}
                 {igdbMeta ? (
-                  <div className="rounded-lg border border-apex-primary/15 bg-apex-bg/45 p-4">
+                  <div className="rounded-lg border border-apex-primary/15 bg-apex-bg/45 p-3">
                     <p className="text-xs font-semibold uppercase tracking-wide text-apex-text-muted">
                       Referência IGDB
                     </p>
@@ -1109,20 +1195,17 @@ export default function AdminPage() {
                 ) : null}
               </div>
 
-              {/* Right — preview + config */}
-              <div className="space-y-5">
-                {/* Preview card — aspecto 1060:9, reativo ao campo manual "URL da Imagem de Capa" */}
-                <section className="rounded-xl border border-apex-accent/10 bg-apex-surface p-5 shadow-[0_8px_30px_rgb(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.02)]">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-apex-text-muted">
+              {/* Right — previews fixos, sempre visíveis (sticky) */}
+              <div className="flex min-h-0 flex-col gap-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
+                {/* Preview da capa */}
+                <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-apex-accent/10 bg-apex-surface p-3 shadow-[0_8px_30px_rgb(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.02)]">
+                  <p className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-apex-text-muted">
                     Preview da capa
                   </p>
-                  <p className="mt-0.5 text-[11px] text-apex-text/40">
-                    Proporção 1060:9 — imagens de qualquer resolução são redimensionadas
-                  </p>
-                  <div className="relative mt-3 flex justify-center">
-                    <div className="group relative w-full overflow-hidden rounded-lg border border-apex-primary/15 bg-apex-bg shadow-[0_4px_20px_rgb(0,0,0,0.4)] transition-all duration-300 hover:border-apex-secondary/40 hover:shadow-[0_6px_28px_rgb(0,0,0,0.5),0_0_0_1px_rgba(255,179,0,0.15)]">
+                  <div className="relative mt-2 min-h-0 flex-1">
+                    <div className="group relative size-full overflow-hidden rounded-lg border border-apex-primary/15 bg-apex-bg shadow-[0_4px_20px_rgb(0,0,0,0.4)] transition-all duration-300 hover:border-apex-secondary/40">
                       <div
-                        className={`relative aspect-[1060/9] w-full transition-opacity ${isFetchingIgdb ? "opacity-40" : ""}`}
+                        className={`relative size-full min-h-[120px] transition-opacity ${isFetchingIgdb ? "opacity-40" : ""}`}
                       >
                         {imageUrl ? (
                           <>
@@ -1147,178 +1230,59 @@ export default function AdminPage() {
                         )}
                       </div>
                       {isFetchingIgdb ? (
-                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 rounded-lg bg-apex-bg/80 backdrop-blur-sm">
-                          <div className="relative">
-                            <span className="absolute inset-0 animate-ping rounded-full bg-apex-accent/15" />
-                            <Wand2
-                              className="relative size-8 animate-pulse text-apex-accent"
-                              aria-hidden
-                            />
-                          </div>
-                          <div className="flex flex-col items-center gap-1 px-4 text-center">
-                            <p
-                              key={igdbStep}
-                              className="text-xs font-semibold text-apex-accent/85"
-                            >
-                              {IGDB_LOADING_STEPS[igdbStep]}
-                            </p>
-                            <div className="mt-1 flex gap-1">
-                              {IGDB_LOADING_STEPS.map((_, i) => (
-                                <span
-                                  key={i}
-                                  className={`block h-[3px] w-4 rounded-full transition-all duration-500 ${
-                                    i <= igdbStep
-                                      ? "bg-apex-accent/80"
-                                      : "bg-apex-text-muted/25"
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                          </div>
+                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-lg bg-apex-bg/80 backdrop-blur-sm">
+                          <Wand2 className="size-6 animate-pulse text-apex-accent" aria-hidden />
+                          <p key={igdbStep} className="text-xs font-medium text-apex-accent/90">
+                            {IGDB_LOADING_STEPS[igdbStep]}
+                          </p>
                         </div>
                       ) : null}
                     </div>
                   </div>
-                  {title ? (
-                    <p className="mt-3 truncate text-center text-sm font-semibold text-apex-text/90">
-                      {title}
-                    </p>
-                  ) : null}
                 </section>
 
-                {/* Config card — YouTube + price + tickets + submit */}
-                <section className="rounded-xl border border-apex-primary/20 bg-apex-surface p-5 shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
-                  <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-apex-text-muted">
-                    Configuração financeira
-                  </p>
-                  <div className="space-y-4">
-                    <label className="block">
-                      <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
-                        Link do vídeo no YouTube (opcional)
-                      </span>
-                      <input
-                        type="text"
-                        value={videoId}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          const extracted = extractYoutubeVideoId(v);
-                          setVideoId(extracted ?? v);
-                        }}
-                        onBlur={(e) => {
-                          const v = e.target.value;
-                          const extracted = extractYoutubeVideoId(v);
-                          if (extracted) setVideoId(extracted);
-                        }}
-                        className={inputClass}
-                        placeholder="Cole a URL ou o ID do vídeo (ex: dQw4w9WgXcQ)"
-                      />
-                    </label>
+                {/* Preview do vídeo YouTube */}
+                <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-apex-accent/10 bg-apex-surface p-3 shadow-[0_8px_30px_rgb(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.02)]">
+                  <label className="shrink-0">
+                    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-apex-text-muted">
+                      Link do vídeo no YouTube (opcional)
+                    </span>
+                    <input
+                      type="text"
+                      value={videoId}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        const extracted = extractYoutubeVideoId(v);
+                        setVideoId(extracted ?? v);
+                      }}
+                      onBlur={(e) => {
+                        const v = e.target.value;
+                        const extracted = extractYoutubeVideoId(v);
+                        if (extracted) setVideoId(extracted);
+                      }}
+                      className={`${inputClass} py-2 text-sm`}
+                      placeholder="URL ou ID do vídeo"
+                    />
+                  </label>
 
-                    {/* Preview do vídeo YouTube — reativo ao campo acima */}
+                  <div className="relative mt-2 min-h-0 flex-1">
                     {videoIdForApi(videoId) ? (
-                      <div className="overflow-hidden rounded-lg border border-apex-primary/15 bg-apex-bg">
-                        <p className="border-b border-white/[0.06] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-apex-text-muted">
-                          Preview do vídeo
-                        </p>
-                        <div className="relative aspect-video w-full">
-                          <iframe
-                            title="Preview do vídeo do YouTube"
-                            src={`https://www.youtube.com/embed/${videoIdForApi(videoId)}?rel=0`}
-                            className="absolute inset-0 size-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        </div>
+                      <div className="absolute inset-0 overflow-hidden rounded-lg border border-apex-primary/15 bg-apex-bg">
+                        <iframe
+                          title="Preview do vídeo do YouTube"
+                          src={`https://www.youtube.com/embed/${videoIdForApi(videoId)}?rel=0`}
+                          className="size-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
                       </div>
                     ) : (
-                      <div className="flex aspect-video w-full items-center justify-center rounded-lg border border-dashed border-apex-primary/20 bg-apex-bg/50">
+                      <div className="flex size-full min-h-[100px] items-center justify-center rounded-lg border border-dashed border-apex-primary/20 bg-apex-bg/50">
                         <p className="text-center text-xs text-apex-text/40">
                           Cole a URL do YouTube para ver o preview
                         </p>
                       </div>
                     )}
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <label className="block">
-                        <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
-                          Preço total (R$)
-                        </span>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          min={0}
-                          step="0.01"
-                          value={totalPrice > 0 ? totalPrice : ""}
-                          onChange={(e) => {
-                            const v = parseFloat(e.target.value);
-                            setTotalPrice(Number.isFinite(v) ? v : 0);
-                          }}
-                          className={inputClass}
-                          placeholder="300"
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
-                          Total de bilhetes
-                        </span>
-                        <input
-                          type="number"
-                          min={1}
-                          step={1}
-                          value={totalTickets > 0 ? totalTickets : ""}
-                          onChange={(e) => {
-                            const v = parseInt(e.target.value, 10);
-                            setTotalTickets(Number.isFinite(v) ? v : 0);
-                          }}
-                          className={inputClass}
-                          placeholder="100"
-                        />
-                      </label>
-                    </div>
-
-                    <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-stretch">
-                      <button
-                        type="submit"
-                        disabled={isLoading || isFetchingIgdb || isTranslatingMeta}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-apex-accent to-teal-500 py-3 font-bold text-apex-bg shadow-[0_4px_16px_rgba(0,229,255,0.3)] transition-all hover:shadow-[0_6px_22px_rgba(0,229,255,0.4)] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {isEditing ? (
-                          <Check className="size-5 shrink-0" aria-hidden />
-                        ) : (
-                          <Plus className="size-5 shrink-0" aria-hidden />
-                        )}
-                        {isLoading
-                          ? "Processando…"
-                          : isTranslatingMeta
-                            ? "Traduzindo metadados…"
-                            : isEditing
-                              ? "Salvar Alterações"
-                              : "Lançar Operação"}
-                      </button>
-                      {isEditing ? (
-                        <button
-                          type="button"
-                          disabled={isLoading}
-                          onClick={handleCancelEdit}
-                          className="shrink-0 rounded-xl border border-apex-text/20 bg-transparent px-5 py-3 text-sm font-medium text-apex-text/55 transition-colors hover:border-apex-text/35 hover:bg-apex-bg/50 hover:text-apex-text/80 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Cancelar
-                        </button>
-                      ) : null}
-                    </div>
-
-                    {message ? (
-                      <p
-                        role="status"
-                        className={
-                          message.type === "success"
-                            ? "text-center text-sm text-apex-success"
-                            : "text-center text-sm text-red-400"
-                        }
-                      >
-                        {message.text}
-                      </p>
-                    ) : null}
                   </div>
                 </section>
               </div>
