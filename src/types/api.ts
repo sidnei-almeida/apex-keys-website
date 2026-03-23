@@ -53,6 +53,9 @@ export type RafflePublic = {
   player_perspectives?: string[];
 };
 
+/** RafflePublic + sold (quantidade vendida) — retorno de GET /raffles */
+export type RaffleListOut = RafflePublic & { sold: number };
+
 export type TicketPurchaseRequest = {
   raffle_id: string;
   ticket_number: number;

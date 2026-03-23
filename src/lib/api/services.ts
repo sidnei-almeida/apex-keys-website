@@ -12,6 +12,7 @@ import type {
   IgdbGameUrlRequest,
   MyTicketOut,
   RaffleCancelResponse,
+  RaffleListOut,
   RafflePublic,
   RaffleStatusApi,
   SignupRequest,
@@ -86,11 +87,11 @@ export async function postMockPixIntent(
 
 export async function getRaffles(params?: {
   status?: RaffleStatusApi;
-}): Promise<RafflePublic[]> {
+}): Promise<RaffleListOut[]> {
   const q = params?.status
     ? `?status=${encodeURIComponent(params.status)}`
     : "";
-  return getJson<RafflePublic[]>(`/raffles${q}`);
+  return getJson<RaffleListOut[]>(`/raffles${q}`);
 }
 
 export async function buyTicket(
