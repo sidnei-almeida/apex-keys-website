@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { getApiBaseUrl } from "@/lib/api/config";
 import { updateProfile } from "@/lib/api/services";
 import { ApiError } from "@/lib/api/http";
 import { getAccessToken } from "@/lib/auth/token-storage";
@@ -87,7 +88,11 @@ export default function ContaPage() {
             <div className="flex size-24 items-center justify-center overflow-hidden rounded-xl ring-2 ring-apex-accent/30 ring-offset-2 ring-offset-apex-bg sm:size-28">
               {user?.avatar_url ? (
                 <img
-                  src={user.avatar_url}
+                  src={
+                    user.avatar_url.startsWith("http")
+                      ? user.avatar_url
+                      : `${getApiBaseUrl()}${user.avatar_url.startsWith("/") ? "" : "/"}${user.avatar_url}`
+                  }
                   alt=""
                   className="size-full object-cover"
                 />

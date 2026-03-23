@@ -3,42 +3,22 @@ DÍVIDAS DO BACKEND — Apex Keys
 (itens a implementar no servidor/API)
 ================================================================================
 
-1. FOTO DE PERFIL (avatar_url)
-   - Adicionar campo avatar_url (string | null) na tabela/modelo de usuário
-   - Endpoint para upload de foto (POST /users/me/avatar ou PATCH /users/me)
-   - Retornar avatar_url no GET /auth/me e em UserPublic
-   - Armazenar a imagem (S3, local, CDN, etc.) e guardar a URL no banco
-   - Validação: formato (jpg, png, webp), tamanho máximo (ex: 2MB)
-   - O frontend já exibe o placeholder; quando avatar_url vier preenchido, a foto aparece automaticamente
+REF: apex-keys-api (pasta no repo) — análise em 2025-03-23
 
-2. FORMULÁRIO DE CRIAÇÃO DE CONTA (signup)
-   - Completar/ajustar o endpoint POST /auth/signup
-   - Campos: full_name, email, password, whatsapp, pix_key
-   - pix_key: chave PIX (CPF, e-mail, telefone ou aleatória) para recebimentos
-   - Validação de email único
-   - Hash de senha (bcrypt, argon2, etc.)
-   - Retorno: UserPublic ou TokenResponse
-   - Integrar com o AuthModal do frontend que já existe
+[IMPLEMENTADO na apex-keys-api]
+  1. FOTO DE PERFIL (avatar_url) — POST /users/me/avatar, modelo User.avatar_url
+  2. SIGNUP — POST /auth/signup com full_name, email, password, whatsapp, pix_key
+  3. CHAVE PIX — coluna pix_key no User, retorno em UserPublic
+  4. EDIÇÃO DE PERFIL — PATCH /users/me com full_name, whatsapp, pix_key
 
-3. CHAVE PIX NO BANCO DE DADOS
-   - Adicionar coluna pix_key (string, nullable) na tabela de usuários
-   - Retornar pix_key no GET /auth/me e em UserPublic
-   - Validação: aceitar CPF, e-mail, telefone ou chave aleatória (formato PIX BR)
+[PENDENTE / FUTURO]
+  5. Recuperação de senha
+  6. Verificação de email
+  7. (Opcional) Rifas com summary, genres, series no DB — frontend envia, API ignora por ora
 
-4. EDIÇÃO DE PERFIL (PATCH /users/me)
-   - Endpoint PATCH /users/me para atualizar perfil do usuário autenticado
-   - Body esperado (JSON, campos opcionais): { full_name?: string, whatsapp?: string, pix_key?: string }
-   - Validar full_name (não vazio, tamanho razoável)
-   - Validar whatsapp (formato telefone BR ou internacional)
-   - Validar pix_key (formato PIX: CPF, e-mail, telefone ou aleatória)
-   - Retorno: UserPublic atualizado
-   - Autenticação: Bearer JWT obrigatório
-   - O frontend já tem a página /conta com formulário e chama updateProfile()
+[ROTAS ADMIN]
+  - API expõe /api/v1/admin/* e alias /admin/* (compatibilidade)
+  - Frontend deve usar /api/v1/admin/*; se Vercel mostrar 404 em /admin/raffles,
+    fazer redeploy do site (código já corrigido) ou usar o alias na API
 
-5. (Opcional / Futuro)
-   - Recuperação de senha
-   - Verificação de email
-
-================================================================================
-Ordem sugerida: 1) Signup + pix_key no DB, 2) Avatar/foto de perfil, 3) PATCH /users/me
 ================================================================================

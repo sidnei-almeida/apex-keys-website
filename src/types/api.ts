@@ -66,6 +66,15 @@ export type TicketPurchaseResponse = {
   new_balance: string;
 };
 
+/** Bilhete do usuário com dados da rifa (GET /users/me/tickets) */
+export type MyTicketOut = {
+  ticket_id: string;
+  raffle_id: string;
+  ticket_number: number;
+  raffle: RafflePublic;
+  created_at: string;
+};
+
 export type SignupRequest = {
   full_name: string;
   email: string;

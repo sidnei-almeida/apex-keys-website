@@ -623,11 +623,11 @@ export default function AdminPage() {
       const body = JSON.stringify(bodyPayload);
 
       const url = editingRaffleId
-        ? `${getApiBaseUrl()}/admin/raffles/${editingRaffleId}`
-        : `${getApiBaseUrl()}/admin/raffles`;
+        ? `${getApiBaseUrl()}/api/v1/admin/raffles/${editingRaffleId}`
+        : `${getApiBaseUrl()}/api/v1/admin/raffles`;
 
       const res = await fetch(url, {
-        method: editingRaffleId ? "PATCH" : "POST",
+        method: editingRaffleId ? "PUT" : "POST",
         headers,
         body,
       });

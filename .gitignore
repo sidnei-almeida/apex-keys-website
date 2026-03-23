@@ -45,3 +45,6 @@ next-env.d.ts
 *.md
 !/README.md
 !/FRONTEND_API.md
+apex-keys-api/
+BACKEND_DIVIDAS.txt
+BACKEND_DIVIDAS.txt

@@ -10,6 +10,7 @@ import type {
   AdminWalletAdjustResponse,
   IgdbGameInfoResponse,
   IgdbGameUrlRequest,
+  MyTicketOut,
   RaffleCancelResponse,
   RafflePublic,
   RaffleStatusApi,
@@ -63,6 +64,14 @@ export async function getWalletTransactions(
   return getJson<TransactionOut[]>("/wallet/transactions", token);
 }
 
+export async function getMyTickets(
+  token: string,
+  status?: "active" | "sold_out" | "finished" | "canceled",
+): Promise<MyTicketOut[]> {
+  const q = status ? `?status=${encodeURIComponent(status)}` : "";
+  return getJson<MyTicketOut[]>(`/users/me/tickets${q}`, token);
+}
+
 export type MockPixIntentBody = {
   amount: string | number;
   gateway_reference: string;
@@ -99,7 +108,11 @@ export async function adminCreateRaffle(
   token: string,
   body: AdminRaffleCreate,
 ): Promise<RafflePublic> {
-  return postJson<RafflePublic, AdminRaffleCreate>("/admin/raffles", body, token);
+  return postJson<RafflePublic, AdminRaffleCreate>(
+    "/api/v1/admin/raffles",
+    body,
+    token,
+  );
 }
 
 export async function adminCancelRaffle(
@@ -107,7 +120,7 @@ export async function adminCancelRaffle(
   raffleId: string,
 ): Promise<RaffleCancelResponse> {
   return postJson<RaffleCancelResponse, Record<string, never>>(
-    `/admin/raffles/${raffleId}/cancel`,
+    `/api/v1/admin/raffles/${raffleId}/cancel`,
     {},
     token,
   );
@@ -117,7 +130,7 @@ export async function adminDeleteRaffle(
   token: string,
   raffleId: string,
 ): Promise<void> {
-  await deleteRequest(`/admin/raffles/${raffleId}`, token);
+  await deleteRequest(`/api/v1/admin/raffles/${raffleId}`, token);
 }
 
 export async function adminAdjustBalance(
@@ -126,7 +139,7 @@ export async function adminAdjustBalance(
   body: AdminWalletAdjust,
 ): Promise<AdminWalletAdjustResponse> {
   return postJson<AdminWalletAdjustResponse, AdminWalletAdjust>(
-    `/admin/users/${userId}/adjust-balance`,
+    `/api/v1/admin/users/${userId}/adjust-balance`,
     body,
     token,
   );

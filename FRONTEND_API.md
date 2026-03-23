@@ -63,13 +63,15 @@ Exemplos (produção):
 | `GET` | `/auth/me` | Utilizador | Perfil + saldo + `is_admin` |
 | `GET` | `/wallet/balance` | Utilizador | Saldo atual |
 | `GET` | `/wallet/transactions` | Utilizador | Até 200 movimentos (mais recentes primeiro) |
+| `GET` | `/users/me/tickets` | Utilizador | Bilhetes do usuário com dados da rifa; `?status=active` para rifas ativas |
 | `POST` | `/wallet/mock-pix-intent` | Utilizador | Cria depósito Pix **mock** pendente + dados de QR fictícios |
 | `GET` | `/raffles` | — | Lista rifas; query opcional `?status=active\|sold_out\|finished\|canceled` |
 | `POST` | `/buy-ticket` | Utilizador | Compra um número de bilhete (saldo debitado na hora) |
-| `POST` | `/admin/raffles` | **Admin** | Cria rifa (preço por bilhete calculado no servidor) |
-| `POST` | `/admin/raffles/{raffle_id}/cancel` | **Admin** | Cancela rifa ativa e estorna bilhetes pagos |
-| `DELETE` | `/admin/raffles/{raffle_id}` | **Admin** | Remove a rifa (comportamento exacto conforme backend) |
-| `POST` | `/admin/users/{user_id}/adjust-balance` | **Admin** | Crédito ou débito manual de saldo |
+| `POST` | `/api/v1/admin/raffles` | **Admin** | Cria rifa (preço por bilhete calculado no servidor) |
+| `PUT` | `/api/v1/admin/raffles/{raffle_id}` | **Admin** | Atualiza rifa |
+| `POST` | `/api/v1/admin/raffles/{raffle_id}/cancel` | **Admin** | Cancela rifa ativa e estorna bilhetes pagos |
+| `DELETE` | `/api/v1/admin/raffles/{raffle_id}` | **Admin** | Remove a rifa (comportamento exacto conforme backend) |
+| `POST` | `/api/v1/admin/users/{user_id}/adjust-balance` | **Admin** | Crédito ou débito manual de saldo |
 | `POST` | `/webhook/mp` | — | Mock de webhook (normalmente **backend**; ver nota abaixo) |
 | `POST` | `/igdb/game` | — | Metadados de jogo a partir da URL pública do IGDB |
 
@@ -166,11 +168,12 @@ Simula a criação de um Pix pendente. Gera uma linha em `transactions` com `typ
 
 ---
 
-## Admin (`/admin`) — JWT de utilizador **admin**
+## Admin (`/api/v1/admin`) — JWT de utilizador **admin**
 
 Todas exigem `Authorization: Bearer <token>` de um utilizador com `is_admin=true` na base de dados.
+Os endpoints admin usam o prefixo `/api/v1`.
 
-### `POST /admin/raffles`
+### `POST /api/v1/admin/raffles`
 
 **Corpo (`AdminRaffleCreate`)**
 
@@ -186,17 +189,17 @@ O servidor calcula `ticket_price` = `total_price / total_tickets` arredondado a 
 
 **Resposta `201`:** `RafflePublic`.
 
-### `DELETE /admin/raffles/{raffle_id}`
+### `DELETE /api/v1/admin/raffles/{raffle_id}`
 
 Apaga a rifa. **Autenticação:** JWT admin. Resposta típica: `204 No Content` ou `200` (conforme implementação).
 
-### `POST /admin/raffles/{raffle_id}/cancel`
+### `POST /api/v1/admin/raffles/{raffle_id}/cancel`
 
 Só rifas em estado `active`. Estorna bilhetes pagos e marca a rifa como `canceled`.
 
 **Resposta `200` — `RaffleCancelResponse`:** `raffle_id`, `status: "canceled"`, `refunds_issued` (quantidade de bilhetes estornados).
 
-### `POST /admin/users/{user_id}/adjust-balance`
+### `POST /api/v1/admin/users/{user_id}/adjust-balance`
 
 **Corpo (`AdminWalletAdjust`)**
 

@@ -19,9 +19,9 @@ import { useRef, useState, useEffect } from "react";
 
 const PROFILE_DROPDOWN_LINKS = [
   { href: "/conta", label: "Configuração", icon: Settings },
-  { href: "#", label: "Minhas Rifas", icon: Ticket },
-  { href: "#", label: "Minhas Transações", icon: ShoppingBag },
-  { href: "#", label: "Histórico de Rifas", icon: History },
+  { href: "/minhas-rifas", label: "Minhas Rifas", icon: Ticket },
+  { href: "/minhas-transacoes", label: "Minhas Transações", icon: ShoppingBag },
+  { href: "/historico-rifas", label: "Histórico de Rifas", icon: History },
 ] as const;
 
 const MOCK_BALANCE = "R$ 45,00";
