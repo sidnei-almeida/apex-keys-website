@@ -1,0 +1,29 @@
+================================================================================
+DÍVIDAS DO BACKEND — Apex Keys
+(itens a implementar no servidor/API)
+================================================================================
+
+1. FOTO DE PERFIL (avatar_url)
+   - Adicionar campo avatar_url (string | null) na tabela/modelo de usuário
+   - Endpoint para upload de foto (POST /users/me/avatar ou PATCH /users/me)
+   - Retornar avatar_url no GET /auth/me e em UserPublic
+   - Armazenar a imagem (S3, local, CDN, etc.) e guardar a URL no banco
+   - Validação: formato (jpg, png, webp), tamanho máximo (ex: 2MB)
+   - O frontend já exibe o placeholder; quando avatar_url vier preenchido, a foto aparece automaticamente
+
+2. FORMULÁRIO DE CRIAÇÃO DE CONTA (signup)
+   - Completar/ajustar o endpoint POST /auth/signup
+   - Campos sugeridos: full_name, email, password, whatsapp
+   - Validação de email único
+   - Hash de senha (bcrypt, argon2, etc.)
+   - Retorno: UserPublic ou TokenResponse
+   - Integrar com o AuthModal do frontend que já existe
+
+3. (Opcional / Futuro)
+   - Edição de perfil (nome, whatsapp, avatar)
+   - Recuperação de senha
+   - Verificação de email
+
+================================================================================
+Ordem sugerida: 1) Signup completo, 2) Avatar/foto de perfil
+================================================================================

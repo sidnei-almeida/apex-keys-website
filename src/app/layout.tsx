@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 import { AppProviders } from "@/components/providers/AppProviders";
 import "./globals.css";
 
@@ -36,7 +37,7 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="relative min-h-full flex flex-col bg-apex-bg text-apex-text overflow-x-hidden">
+      <body className="relative flex min-h-screen flex-col bg-apex-bg text-apex-text overflow-x-hidden">
         {/* Spotlight 1 — ciano tático, canto superior esquerdo */}
         <div
           aria-hidden
@@ -60,6 +61,7 @@ export default function RootLayout({
           <main className="relative z-10 flex-1 w-full px-4 pb-8 pt-6 sm:px-6 lg:px-8">
             {children}
           </main>
+          <Footer />
         </AppProviders>
       </body>
     </html>

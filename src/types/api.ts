@@ -13,6 +13,8 @@ export type UserPublic = {
   is_admin: boolean;
   balance: string;
   created_at: string;
+  /** URL da foto de perfil — a implementar no backend */
+  avatar_url?: string | null;
 };
 
 export type WalletBalanceResponse = {

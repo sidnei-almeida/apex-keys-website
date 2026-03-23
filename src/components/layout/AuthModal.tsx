@@ -14,12 +14,18 @@ const passwordInputClass = `${inputClass} pr-10`;
 type AuthModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  /** Abre direto na aba de cadastro */
+  initialMode?: "login" | "signup";
 };
 
-export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
+export default function AuthModal({
+  isOpen,
+  onClose,
+  initialMode = "login",
+}: AuthModalProps) {
   const { login, signup } = useAuth();
 
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(initialMode === "login");
   const [mounted, setMounted] = useState(false);
 
   const [email, setEmail] = useState("");
@@ -36,7 +42,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   useEffect(() => {
     if (!isOpen) {
-      setIsLogin(true);
       setEmail("");
       setPassword("");
       setFullName("");
@@ -44,8 +49,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       setError(null);
       setIsLoading(false);
       setShowPassword(false);
+    } else {
+      setIsLogin(initialMode === "login");
     }
-  }, [isOpen]);
+  }, [isOpen, initialMode]);
 
   useEffect(() => {
     if (!isOpen) return;

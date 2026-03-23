@@ -74,7 +74,7 @@ function ProgressFill({ pct }: { pct: number }) {
 export default function Home() {
   return (
     <>
-      <section className="mx-auto max-w-7xl px-4 py-12">
+      <section className="mx-auto max-w-7xl px-4 py-12 lg:pl-40">
         <div className="grid items-center gap-8 md:grid-cols-2">
           <div className="flex flex-col gap-6">
             <span

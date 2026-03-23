@@ -15,6 +15,26 @@
     @apply bg-apex-bg text-apex-text min-h-full font-sans antialiased;
   }
 
+  /* Cursor pointer em elementos clicáveis (Preflight remove em alguns casos) */
+  a,
+  button,
+  [role="button"],
+  [role="menuitem"],
+  input[type="submit"],
+  input[type="button"],
+  input[type="reset"] {
+    cursor: pointer;
+  }
+
+  /* Cursor not-allowed em controles desabilitados */
+  button:disabled,
+  [role="button"][aria-disabled="true"],
+  input[type="submit"]:disabled,
+  input[type="button"]:disabled,
+  input[type="reset"]:disabled {
+    cursor: not-allowed;
+  }
+
   * {
     scrollbar-width: thin;
     scrollbar-color: #111a2e #0a111f;
