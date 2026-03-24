@@ -197,7 +197,7 @@ export default function Home() {
     (r) => r.featured_tier !== "none" /* none = só em /rifas; null = compat */
   );
   const featuredRaffle =
-    onHome.find((r) => r.featured_tier === "featured") ?? onHome[0] ?? null;
+    onHome.find((r) => r.featured_tier === "featured") ?? null;
   const carouselRaffles = onHome.filter((r) => r !== featuredRaffle).slice(0, 5);
 
   return (
