@@ -1,9 +1,13 @@
 "use client";
 
-import { getRaffleById } from "@/lib/api/services";
+import AuthModal from "@/components/layout/AuthModal";
+import { useAuth } from "@/contexts/AuthContext";
 import { getApiBaseUrl } from "@/lib/api/config";
+import { buyTicket, getRaffleById } from "@/lib/api/services";
+import { getAccessToken } from "@/lib/auth/token-storage";
 import type { RaffleDetailOut } from "@/types/api";
-import { ArrowLeft, Gamepad2, Loader2 } from "lucide-react";
+import { ApiError } from "@/lib/api/http";
+import { ArrowLeft, Gamepad2, Loader2, Wallet } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -24,11 +28,16 @@ function raffleImageUrl(url: string | null) {
 
 export default function RafflePage() {
   const params = useParams<{ id: string }>();
+  const { user, isAuthenticated, refreshUser } = useAuth();
   const raffleId = params?.id ?? null;
   const [raffle, setRaffle] = useState<RaffleDetailOut | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
+  const [useBalance, setUseBalance] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   useEffect(() => {
     if (!raffleId) {
@@ -70,6 +79,68 @@ export default function RafflePage() {
   const ticketPrice = raffle ? parseFloat(raffle.ticket_price) : 0;
   const totalPay = selectedNumbers.length * ticketPrice;
   const canPay = selectedNumbers.length > 0;
+
+  const balance = parseFloat(user?.balance ?? "0") || 0;
+  const amountFromBalance = useBalance ? Math.min(balance, totalPay) : 0;
+  const amountViaMp = totalPay - amountFromBalance;
+  const mpNotImplemented = amountViaMp > 0;
+
+  const handlePay = useCallback(async () => {
+    if (!raffle || !canPay) return;
+    setPayError(null);
+
+    if (!isAuthenticated) {
+      setAuthModalOpen(true);
+      return;
+    }
+
+    if (mpNotImplemented) {
+      setPayError(
+        useBalance && balance < totalPay
+          ? "Saldo insuficiente. Pagamento do restante via Pix/Cartão em breve."
+          : "Pagamento via Pix ou Cartão em breve."
+      );
+      return;
+    }
+
+    const token = getAccessToken();
+    if (!token) {
+      setAuthModalOpen(true);
+      return;
+    }
+
+    setPaying(true);
+    try {
+      for (const num of [...selectedNumbers].sort((a, b) => a - b)) {
+        await buyTicket(token, {
+          raffle_id: raffle.id,
+          ticket_number: num,
+        });
+      }
+      await refreshUser();
+      const updated = await getRaffleById(raffle.id);
+      setRaffle(updated);
+      setSelectedNumbers([]);
+    } catch (err) {
+      setPayError(
+        err instanceof ApiError
+          ? err.detail ?? "Erro ao processar pagamento"
+          : "Erro ao processar pagamento"
+      );
+    } finally {
+      setPaying(false);
+    }
+  }, [
+    raffle,
+    canPay,
+    isAuthenticated,
+    mpNotImplemented,
+    selectedNumbers,
+    refreshUser,
+    useBalance,
+    balance,
+    totalPay,
+  ]);
 
   const numbers = useMemo(
     () =>
@@ -211,14 +282,74 @@ export default function RafflePage() {
               Total:{" "}
               <span className="text-apex-accent">{formatBRL(totalPay)}</span>
             </p>
+
+            {isAuthenticated && (
+              <p className="mt-1 text-sm text-apex-text/70">
+                Seu saldo: {formatBRL(balance)}
+              </p>
+            )}
+
+            <label className="mt-4 flex cursor-pointer items-center gap-2 text-apex-text">
+              <input
+                type="radio"
+                name="payment-method"
+                checked={useBalance}
+                onChange={() => {
+                  setUseBalance(true);
+                  setPayError(null);
+                }}
+                className="size-4 accent-apex-accent"
+              />
+              <Wallet className="size-4 text-apex-accent/80" aria-hidden />
+              Utilizar saldo
+            </label>
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-apex-text">
+              <input
+                type="radio"
+                name="payment-method"
+                checked={!useBalance}
+                onChange={() => {
+                  setUseBalance(false);
+                  setPayError(null);
+                }}
+                className="size-4 accent-apex-accent"
+              />
+              Pix ou Cartão (Mercado Pago)
+            </label>
+
+            {useBalance && amountFromBalance > 0 && (
+              <p className="mt-2 text-sm text-apex-accent/90">
+                {amountFromBalance >= totalPay
+                  ? `Saldo cobre o total (${formatBRL(totalPay)})`
+                  : `Saldo: ${formatBRL(amountFromBalance)}. Restante via Pix/Cartão: ${formatBRL(amountViaMp)} (em breve)`}
+              </p>
+            )}
+
+            {payError && (
+              <p className="mt-2 text-sm text-red-400">{payError}</p>
+            )}
+
             <button
               type="button"
-              disabled={!canPay}
+              disabled={!canPay || paying}
+              onClick={handlePay}
               className="mt-4 w-full rounded-xl bg-apex-accent py-3 text-center font-bold text-apex-bg transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Pagar com Saldo
+              {paying ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <Loader2 className="size-5 animate-spin" aria-hidden />
+                  Processando…
+                </span>
+              ) : (
+                "Pagar"
+              )}
             </button>
           </div>
+
+          <AuthModal
+            isOpen={authModalOpen}
+            onClose={() => setAuthModalOpen(false)}
+          />
         </div>
 
         <div className="rounded-xl bg-apex-surface p-6">
