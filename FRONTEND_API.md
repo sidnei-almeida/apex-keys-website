@@ -151,6 +151,8 @@ Simula a criação de um Pix pendente. Gera uma linha em `transactions` com `typ
 
 **Query opcional:** `status` = `active` | `sold_out` | `finished` | `canceled` (case-insensitive no servidor).
 
+**Ordenação:** rifas com `featured_tier=featured` primeiro (várias permitidas), por `created_at` ascendente (a mais antiga = primeira no hero); depois `carousel` (mais recentes primeiro); depois `none`.
+
 **Resposta `200`:** lista de `RafflePublic`: `id`, `title`, `image_url`, `video_id` (ex.: ID YouTube), `total_price`, `total_tickets`, `ticket_price`, `status`, `created_at`.
 
 ### `POST /buy-ticket`
@@ -184,7 +186,7 @@ Os endpoints admin usam o prefixo `/api/v1`.
 | `video_id` | string \| null (ID do vídeo YouTube) |
 | `total_price` | > 0 |
 | `total_tickets` | inteiro > 0 |
-| `featured_tier` | `"featured"` \| `"carousel"` \| `"none"` \| null | featured = hero home, carousel = carrossel, none = só em /rifas |
+| `featured_tier` | `"featured"` \| `"carousel"` \| `"none"` \| null | featured = hero home (várias rifas permitidas), carousel = carrossel, none = só em /rifas |
 
 O servidor calcula `ticket_price` = `total_price / total_tickets` arredondado a **2 casas** (half-up).
 

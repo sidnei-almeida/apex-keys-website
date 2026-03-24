@@ -173,7 +173,7 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 overflow-visible border-b border-white/[0.04] bg-apex-bg/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 overflow-visible border-b border-white/[0.06] bg-[#060b14]/55 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150">
       <div className="relative mx-auto flex min-h-24 max-w-[1440px] items-center justify-between gap-0 px-4 py-3 sm:px-6 lg:min-h-28 lg:px-8">
         {/* 1. LOGO (esquerda) — bleeding */}
         <div className="flex min-w-0 shrink-0 items-center sm:w-36 lg:w-40">

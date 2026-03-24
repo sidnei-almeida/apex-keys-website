@@ -67,7 +67,7 @@ export type PixIntentResponse = {
 
 export type RaffleStatusApi = "active" | "sold_out" | "finished" | "canceled";
 
-/** Posição na home: featured = hero no topo, carousel = carrossel abaixo, none = só em /rifas */
+/** Posição na home: featured = hero no topo (várias rifas podem ter ouro; rotação na home), carousel = faixa abaixo, none = só em /rifas */
 export type FeaturedTier = "featured" | "carousel" | "none";
 
 export type RafflePublic = {

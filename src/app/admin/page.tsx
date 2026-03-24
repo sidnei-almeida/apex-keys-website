@@ -871,34 +871,6 @@ function AdminPanel() {
     return JSON.stringify(payload);
   }, []);
 
-  const demoteOtherFeatured = useCallback(
-    async (currentRaffles: MockRaffle[], exceptId: string, token: string) => {
-      const other = currentRaffles.find(
-        (r) => r.featuredTier === "featured" && r.id !== exceptId
-      );
-      if (!other) return;
-      const res = await fetch(
-        apiUrl(`/api/v1/admin/raffles/${other.id}`),
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: buildRafflePayload(other, "carousel"),
-        }
-      );
-      if (res.ok) {
-        setRaffles((prev) =>
-          prev.map((r) =>
-            r.id === other.id ? { ...r, featuredTier: "carousel" as const } : r
-          )
-        );
-      }
-    },
-    [buildRafflePayload]
-  );
-
   /** Cicla featured_tier na tabela: none -> carousel -> featured -> none (via PATCH) */
   const handleStarClick = useCallback(
     async (raffle: MockRaffle) => {
@@ -919,9 +891,6 @@ function AdminPanel() {
             r.id === raffle.id ? { ...r, featuredTier: next } : r,
           ),
         );
-        if (next === "featured") {
-          await demoteOtherFeatured(raffles, raffle.id, token);
-        }
       } catch (err) {
         const msg =
           err instanceof ApiError
@@ -934,7 +903,7 @@ function AdminPanel() {
         setPatchingFeaturedTierId(null);
       }
     },
-    [raffles, demoteOtherFeatured],
+    [],
   );
 
   const handleCreateOrUpdateRaffle = async (e: React.FormEvent) => {
@@ -1023,9 +992,6 @@ function AdminPanel() {
 
       const saved = data as RafflePublic;
       const row = mapRafflePublicToRow(saved);
-      if (featuredTier === "featured" && token) {
-        await demoteOtherFeatured(raffles, saved.id, token);
-      }
       if (editingRaffleId) {
         setRaffles((prev) =>
           prev.map((existing) => {
@@ -1425,13 +1391,9 @@ function AdminPanel() {
                       ))}
                     </div>
                     <p className="mt-1 text-[11px] text-apex-text/40">
-                      Ouro = hero no topo (1 só) · Prata = carrossel (até 5) · Vazio = só na aba Rifas
+                      Ouro = hero no topo (várias possíveis; rotação lenta na home) · Prata =
+                      carrossel · Vazio = só na aba Rifas
                     </p>
-                    {featuredTier === "featured" && raffles.some((r) => r.featuredTier === "featured" && r.id !== editingRaffleId) ? (
-                      <p className="mt-1 text-[11px] text-amber-400/90">
-                        A rifa em destaque atual será movida para o carrossel.
-                      </p>
-                    ) : null}
                   </div>
                 </div>
 

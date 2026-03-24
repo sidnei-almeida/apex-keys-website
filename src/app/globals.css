@@ -1,8 +1,18 @@
 @import "tailwindcss";
 @config "../../tailwind.config.ts";
 
+/* Marquee infinito (home — mais sorteios): desloca -50% porque a faixa está duplicada */
+@keyframes apex-marquee-raffles {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
@@ -57,4 +67,24 @@
   *::-webkit-scrollbar-thumb:hover {
     background: #00e5ff40;
   }
+}
+
+@layer utilities {
+  .apex-marquee-track {
+    display: flex;
+    width: max-content;
+    animation: apex-marquee-raffles 65s linear infinite;
+    will-change: transform;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .apex-marquee-track {
+      animation: none;
+    }
+  }
+}
+
+/* Pausa ao hover para ler / clicar */
+.group-marquee:hover .apex-marquee-track {
+  animation-play-state: paused;
 }

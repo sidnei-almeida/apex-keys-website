@@ -1,5 +1,17 @@
 import Link from "next/link";
-import { Mail, MessageCircle, Instagram, Send, ShieldCheck } from "lucide-react";
+import {
+  Lock,
+  Mail,
+  MessageCircle,
+  Instagram,
+  Send,
+  ShieldCheck,
+} from "lucide-react";
+import {
+  MastercardMark,
+  PixMark,
+  VisaMark,
+} from "@/components/layout/FooterPaymentTrust";
 
 const FOOTER_LOGO = "/logos/title no bakcground.png";
 
@@ -54,7 +66,37 @@ const FOOTER_CONTAINER = "mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8";
 
 export default function Footer() {
   return (
-    <footer className="relative z-10 mt-auto border-t border-white/[0.08] bg-apex-surface/90 backdrop-blur-sm">
+    <footer className="relative z-10 mt-auto border-t border-white/[0.08] bg-[#060b14]/92 backdrop-blur-xl backdrop-saturate-150">
+      {/* Pagamento seguro — credibilidade */}
+      <div className="border-b border-white/[0.06] bg-black/25">
+        <div
+          className={`${FOOTER_CONTAINER} flex flex-col gap-6 py-8 md:flex-row md:items-center md:justify-between`}
+        >
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-apex-accent/90">
+              Pagamento seguro
+            </p>
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-apex-text-muted/75">
+              Transações com criptografia e parceiros reconhecidos. O site utiliza
+              conexão HTTPS (SSL) para proteger os seus dados.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-4 md:gap-5">
+            <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 backdrop-blur-sm">
+              <Lock className="size-4 shrink-0 text-emerald-400/90" aria-hidden />
+              <span className="text-xs font-semibold text-apex-text/85">
+                SSL / HTTPS
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <VisaMark className="h-8 w-12 opacity-90" />
+              <MastercardMark className="h-8 w-12 opacity-90" />
+              <PixMark className="h-8 w-12 opacity-90" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Main Footer — Grid 4 colunas: [Logo+Segurança] | Links | Suporte | Redes */}
       <div className={`${FOOTER_CONTAINER} py-12`}>
         <div className="grid grid-cols-1 gap-10 md:grid-cols-12 md:gap-6 lg:gap-8">

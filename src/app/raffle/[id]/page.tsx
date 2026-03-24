@@ -403,14 +403,15 @@ export default function RafflePage() {
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_2fr]">
         <div className="flex flex-col gap-6">
-          <div className="mx-auto w-full max-w-xs">
-            <div className="relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-xl bg-apex-surface shadow-[0_0_30px_rgba(0,212,255,0.15)]">
+          <div className="mx-auto w-full max-w-4xl lg:max-w-none">
+            <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-apex-surface shadow-[0_0_30px_rgba(0,212,255,0.15)]">
               {imageUrl ? (
                 <Image
                   src={imageUrl}
                   alt={raffle.title}
                   fill
-                  className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 33vw"
+                  className="object-cover object-center"
                   unoptimized
                 />
               ) : (
@@ -424,11 +425,11 @@ export default function RafflePage() {
           </div>
 
           {videoId && (
-            <div className="mx-auto w-full max-w-xs">
+            <div className="mx-auto w-full max-w-4xl lg:max-w-none">
               <h3 className="mb-2 text-sm font-semibold text-apex-text/80">
                 Trailer
               </h3>
-              <div className="relative aspect-video overflow-hidden rounded-xl bg-apex-bg">
+              <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-apex-bg">
                 <iframe
                   src={`https://www.youtube.com/embed/${videoId}`}
                   title="Trailer do jogo"
