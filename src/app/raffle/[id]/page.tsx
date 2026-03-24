@@ -1,18 +1,24 @@
 "use client";
 
 import AuthModal from "@/components/layout/AuthModal";
+import PixDepositModal from "@/components/raffle/PixDepositModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { getApiBaseUrl } from "@/lib/api/config";
-import { buyTicket, getRaffleById } from "@/lib/api/services";
-import { getAccessToken } from "@/lib/auth/token-storage";
-import type { RaffleDetailOut } from "@/types/api";
 import { ApiError } from "@/lib/api/http";
+import {
+  buyTicket,
+  getRaffleById,
+  getWalletBalance,
+  postMockPixIntent,
+} from "@/lib/api/services";
+import { getAccessToken } from "@/lib/auth/token-storage";
+import type { PixIntentResponse, RaffleDetailOut } from "@/types/api";
 import { ArrowLeft, Gamepad2, Loader2, Wallet } from "lucide-react";
-import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 function formatBRL(value: string | number) {
   const n = typeof value === "string" ? parseFloat(value) : value;
@@ -27,6 +33,30 @@ function raffleImageUrl(url: string | null) {
   return `${getApiBaseUrl()}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
+const PIX_POLL_INTERVAL_MS = 2500;
+const PIX_POLL_MAX_ATTEMPTS = 120;
+
+async function pollBalanceAtLeast(
+  token: string,
+  minTotal: number,
+  signal: AbortSignal,
+): Promise<boolean> {
+  const threshold = minTotal - 0.02;
+  for (let i = 0; i < PIX_POLL_MAX_ATTEMPTS; i++) {
+    if (signal.aborted) return false;
+    await new Promise((r) => setTimeout(r, PIX_POLL_INTERVAL_MS));
+    if (signal.aborted) return false;
+    try {
+      const { balance } = await getWalletBalance(token);
+      const b = parseFloat(balance);
+      if (!Number.isNaN(b) && b >= threshold) return true;
+    } catch {
+      /* continua a tentar */
+    }
+  }
+  return false;
+}
+
 export default function RafflePage() {
   const params = useParams<{ id: string }>();
   const { user, isAuthenticated, refreshUser } = useAuth();
@@ -39,6 +69,10 @@ export default function RafflePage() {
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [pixModalOpen, setPixModalOpen] = useState(false);
+  const [pixIntent, setPixIntent] = useState<PixIntentResponse | null>(null);
+  const [pixPolling, setPixPolling] = useState(false);
+  const pixAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!raffleId) {
@@ -90,7 +124,44 @@ export default function RafflePage() {
   const balance = parseFloat(user?.balance ?? "0") || 0;
   const amountFromBalance = useBalance ? Math.min(balance, totalPay) : 0;
   const amountViaMp = totalPay - amountFromBalance;
-  const mpNotImplemented = amountViaMp > 0;
+  /** Valor a depositar via Pix antes de comprar (saldo atual já cobre o resto se useBalance). */
+  const pixDepositAmount = useBalance
+    ? Math.max(0, totalPay - balance)
+    : totalPay;
+  const canPayWithBalanceOnly = pixDepositAmount < 0.01;
+
+  const runBuyTickets = useCallback(
+    async (token: string, r: RaffleDetailOut, nums: number[]) => {
+      for (const num of [...nums].sort((a, b) => a - b)) {
+        await buyTicket(token, {
+          raffle_id: r.id,
+          ticket_number: num,
+        });
+      }
+      await refreshUser();
+      const updated = await getRaffleById(r.id);
+      setRaffle(updated);
+      setSelectedNumbers([]);
+      toast.success("Compra concluída", {
+        description: `${nums.length} cota(s) garantida(s).`,
+      });
+    },
+    [refreshUser],
+  );
+
+  const cancelPixAwait = useCallback(() => {
+    pixAbortRef.current?.abort();
+    pixAbortRef.current = null;
+    setPixPolling(false);
+    setPixModalOpen(false);
+    setPixIntent(null);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      pixAbortRef.current?.abort();
+    };
+  }, []);
 
   const handlePay = useCallback(async () => {
     if (!raffle || !canPay) return;
@@ -101,39 +172,91 @@ export default function RafflePage() {
       return;
     }
 
-    if (mpNotImplemented) {
-      setPayError(
-        useBalance && balance < totalPay
-          ? "Saldo insuficiente. Pagamento do restante via Pix/Cartão em breve."
-          : "Pagamento via Pix ou Cartão em breve."
-      );
-      return;
-    }
-
     const token = getAccessToken();
     if (!token) {
       setAuthModalOpen(true);
       return;
     }
 
+    if (canPayWithBalanceOnly) {
+      setPaying(true);
+      try {
+        await runBuyTickets(token, raffle, selectedNumbers);
+      } catch (err) {
+        setPayError(
+          err instanceof ApiError
+            ? (err.detail ?? "Erro ao processar pagamento")
+            : "Erro ao processar pagamento",
+        );
+      } finally {
+        setPaying(false);
+      }
+      return;
+    }
+
+    const deposit = Number(pixDepositAmount.toFixed(2));
+    const gatewayRef = `rk-${raffle.id}-${crypto.randomUUID()}`;
+
     setPaying(true);
     try {
-      for (const num of [...selectedNumbers].sort((a, b) => a - b)) {
-        await buyTicket(token, {
-          raffle_id: raffle.id,
-          ticket_number: num,
-        });
+      const intent = await postMockPixIntent(token, {
+        amount: deposit,
+        gateway_reference: gatewayRef,
+      });
+      setPixIntent(intent);
+      setPixModalOpen(true);
+
+      const ac = new AbortController();
+      pixAbortRef.current = ac;
+      setPixPolling(true);
+
+      const funded = await pollBalanceAtLeast(token, totalPay, ac.signal);
+      pixAbortRef.current = null;
+      setPixPolling(false);
+
+      if (!funded) {
+        if (ac.signal.aborted) {
+          toast.message("Compra cancelada", {
+            description: "O aguardo do Pix foi interrompido.",
+          });
+        } else {
+          toast.error("Pix não confirmado a tempo", {
+            description:
+              "Tente novamente ou confira o pagamento no app do banco / Mercado Pago.",
+          });
+        }
+        setPixModalOpen(false);
+        setPixIntent(null);
+        return;
       }
+
       await refreshUser();
-      const updated = await getRaffleById(raffle.id);
-      setRaffle(updated);
-      setSelectedNumbers([]);
+      setPixModalOpen(false);
+      setPixIntent(null);
+      toast.success("Saldo atualizado", { description: "Finalizando compra…" });
+
+      try {
+        await runBuyTickets(token, raffle, selectedNumbers);
+      } catch (err) {
+        const msg =
+          err instanceof ApiError
+            ? (err.detail ?? "Erro ao comprar cotas")
+            : "Erro ao comprar cotas";
+        setPayError(msg);
+        toast.error("Erro na compra", { description: msg });
+      }
     } catch (err) {
-      setPayError(
-        err instanceof ApiError
-          ? err.detail ?? "Erro ao processar pagamento"
-          : "Erro ao processar pagamento"
-      );
+      if (err instanceof ApiError) {
+        setPayError(err.detail ?? "Erro ao iniciar Pix");
+        toast.error("Erro no Pix", { description: err.detail });
+      } else {
+        setPayError("Erro ao iniciar Pix");
+      }
+      setPixModalOpen(false);
+      setPixIntent(null);
+      setPixPolling(false);
+      pixAbortRef.current?.abort();
+      pixAbortRef.current = null;
     } finally {
       setPaying(false);
     }
@@ -141,12 +264,12 @@ export default function RafflePage() {
     raffle,
     canPay,
     isAuthenticated,
-    mpNotImplemented,
+    canPayWithBalanceOnly,
+    pixDepositAmount,
     selectedNumbers,
-    refreshUser,
-    useBalance,
-    balance,
     totalPay,
+    runBuyTickets,
+    refreshUser,
   ]);
 
   const numbers = useMemo(
@@ -321,14 +444,14 @@ export default function RafflePage() {
                 }}
                 className="size-4 accent-apex-accent"
               />
-              Pix ou Cartão (Mercado Pago)
+              Pix (Mercado Pago — abre QR / link para pagar)
             </label>
 
             {useBalance && amountFromBalance > 0 && (
               <p className="mt-2 text-sm text-apex-accent/90">
                 {amountFromBalance >= totalPay
                   ? `Saldo cobre o total (${formatBRL(totalPay)})`
-                  : `Saldo: ${formatBRL(amountFromBalance)}. Restante via Pix/Cartão: ${formatBRL(amountViaMp)} (em breve)`}
+                  : `Saldo: ${formatBRL(amountFromBalance)}. Falta depositar via Pix: ${formatBRL(amountViaMp)}`}
               </p>
             )}
 
@@ -356,6 +479,15 @@ export default function RafflePage() {
           <AuthModal
             isOpen={authModalOpen}
             onClose={() => setAuthModalOpen(false)}
+          />
+
+          <PixDepositModal
+            open={pixModalOpen}
+            onClose={() => setPixModalOpen(false)}
+            onCancelAwait={cancelPixAwait}
+            intent={pixIntent}
+            polling={pixPolling}
+            amountLabel={formatBRL(pixDepositAmount)}
           />
         </div>
 
