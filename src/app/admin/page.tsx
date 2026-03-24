@@ -26,7 +26,7 @@ import {
 import type React from "react";
 import { ApiError } from "@/lib/api/http";
 import { adminDeleteRaffle, getRaffles } from "@/lib/api/services";
-import { getApiBaseUrl } from "@/lib/api/config";
+import { apiUrl, getApiBaseUrl } from "@/lib/api/config";
 import { translateLabelList, translateToPtBr } from "@/lib/translate/client";
 import { getAccessToken } from "@/lib/auth/token-storage";
 import { fetchIgdbGame } from "@/services/api";
@@ -605,7 +605,7 @@ export default function AdminPage() {
       );
       if (!other) return;
       const res = await fetch(
-        `${getApiBaseUrl()}/api/v1/admin/raffles/${other.id}`,
+        apiUrl(`/api/v1/admin/raffles/${other.id}`),
         {
           method: "PUT",
           headers: {
@@ -675,12 +675,12 @@ export default function AdminPage() {
       if (perspectivesPt.length)
         bodyPayload.player_perspectives = perspectivesPt;
       bodyPayload.featured_tier = featuredTier;
-      const body = JSON.stringify(bodyPayload);
 
       const url = editingRaffleId
-        ? `${getApiBaseUrl()}/api/v1/admin/raffles/${editingRaffleId}`
-        : `${getApiBaseUrl()}/api/v1/admin/raffles`;
+        ? apiUrl(`/api/v1/admin/raffles/${editingRaffleId}`)
+        : apiUrl("/api/v1/admin/raffles");
 
+      const body = JSON.stringify(bodyPayload);
       const res = await fetch(url, {
         method: editingRaffleId ? "PUT" : "POST",
         headers,
@@ -1388,8 +1388,9 @@ export default function AdminPage() {
                           title="Preview do vídeo do YouTube"
                           src={`https://www.youtube.com/embed/${videoIdForApi(videoId)}?rel=0`}
                           className="size-full"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allow="fullscreen; picture-in-picture"
                           allowFullScreen
+                          loading="lazy"
                         />
                       </div>
                     ) : (
