@@ -1,13 +1,12 @@
 ---
-description: API edits must go to the GitHub repo, not the local copy
+description: Backend apex-keys-api — único caminho de edição
 alwaysApply: true
 ---
 
 # API Location
 
-When editing the **apex-keys-api** backend:
+Edições no backend **apex-keys-api** fazem-se **apenas** neste repositório:
 
-- **Use**: `/home/a1rm4x/Documents/GitHub/apex-keys-api` (repo na pasta GitHub)
-- **Do not use**: `apex-keys-website/apex-keys-api` (cópia local será excluída)
+`/home/a1rm4x/Documents/GitHub/apex-keys-api`
 
-A API principal está em `~/Documents/GitHub/apex-keys-api`.
+Não existe mais cópia da API dentro de `apex-keys-website`.

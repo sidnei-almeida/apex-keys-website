@@ -33,6 +33,30 @@ export type TransactionOut = {
   created_at: string;
 };
 
+/** Resposta de POST /wallet/mock-pix-intent (mock ou Mercado Pago real). */
+export type MercadoPagoPixPayload = {
+  payment_id: string;
+  status: string | null;
+  qr_code: string | null;
+  qr_code_base64: string | null;
+  ticket_url: string | null;
+};
+
+export type MockPixPayload = {
+  gateway_reference: string;
+  amount_brl: string;
+  merchant_name: string;
+  emv_payload: string;
+  note: string;
+};
+
+export type PixIntentResponse = {
+  message: string;
+  provider: "mercadopago" | "mock";
+  mercado_pago: MercadoPagoPixPayload | null;
+  mock_pix: MockPixPayload | null;
+};
+
 export type RaffleStatusApi = "active" | "sold_out" | "finished" | "canceled";
 
 /** Posição na home: featured = hero no topo, carousel = carrossel abaixo, none = só em /rifas */

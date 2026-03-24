@@ -12,6 +12,7 @@ import type {
   IgdbGameUrlRequest,
   MyTicketOut,
   NotificationOut,
+  PixIntentResponse,
   RaffleCancelResponse,
   RaffleDetailOut,
   RaffleListOut,
@@ -125,8 +126,12 @@ export type MockPixIntentBody = {
 export async function postMockPixIntent(
   token: string,
   body: MockPixIntentBody,
-): Promise<unknown> {
-  return postJson("/wallet/mock-pix-intent", body, token);
+): Promise<PixIntentResponse> {
+  return postJson<PixIntentResponse, MockPixIntentBody>(
+    "/wallet/mock-pix-intent",
+    body,
+    token,
+  );
 }
 
 export async function getRaffles(params?: {
