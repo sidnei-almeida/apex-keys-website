@@ -8,9 +8,10 @@ import { ApiError } from "@/lib/api/http";
 import {
   completeReservationWallet,
   getRaffleById,
-  postReservationPixIntent,
-  reserveRaffleTickets,
   getReservationStatus,
+  postReservationPixIntent,
+  releaseReservation,
+  reserveRaffleTickets,
 } from "@/lib/api/services";
 import { getAccessToken } from "@/lib/auth/token-storage";
 import type { PixIntentResponse, RaffleDetailOut } from "@/types/api";
@@ -74,6 +75,8 @@ export default function RafflePage() {
   const [pixIntent, setPixIntent] = useState<PixIntentResponse | null>(null);
   const [pixPolling, setPixPolling] = useState(false);
   const pixAbortRef = useRef<AbortController | null>(null);
+  /** Hold ativo durante fluxo Pix da rifa (para libertar ao cancelar). */
+  const activePaymentHoldIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!raffleId) {
@@ -139,13 +142,43 @@ export default function RafflePage() {
   const canPayWithBalanceOnly =
     useBalance && totalPay > 0 && balanceNum + 0.001 >= totalPay;
 
-  const cancelPixAwait = useCallback(() => {
+  const cancelPixAwait = useCallback(async () => {
+    const token = getAccessToken();
+    const holdId = activePaymentHoldIdRef.current;
+    const rid = raffle?.id ?? null;
+    if (holdId && token) {
+      try {
+        await releaseReservation(token, holdId);
+        toast.success("Reserva cancelada", {
+          description: "Os números voltaram a ficar disponíveis.",
+        });
+      } catch (e) {
+        const d =
+          e instanceof ApiError
+            ? e.detail
+            : e instanceof Error
+              ? e.message
+              : "";
+        toast.error("Não foi possível libertar os números", {
+          description: d || "Atualize a página ou tente de novo.",
+        });
+      }
+    }
+    activePaymentHoldIdRef.current = null;
     pixAbortRef.current?.abort();
     pixAbortRef.current = null;
     setPixPolling(false);
     setPixModalOpen(false);
     setPixIntent(null);
-  }, []);
+    if (rid) {
+      try {
+        const updated = await getRaffleById(rid);
+        setRaffle(updated);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [raffle?.id]);
 
   useEffect(() => {
     return () => {
@@ -187,6 +220,7 @@ export default function RafflePage() {
     }
 
     setPaying(true);
+    activePaymentHoldIdRef.current = null;
     try {
       const reserve = await reserveRaffleTickets(token, {
         raffle_id: raffle.id,
@@ -205,6 +239,7 @@ export default function RafflePage() {
         return;
       }
 
+      activePaymentHoldIdRef.current = reserve.payment_hold_id;
       const gatewayRef = `rr-${raffle.id}-${crypto.randomUUID()}`;
       const intent = await postReservationPixIntent(token, {
         payment_hold_id: reserve.payment_hold_id,
@@ -226,17 +261,19 @@ export default function RafflePage() {
       setPixPolling(false);
 
       if (!ok) {
-        if (ac.signal.aborted) {
-          toast.message("Aguardo interrompido", {
-            description:
-              "Se já pagou o Pix, o sistema pode ainda confirmar — atualize a página em instantes.",
-          });
-        } else {
+        if (!ac.signal.aborted) {
+          try {
+            await releaseReservation(token, reserve.payment_hold_id);
+            activePaymentHoldIdRef.current = null;
+          } catch {
+            /* ignore */
+          }
           toast.error("Pagamento não confirmado a tempo", {
             description:
-              "Confira o Pix no banco ou tente de novo. Os números ficam reservados até o MP confirmar ou um admin libertar.",
+              "Os números foram libertados. Pode selecionar de novo ou tentar outro pagamento.",
           });
         }
+        /* Se aborted, cancelPixAwait já libertou e mostrou toast. */
         setPixModalOpen(false);
         setPixIntent(null);
         const updated = await getRaffleById(raffle.id);
@@ -244,6 +281,7 @@ export default function RafflePage() {
         return;
       }
 
+      activePaymentHoldIdRef.current = null;
       await refreshUser();
       setPixModalOpen(false);
       setPixIntent(null);
@@ -254,6 +292,15 @@ export default function RafflePage() {
         description: `${reserve.ticket_numbers.length} cota(s) garantida(s).`,
       });
     } catch (err) {
+      const hid = activePaymentHoldIdRef.current;
+      activePaymentHoldIdRef.current = null;
+      if (hid) {
+        try {
+          await releaseReservation(token, hid);
+        } catch {
+          /* ignore */
+        }
+      }
       if (err instanceof ApiError && err.status === 409) {
         const msg =
           err.detail ?? "Número já foi reservado ou vendido por outro jogador.";
@@ -535,6 +582,7 @@ export default function RafflePage() {
             intent={pixIntent}
             polling={pixPolling}
             amountLabel={formatBRL(totalPay)}
+            raffleCheckout
           />
         </div>
 

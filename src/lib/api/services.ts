@@ -243,6 +243,18 @@ export async function getReservationStatus(
   );
 }
 
+/** Libertação imediata dos números (cancelar compra / desistência). */
+export async function releaseReservation(
+  token: string,
+  holdId: string,
+): Promise<{ released: number }> {
+  return postJson<{ released: number }, Record<string, never>>(
+    `/checkout/reservation/${encodeURIComponent(holdId)}/release`,
+    {},
+    token,
+  );
+}
+
 export async function adminListReservations(
   token: string,
 ): Promise<AdminReservationRowOut[]> {

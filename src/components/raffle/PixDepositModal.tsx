@@ -9,10 +9,12 @@ type PixDepositModalProps = {
   /** Só fecha o painel; o aguardo do Pix continua em segundo plano. */
   onClose: () => void;
   /** Cancela o aguardo e interrompe a compra automática. */
-  onCancelAwait: () => void;
+  onCancelAwait: () => void | Promise<void>;
   intent: PixIntentResponse | null;
   polling: boolean;
   amountLabel: string;
+  /** true = pagamento direto da rifa (confirma bilhetes, não recarrega carteira). */
+  raffleCheckout?: boolean;
 };
 
 export default function PixDepositModal({
@@ -22,6 +24,7 @@ export default function PixDepositModal({
   intent,
   polling,
   amountLabel,
+  raffleCheckout = false,
 }: PixDepositModalProps) {
   const [copied, setCopied] = useState(false);
 
@@ -86,7 +89,9 @@ export default function PixDepositModal({
         {polling && (
           <div className="mt-4 flex items-center gap-2 rounded-lg border border-apex-accent/30 bg-apex-accent/10 px-3 py-2 text-sm text-apex-accent">
             <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
-            Aguardando confirmação do Pix no saldo…
+            {raffleCheckout
+              ? "Aguardando confirmação do Pix para garantir os números…"
+              : "Aguardando confirmação do Pix no saldo…"}
           </div>
         )}
 
@@ -160,15 +165,26 @@ export default function PixDepositModal({
         ) : null}
 
         <p className="mt-4 text-xs text-apex-text/55">
-          Quando o Pix for aprovado, o saldo atualiza e a compra das cotas segue
-          automaticamente. Pode minimizar este aviso (fechar): o aguardo continua em
-          segundo plano.
+          {raffleCheckout ? (
+            <>
+              Quando o Pix for aprovado, os números passam a <strong>vendidos</strong>{" "}
+              para si. Reservas não pagas libertam-se ao cancelar abaixo ou após{" "}
+              <strong>15 minutos</strong>. Pode fechar este aviso: o aguardo continua em
+              segundo plano.
+            </>
+          ) : (
+            <>
+              Quando o Pix for aprovado, o saldo atualiza e a compra das cotas segue
+              automaticamente. Pode minimizar este aviso (fechar): o aguardo continua em
+              segundo plano.
+            </>
+          )}
         </p>
 
         {polling ? (
           <button
             type="button"
-            onClick={onCancelAwait}
+            onClick={() => void onCancelAwait()}
             className="mt-4 w-full rounded-lg border border-red-500/40 py-2 text-sm font-medium text-red-400 hover:bg-red-500/10"
           >
             Parar de aguardar e cancelar compra
