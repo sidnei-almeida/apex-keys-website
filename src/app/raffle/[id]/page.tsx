@@ -59,7 +59,7 @@ async function pollBalanceAtLeast(
 
 export default function RafflePage() {
   const params = useParams<{ id: string }>();
-  const { user, isAuthenticated, refreshUser } = useAuth();
+  const { user, isAuthenticated, refreshUser, isReady } = useAuth();
   const raffleId = params?.id ?? null;
   const [raffle, setRaffle] = useState<RaffleDetailOut | null>(null);
   const [loading, setLoading] = useState(true);
@@ -121,12 +121,13 @@ export default function RafflePage() {
   const totalPay = selectedNumbers.length * ticketPrice;
   const canPay = selectedNumbers.length > 0;
 
-  const balance = parseFloat(user?.balance ?? "0") || 0;
-  const amountFromBalance = useBalance ? Math.min(balance, totalPay) : 0;
+  const balance = parseFloat(user?.balance ?? "0");
+  const balanceNum = Number.isFinite(balance) ? balance : 0;
+  const amountFromBalance = useBalance ? Math.min(balanceNum, totalPay) : 0;
   const amountViaMp = totalPay - amountFromBalance;
   /** Valor a depositar via Pix antes de comprar (saldo atual já cobre o resto se useBalance). */
   const pixDepositAmount = useBalance
-    ? Math.max(0, totalPay - balance)
+    ? Math.max(0, totalPay - balanceNum)
     : totalPay;
   const canPayWithBalanceOnly = pixDepositAmount < 0.01;
 
@@ -166,6 +167,13 @@ export default function RafflePage() {
   const handlePay = useCallback(async () => {
     if (!raffle || !canPay) return;
     setPayError(null);
+
+    if (!isReady) {
+      toast.message("A carregar o seu perfil…", {
+        description: "Tente novamente dentro de um instante.",
+      });
+      return;
+    }
 
     if (!isAuthenticated) {
       setAuthModalOpen(true);
@@ -264,6 +272,7 @@ export default function RafflePage() {
     raffle,
     canPay,
     isAuthenticated,
+    isReady,
     canPayWithBalanceOnly,
     pixDepositAmount,
     selectedNumbers,
@@ -415,11 +424,38 @@ export default function RafflePage() {
 
             {isAuthenticated && (
               <p className="mt-1 text-sm text-apex-text/70">
-                Seu saldo: {formatBRL(balance)}
+                Seu saldo: {formatBRL(balanceNum)}
               </p>
             )}
 
-            <label className="mt-4 flex cursor-pointer items-center gap-2 text-apex-text">
+            {user?.is_admin ? (
+              <p className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200/90">
+                <strong>Conta admin:</strong> se o saldo cobrir o total e você marcar
+                &quot;Utilizar saldo&quot;, a compra é só na carteira —{" "}
+                <strong>sem Mercado Pago</strong>. Para testar Pix, deixe marcada a
+                opção <strong>Pix</strong> (padrão) ou use saldo menor que o total.
+              </p>
+            ) : null}
+
+            <p className="mt-3 text-xs text-apex-text/55">
+              Padrão: <strong>Pix</strong> (Mercado Pago). Use o saldo só se já tiver
+              crédito e quiser debitar direto.
+            </p>
+
+            <label className="mt-3 flex cursor-pointer items-center gap-2 text-apex-text">
+              <input
+                type="radio"
+                name="payment-method"
+                checked={!useBalance}
+                onChange={() => {
+                  setUseBalance(false);
+                  setPayError(null);
+                }}
+                className="size-4 accent-apex-accent"
+              />
+              Pix (Mercado Pago — QR ou link; teste com conta comprador MP)
+            </label>
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-apex-text">
               <input
                 type="radio"
                 name="payment-method"
@@ -431,26 +467,13 @@ export default function RafflePage() {
                 className="size-4 accent-apex-accent"
               />
               <Wallet className="size-4 text-apex-accent/80" aria-hidden />
-              Utilizar saldo
-            </label>
-            <label className="mt-2 flex cursor-pointer items-center gap-2 text-apex-text">
-              <input
-                type="radio"
-                name="payment-method"
-                checked={!useBalance}
-                onChange={() => {
-                  setUseBalance(false);
-                  setPayError(null);
-                }}
-                className="size-4 accent-apex-accent"
-              />
-              Pix (Mercado Pago — abre QR / link para pagar)
+              Utilizar saldo da carteira
             </label>
 
             {useBalance && amountFromBalance > 0 && (
               <p className="mt-2 text-sm text-apex-accent/90">
                 {amountFromBalance >= totalPay
-                  ? `Saldo cobre o total (${formatBRL(totalPay)})`
+                  ? `Saldo cobre o total (${formatBRL(totalPay)}) — sem passar pelo Pix.`
                   : `Saldo: ${formatBRL(amountFromBalance)}. Falta depositar via Pix: ${formatBRL(amountViaMp)}`}
               </p>
             )}
@@ -461,7 +484,7 @@ export default function RafflePage() {
 
             <button
               type="button"
-              disabled={!canPay || paying}
+              disabled={!canPay || paying || !isReady}
               onClick={handlePay}
               className="mt-4 w-full rounded-xl bg-apex-accent py-3 text-center font-bold text-apex-bg transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -470,6 +493,8 @@ export default function RafflePage() {
                   <Loader2 className="size-5 animate-spin" aria-hidden />
                   Processando…
                 </span>
+              ) : !isReady ? (
+                "A carregar…"
               ) : (
                 "Pagar"
               )}
