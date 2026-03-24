@@ -25,7 +25,11 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { ApiError } from "@/lib/api/http";
-import { adminDeleteRaffle, getRaffles } from "@/lib/api/services";
+import {
+  adminDeleteRaffle,
+  adminPatchFeaturedTier,
+  getRaffles,
+} from "@/lib/api/services";
 import { apiUrl, getApiBaseUrl } from "@/lib/api/config";
 import { translateLabelList, translateToPtBr } from "@/lib/translate/client";
 import { getAccessToken } from "@/lib/auth/token-storage";
@@ -336,6 +340,9 @@ export default function AdminPage() {
   const [deletingRaffleId, setDeletingRaffleId] = useState<string | null>(
     null,
   );
+  const [patchingFeaturedTierId, setPatchingFeaturedTierId] = useState<
+    string | null
+  >(null);
   const [rafflesDeleteError, setRafflesDeleteError] = useState<string | null>(
     null,
   );
@@ -560,6 +567,44 @@ export default function AdminPage() {
     resetCreateForm();
     setMessage(null);
   }, [resetCreateForm]);
+
+  /** Cicla featured_tier na tabela: none -> carousel -> featured -> none (via PATCH) */
+  const handleStarClick = useCallback(
+    async (raffle: MockRaffle) => {
+      const next: FeaturedTier =
+        raffle.featuredTier === "none"
+          ? "carousel"
+          : raffle.featuredTier === "carousel"
+            ? "featured"
+            : "none";
+      const token = getAccessToken();
+      if (!token) return;
+      setPatchingFeaturedTierId(raffle.id);
+      setMessage(null);
+      try {
+        await adminPatchFeaturedTier(token, raffle.id, next);
+        setRaffles((prev) =>
+          prev.map((r) =>
+            r.id === raffle.id ? { ...r, featuredTier: next } : r,
+          ),
+        );
+        if (next === "featured") {
+          await demoteOtherFeatured(raffles, raffle.id, token);
+        }
+      } catch (err) {
+        const msg =
+          err instanceof ApiError
+            ? err.detail ?? err.message
+            : err instanceof Error
+              ? err.message
+              : "Não foi possível alterar o destaque.";
+        setMessage({ type: "error", text: msg });
+      } finally {
+        setPatchingFeaturedTierId(null);
+      }
+    },
+    [raffles, demoteOtherFeatured],
+  );
 
   const approveTxn = useCallback((id: string) => {
     setTxns((prev) =>
@@ -1500,35 +1545,51 @@ export default function AdminPage() {
                                 ) : (
                                   <div className="size-10 shrink-0 rounded-md border border-dashed border-apex-text/20 bg-apex-bg" />
                                 )}
-                                <span
-                                  className="shrink-0"
+                                <button
+                                  type="button"
+                                  className="shrink-0 rounded p-0.5 transition-opacity hover:opacity-80 disabled:opacity-50"
                                   title={
                                     raffle.featuredTier === "featured"
-                                      ? "Destaque (topo)"
+                                      ? "Destaque (topo) — clique para alternar"
                                       : raffle.featuredTier === "carousel"
-                                        ? "Carrossel"
-                                        : "Só em Rifas"
+                                        ? "Carrossel — clique para alternar"
+                                        : "Só em Rifas — clique para alternar"
                                   }
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    void handleStarClick(raffle);
+                                  }}
+                                  disabled={patchingFeaturedTierId === raffle.id}
                                 >
-                                  <Star
-                                    className={`size-4 ${
-                                      raffle.featuredTier === "featured"
-                                        ? "text-amber-400 fill-amber-400"
-                                        : raffle.featuredTier === "carousel"
-                                          ? "text-slate-400 fill-slate-400"
-                                          : "text-apex-text/20"
-                                    }`}
-                                    fill={
-                                      raffle.featuredTier === "none"
-                                        ? "none"
-                                        : "currentColor"
-                                    }
-                                    strokeWidth={
-                                      raffle.featuredTier === "none" ? 1.5 : 0
-                                    }
-                                    aria-hidden
-                                  />
-                                </span>
+                                  {patchingFeaturedTierId === raffle.id ? (
+                                    <Loader2
+                                      className="size-4 animate-spin text-apex-accent"
+                                      aria-hidden
+                                    />
+                                  ) : (
+                                    <Star
+                                      className={`size-4 ${
+                                        raffle.featuredTier === "featured"
+                                          ? "text-amber-400 fill-amber-400"
+                                          : raffle.featuredTier === "carousel"
+                                            ? "text-slate-400 fill-slate-400"
+                                            : "text-apex-text/20"
+                                      }`}
+                                      fill={
+                                        raffle.featuredTier === "none"
+                                          ? "none"
+                                          : "currentColor"
+                                      }
+                                      strokeWidth={
+                                        raffle.featuredTier === "none"
+                                          ? 1.5
+                                          : 0
+                                      }
+                                      aria-hidden
+                                    />
+                                  )}
+                                </button>
                                 <span className="min-w-0 font-medium text-apex-text">
                                   {raffle.title}
                                 </span>

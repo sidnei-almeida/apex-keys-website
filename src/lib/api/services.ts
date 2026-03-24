@@ -26,7 +26,7 @@ import type {
   UserPublic,
   WalletBalanceResponse,
 } from "@/types/api";
-import { deleteRequest, getJson, patchJson, postJson } from "./http";
+import { deleteRequest, getJson, patchJson, postJson, putJson } from "./http";
 
 export async function getHealth(): Promise<{ status: string }> {
   return getJson("/health");
@@ -160,6 +160,39 @@ export async function adminCreateRaffle(
   return postJson<RafflePublic, AdminRaffleCreate>(
     "/api/v1/admin/raffles",
     body,
+    token,
+  );
+}
+
+export type RaffleUpdateBody = {
+  title?: string;
+  image_url?: string | null;
+  video_id?: string | null;
+  total_price?: number;
+  total_tickets?: number;
+  featured_tier?: "featured" | "carousel" | "none";
+};
+
+export async function adminUpdateRaffle(
+  token: string,
+  raffleId: string,
+  body: RaffleUpdateBody,
+): Promise<RafflePublic> {
+  return putJson<RafflePublic, RaffleUpdateBody>(
+    `/api/v1/admin/raffles/${encodeURIComponent(raffleId)}`,
+    body,
+    token,
+  );
+}
+
+export async function adminPatchFeaturedTier(
+  token: string,
+  raffleId: string,
+  featured_tier: "featured" | "carousel" | "none",
+): Promise<RafflePublic> {
+  return patchJson<RafflePublic, { featured_tier: typeof featured_tier }>(
+    `/api/v1/admin/raffles/${encodeURIComponent(raffleId)}/featured-tier`,
+    { featured_tier },
     token,
   );
 }

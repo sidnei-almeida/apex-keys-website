@@ -98,6 +98,18 @@ export function postJson<T, B extends object = object>(
   });
 }
 
+export function putJson<T, B extends object = object>(
+  path: string,
+  body: B,
+  token?: string | null,
+): Promise<T> {
+  return apiRequest<T>(path, {
+    method: "PUT",
+    body: JSON.stringify(body),
+    token,
+  });
+}
+
 export function patchJson<T, B extends object = object>(
   path: string,
   body: B,
