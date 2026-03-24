@@ -1,6 +1,7 @@
 "use client";
 
 import { ApiError } from "@/lib/api/http";
+import { getLastEmail, setLastEmail } from "@/lib/auth/token-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { Eye, EyeOff, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -53,6 +54,8 @@ export default function AuthModal({
       setShowPassword(false);
     } else {
       setIsLogin(initialMode === "login");
+      const last = getLastEmail();
+      if (last) setEmail(last);
     }
   }, [isOpen, initialMode]);
 
@@ -71,6 +74,7 @@ export default function AuthModal({
     setIsLoading(true);
     try {
       await login(email.trim(), password);
+      setLastEmail(email.trim());
       onClose();
     } catch (err) {
       if (err instanceof ApiError) {
@@ -97,6 +101,7 @@ export default function AuthModal({
         whatsapp: whatsapp.trim(),
         pix_key: pixKey.trim(),
       });
+      setLastEmail(email.trim());
       onClose();
     } catch (err) {
       if (err instanceof ApiError) {

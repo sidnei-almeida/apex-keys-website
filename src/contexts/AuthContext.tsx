@@ -9,10 +9,13 @@ import {
   useState,
 } from "react";
 import { getMe, login as apiLogin, signup as apiSignup } from "@/lib/api/services";
+import { ApiError } from "@/lib/api/http";
 import {
   clearAccessToken,
   getAccessToken,
+  getCachedUser,
   setAccessToken,
+  setCachedUser,
 } from "@/lib/auth/token-storage";
 import type { SignupRequest, UserPublic } from "@/types/api";
 
@@ -29,8 +32,24 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function isValidUserShape(o: unknown): o is UserPublic {
+  return (
+    !!o &&
+    typeof o === "object" &&
+    "id" in o &&
+    "email" in o &&
+    typeof (o as UserPublic).email === "string"
+  );
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserPublic | null>(null);
+  const [user, setUser] = useState<UserPublic | null>(() => {
+    if (typeof window === "undefined") return null;
+    const token = getAccessToken();
+    if (!token) return null;
+    const cached = getCachedUser();
+    return isValidUserShape(cached) ? (cached as UserPublic) : null;
+  });
   const [isReady, setIsReady] = useState(false);
 
   const refreshUser = useCallback(async () => {
@@ -41,10 +60,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     try {
       const me = await getMe(token);
+      setCachedUser(me);
       setUser(me);
-    } catch {
-      clearAccessToken();
-      setUser(null);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        clearAccessToken();
+        setUser(null);
+      }
     }
   }, []);
 
