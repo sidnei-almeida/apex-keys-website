@@ -35,6 +35,9 @@ export type TransactionOut = {
 
 export type RaffleStatusApi = "active" | "sold_out" | "finished" | "canceled";
 
+/** Posição na home: featured = hero no topo, carousel = carrossel abaixo, none = só em /rifas */
+export type FeaturedTier = "featured" | "carousel" | "none";
+
 export type RafflePublic = {
   id: string;
   title: string;
@@ -45,6 +48,8 @@ export type RafflePublic = {
   ticket_price: string;
   status: string;
   created_at: string;
+  /** featured = hero, carousel = carrossel, none = só em /rifas */
+  featured_tier?: FeaturedTier | null;
   /** Metadados IGDB / copy — opcionais até o backend expor no OpenAPI */
   summary?: string | null;
   genres?: string[];
@@ -112,6 +117,7 @@ export type AdminRaffleCreate = {
   video_id: string | null;
   total_price: number;
   total_tickets: number;
+  featured_tier?: FeaturedTier | null;
   summary?: string | null;
   genres?: string[];
   series?: string[];

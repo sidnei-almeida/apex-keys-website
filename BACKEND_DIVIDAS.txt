@@ -15,6 +15,11 @@ REF: apex-keys-api (pasta no repo) — análise em 2025-03-23
   5. Recuperação de senha
   6. Verificação de email
   7. (Opcional) Rifas com summary, genres, series no DB — frontend envia, API ignora por ora
+  8. FEATURED_TIER — coluna nas rifas: "featured" | "carousel" | "none"
+       - featured = hero no topo da home
+       - carousel = carrossel abaixo do hero
+       - none = só aparece em /rifas, não na home
+       - Aceitar em POST/PUT admin/raffles; retornar em GET /raffles e GET /raffles/{id}
 
 [ROTAS ADMIN]
   - API expõe /api/v1/admin/* e alias /admin/* (compatibilidade)

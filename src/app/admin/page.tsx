@@ -16,6 +16,7 @@ import {
   ReceiptText,
   Rocket,
   ShieldAlert,
+  Star,
   TableProperties,
   Trash2,
   TrendingUp,
@@ -24,12 +25,17 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { ApiError } from "@/lib/api/http";
-import { adminDeleteRaffle } from "@/lib/api/services";
+import { adminDeleteRaffle, getRaffles } from "@/lib/api/services";
 import { getApiBaseUrl } from "@/lib/api/config";
 import { translateLabelList, translateToPtBr } from "@/lib/translate/client";
 import { getAccessToken } from "@/lib/auth/token-storage";
 import { fetchIgdbGame } from "@/services/api";
-import type { IgdbGameInfoResponse, RafflePublic } from "@/types/api";
+import type {
+  FeaturedTier,
+  IgdbGameInfoResponse,
+  RaffleListOut,
+  RafflePublic,
+} from "@/types/api";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -80,6 +86,7 @@ type MockRaffle = {
   sold: number;
   total: number;
   status: string;
+  featuredTier: FeaturedTier;
   coverUrl?: string;
   imageUrlRaw?: string | null;
   videoId?: string | null;
@@ -104,57 +111,13 @@ type PendingTxnRow = {
   status: "Aguardando Pagamento" | "Pago" | "Expirado/Caído";
 };
 
-const INITIAL_RAFFLES: MockRaffle[] = [
-  {
-    id: "1",
-    title: "Dead Space Remake - Steam Key",
-    priceLabel: "R$ 3,00",
-    sold: 75,
-    total: 100,
-    status: "active",
-    coverUrl:
-      "https://media.rawg.io/media/games/d58/d588947d428c20a53d210b82c51d257d.jpg",
-    imageUrlRaw:
-      "https://media.rawg.io/media/games/d58/d588947d428c20a53d210b82c51d257d.jpg",
-    videoId: null,
-    totalPriceNum: 300,
-    ticketPriceNum: 3,
-    reservedPending: 4,
-    paused: false,
-  },
-  {
-    id: "2",
-    title: "Elden Ring",
-    priceLabel: "R$ 2,00",
-    sold: 42,
-    total: 100,
-    status: "active",
-    coverUrl:
-      "https://media.rawg.io/media/games/5c0/5c0ddfc02ee5f3d621a5b37b293fdb9f.jpg",
-    imageUrlRaw:
-      "https://media.rawg.io/media/games/5c0/5c0ddfc02ee5f3d621a5b37b293fdb9f.jpg",
-    videoId: null,
-    totalPriceNum: 200,
-    ticketPriceNum: 2,
-    reservedPending: 2,
-    paused: false,
-  },
-  {
-    id: "3",
-    title: "CS2 Prime + AWP Skin",
-    priceLabel: "R$ 1,50",
-    sold: 12,
-    total: 50,
-    status: "sold_out",
-    coverUrl: undefined,
-    imageUrlRaw: null,
-    videoId: null,
-    totalPriceNum: 75,
-    ticketPriceNum: 1.5,
-    reservedPending: 0,
-    paused: false,
-  },
-];
+function raffleImageUrl(url: string | null): string | undefined {
+  if (!url?.trim()) return undefined;
+  const u = url.trim();
+  if (u.startsWith("http")) return u;
+  const base = getApiBaseUrl().replace(/\/+$/, "");
+  return `${base}${u.startsWith("/") ? "" : "/"}${u}`;
+}
 
 const INITIAL_TXNS: PendingTxnRow[] = [
   {
@@ -273,12 +236,18 @@ function StatCard({
   );
 }
 
+const DEFAULT_FEATURED_TIER: FeaturedTier = "none";
+
 function mapRafflePublicToRow(r: RafflePublic): MockRaffle {
   const ticket = parseFloat(r.ticket_price);
   const priceLabel = Number.isFinite(ticket)
     ? `R$ ${ticket.toFixed(2).replace(".", ",")}`
     : `R$ ${r.ticket_price}`;
   const totalPriceNum = parseFloat(r.total_price);
+  const tier =
+    r.featured_tier === "featured" || r.featured_tier === "carousel"
+      ? r.featured_tier
+      : DEFAULT_FEATURED_TIER;
   return {
     id: r.id,
     title: r.title,
@@ -286,6 +255,7 @@ function mapRafflePublicToRow(r: RafflePublic): MockRaffle {
     sold: 0,
     total: r.total_tickets,
     status: r.status,
+    featuredTier: tier,
     coverUrl: r.image_url ?? undefined,
     imageUrlRaw: r.image_url,
     videoId: r.video_id,
@@ -301,6 +271,19 @@ function mapRafflePublicToRow(r: RafflePublic): MockRaffle {
   };
 }
 
+function mapRaffleListOutToRow(r: RaffleListOut): MockRaffle {
+  const base = mapRafflePublicToRow(r);
+  return {
+    ...base,
+    sold: r.sold,
+    coverUrl: raffleImageUrl(r.image_url) ?? base.coverUrl,
+    featuredTier:
+      r.featured_tier === "featured" || r.featured_tier === "carousel"
+        ? r.featured_tier
+        : DEFAULT_FEATURED_TIER,
+  };
+}
+
 const TAB_DEF: {
   id: AdminTab;
   label: string;
@@ -313,12 +296,16 @@ const TAB_DEF: {
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>("launch");
-  const [raffles, setRaffles] = useState<MockRaffle[]>(INITIAL_RAFFLES);
+  const [raffles, setRaffles] = useState<MockRaffle[]>([]);
+  const [rafflesLoading, setRafflesLoading] = useState(true);
   const [txns, setTxns] = useState<PendingTxnRow[]>(INITIAL_TXNS);
 
   const [title, setTitle] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [videoId, setVideoId] = useState("");
+  const [featuredTier, setFeaturedTier] = useState<FeaturedTier>(
+    DEFAULT_FEATURED_TIER,
+  );
   const [totalPrice, setTotalPrice] = useState<number>(0);
   const [totalTickets, setTotalTickets] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -361,6 +348,26 @@ export default function AdminPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    setRafflesLoading(true);
+    getRaffles()
+      .then((list) => {
+        if (!cancelled) {
+          setRaffles(list.map(mapRaffleListOutToRow));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setRaffles([]);
+      })
+      .finally(() => {
+        if (!cancelled) setRafflesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const resetCreateForm = useCallback(() => {
     setTitle("");
     setIgdbInputUrl("");
@@ -374,6 +381,7 @@ export default function AdminPage() {
     setPerspectivesPt([]);
     setImageUrl("");
     setVideoId("");
+    setFeaturedTier(DEFAULT_FEATURED_TIER);
     setTotalPrice(0);
     setTotalTickets(0);
     setEditingRaffleId(null);
@@ -501,6 +509,7 @@ export default function AdminPage() {
       (raffle.imageUrlRaw?.trim() || raffle.coverUrl || "").trim(),
     );
     setVideoId((raffle.videoId ?? "").trim());
+    setFeaturedTier(raffle.featuredTier ?? DEFAULT_FEATURED_TIER);
     setTotalPrice(raffle.totalPriceNum ?? 0);
     setTotalTickets(raffle.total);
     setMessage(null);
@@ -572,6 +581,51 @@ export default function AdminPage() {
     );
   }, []);
 
+  const buildRafflePayload = useCallback((r: MockRaffle, tier: FeaturedTier) => {
+    const payload: Record<string, unknown> = {
+      title: r.title,
+      image_url: r.imageUrlRaw?.trim() || null,
+      video_id: videoIdForApi(r.videoId ?? ""),
+      total_price: r.totalPriceNum ?? 0,
+      total_tickets: r.total,
+      featured_tier: tier,
+    };
+    if (r.summaryPt) payload.summary = r.summaryPt;
+    if (r.genresPt?.length) payload.genres = r.genresPt;
+    if (r.seriesPt?.length) payload.series = r.seriesPt;
+    if (r.gameModesPt?.length) payload.game_modes = r.gameModesPt;
+    if (r.perspectivesPt?.length) payload.player_perspectives = r.perspectivesPt;
+    return JSON.stringify(payload);
+  }, []);
+
+  const demoteOtherFeatured = useCallback(
+    async (currentRaffles: MockRaffle[], exceptId: string, token: string) => {
+      const other = currentRaffles.find(
+        (r) => r.featuredTier === "featured" && r.id !== exceptId
+      );
+      if (!other) return;
+      const res = await fetch(
+        `${getApiBaseUrl()}/api/v1/admin/raffles/${other.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: buildRafflePayload(other, "carousel"),
+        }
+      );
+      if (res.ok) {
+        setRaffles((prev) =>
+          prev.map((r) =>
+            r.id === other.id ? { ...r, featuredTier: "carousel" as const } : r
+          )
+        );
+      }
+    },
+    [buildRafflePayload]
+  );
+
   const handleCreateOrUpdateRaffle = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
@@ -620,6 +674,7 @@ export default function AdminPage() {
       if (gameModesPt.length) bodyPayload.game_modes = gameModesPt;
       if (perspectivesPt.length)
         bodyPayload.player_perspectives = perspectivesPt;
+      bodyPayload.featured_tier = featuredTier;
       const body = JSON.stringify(bodyPayload);
 
       const url = editingRaffleId
@@ -657,6 +712,9 @@ export default function AdminPage() {
 
       const saved = data as RafflePublic;
       const row = mapRafflePublicToRow(saved);
+      if (featuredTier === "featured" && token) {
+        await demoteOtherFeatured(raffles, saved.id, token);
+      }
       if (editingRaffleId) {
         setRaffles((prev) =>
           prev.map((existing) => {
@@ -1000,6 +1058,64 @@ export default function AdminPage() {
                       Inserir manualmente — use imagens de alta qualidade do AlphaCoders ou similar.
                     </p>
                   </label>
+
+                  {/* Destaque na Home */}
+                  <div className="sm:col-span-2">
+                    <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                      Exibição na Home
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {(
+                        [
+                          {
+                            tier: "featured" as const,
+                            label: "Destaque (topo)",
+                            className: "text-amber-400 fill-amber-400",
+                          },
+                          {
+                            tier: "carousel" as const,
+                            label: "Carrossel",
+                            className: "text-slate-400 fill-slate-400",
+                          },
+                          {
+                            tier: "none" as const,
+                            label: "Só em Rifas",
+                            className: "text-apex-text/30",
+                          },
+                        ] as const
+                      ).map(({ tier, label, className }) => (
+                        <button
+                          key={tier}
+                          type="button"
+                          onClick={() => setFeaturedTier(tier)}
+                          title={label}
+                          className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                            featuredTier === tier
+                              ? "border-apex-accent/50 bg-apex-accent/10"
+                              : "border-apex-primary/20 hover:border-apex-text/30"
+                          }`}
+                        >
+                          <Star
+                            className={`size-4 shrink-0 ${
+                              tier === "none" ? "opacity-40" : className
+                            }`}
+                            fill={tier === "none" ? "none" : "currentColor"}
+                            strokeWidth={tier === "none" ? 1.5 : 0}
+                            aria-hidden
+                          />
+                          <span className="text-apex-text/90">{label}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-1 text-[11px] text-apex-text/40">
+                      Ouro = hero no topo (1 só) · Prata = carrossel (até 5) · Vazio = só na aba Rifas
+                    </p>
+                    {featuredTier === "featured" && raffles.some((r) => r.featuredTier === "featured" && r.id !== editingRaffleId) ? (
+                      <p className="mt-1 text-[11px] text-amber-400/90">
+                        A rifa em destaque atual será movida para o carrossel.
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
 
                 {/* Traduzindo */}
@@ -1313,7 +1429,7 @@ export default function AdminPage() {
                   accentClass="text-apex-secondary"
                 />
                 <StatCard
-                  title="Aguardando PIX"
+                  title="Aguardando"
                   value={totalPendingPix}
                   icon={Clock}
                   accentClass="text-amber-400"
@@ -1346,7 +1462,17 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {raffles.map((raffle) => {
+                      {rafflesLoading ? (
+                        <tr>
+                          <td
+                            colSpan={7}
+                            className="py-12 text-center text-apex-text/60"
+                          >
+                            Carregando rifas…
+                          </td>
+                        </tr>
+                      ) : (
+                        raffles.map((raffle) => {
                         const pct = Math.round(
                           (raffle.sold / Math.max(raffle.total, 1)) * 100,
                         );
@@ -1373,6 +1499,35 @@ export default function AdminPage() {
                                 ) : (
                                   <div className="size-10 shrink-0 rounded-md border border-dashed border-apex-text/20 bg-apex-bg" />
                                 )}
+                                <span
+                                  className="shrink-0"
+                                  title={
+                                    raffle.featuredTier === "featured"
+                                      ? "Destaque (topo)"
+                                      : raffle.featuredTier === "carousel"
+                                        ? "Carrossel"
+                                        : "Só em Rifas"
+                                  }
+                                >
+                                  <Star
+                                    className={`size-4 ${
+                                      raffle.featuredTier === "featured"
+                                        ? "text-amber-400 fill-amber-400"
+                                        : raffle.featuredTier === "carousel"
+                                          ? "text-slate-400 fill-slate-400"
+                                          : "text-apex-text/20"
+                                    }`}
+                                    fill={
+                                      raffle.featuredTier === "none"
+                                        ? "none"
+                                        : "currentColor"
+                                    }
+                                    strokeWidth={
+                                      raffle.featuredTier === "none" ? 1.5 : 0
+                                    }
+                                    aria-hidden
+                                  />
+                                </span>
                                 <span className="min-w-0 font-medium text-apex-text">
                                   {raffle.title}
                                 </span>
@@ -1392,7 +1547,7 @@ export default function AdminPage() {
                               </div>
                             </td>
                             <td className={`${tdClass} text-apex-text/75`}>
-                              {raffle.reservedPending} aguard. Pix
+                              {raffle.reservedPending} aguardando
                             </td>
                             <td className={`${tdClass} text-apex-text/80`}>
                               <span className="text-apex-accent/90">
@@ -1481,7 +1636,8 @@ export default function AdminPage() {
                             </td>
                           </tr>
                         );
-                      })}
+                      })
+                      )}
                     </tbody>
                   </table>
                 </div>

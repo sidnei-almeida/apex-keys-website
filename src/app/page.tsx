@@ -183,7 +183,9 @@ export default function Home() {
 
   useEffect(() => {
     getRaffles()
-      .then((all) => all.filter((r) => r.status === "active" || r.status === "sold_out"))
+      .then((all) =>
+        all.filter((r) => r.status === "active" || r.status === "sold_out")
+      )
       .then(setRaffles)
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Erro ao carregar rifas")
@@ -191,41 +193,102 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, []);
 
-  const carouselRaffles = raffles.slice(0, 8);
+  const onHome = raffles.filter(
+    (r) => r.featured_tier !== "none" /* none = só em /rifas; null = compat */
+  );
+  const featuredRaffle =
+    onHome.find((r) => r.featured_tier === "featured") ?? onHome[0] ?? null;
+  const carouselRaffles = onHome.filter((r) => r !== featuredRaffle).slice(0, 5);
 
   return (
     <>
-      {/* Hero introdutório */}
+      {/* Hero — Top 1 em destaque */}
       <section className="mx-auto max-w-7xl px-4 py-12 lg:pl-40">
-        <div className="flex flex-col gap-4">
-          <span
-            className={`inline-flex w-fit items-center gap-1.5 rounded-md bg-apex-surface/90 px-3 py-1 text-sm font-semibold tracking-wide text-apex-accent/85 ${edgeSurface}`}
-          >
-            <Flame className="size-4 shrink-0 text-apex-accent" strokeWidth={2} aria-hidden />
-            SORTEIOS PREMIUM
-          </span>
-          <h1 className="text-3xl font-bold tracking-tight text-apex-text/95 sm:text-4xl lg:text-5xl">
-            Chaves Steam por uma fração do preço
-          </h1>
-          <p className="max-w-xl text-lg text-apex-text/55">
-            Escolha seus números e concorra. Os sorteios mais disputados estão aqui.
-          </p>
-        </div>
-      </section>
-
-      {/* Carrossel — Sorteios em destaque */}
-      <section className="mx-auto max-w-7xl px-4 py-8">
-        <h2 className="mb-6 text-2xl font-bold text-apex-text/95">
-          Sorteios Ativos
-        </h2>
-
         {loading && (
           <div className="flex min-h-[320px] items-center justify-center">
             <Loader2 className="size-10 animate-spin text-apex-accent" aria-hidden />
           </div>
         )}
 
-        {!loading && carouselRaffles.length === 0 && !error && (
+        {!loading && featuredRaffle && (
+          <div className="grid items-center gap-8 md:grid-cols-2">
+            <div className="flex flex-col gap-6">
+              <span
+                className={`inline-flex w-fit items-center gap-1.5 rounded-md bg-apex-surface/90 px-3 py-1 text-sm font-semibold tracking-wide text-apex-accent/85 ${edgeSurface}`}
+              >
+                <Flame
+                  className="size-4 shrink-0 text-apex-accent"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+                SORTEIO EM DESTAQUE
+              </span>
+              <h1 className="text-3xl font-bold tracking-tight text-apex-text/95 sm:text-4xl lg:text-5xl lg:leading-tight">
+                {featuredRaffle.title}
+              </h1>
+              <p className="max-w-xl text-lg text-apex-text/55">
+                Garanta sua chave Steam por uma fração do preço.
+              </p>
+              <div className="flex flex-col gap-2">
+                <ProgressTrack className="h-3">
+                  <ProgressFill
+                    pct={
+                      featuredRaffle.total_tickets > 0
+                        ? (featuredRaffle.sold / featuredRaffle.total_tickets) * 100
+                        : 0
+                    }
+                  />
+                </ProgressTrack>
+                <div className="flex flex-wrap justify-between gap-2 text-sm text-apex-text/65">
+                  <span>
+                    {featuredRaffle.total_tickets > 0
+                      ? Math.round(
+                          (featuredRaffle.sold / featuredRaffle.total_tickets) * 100
+                        )
+                      : 0}
+                    % Concluído
+                  </span>
+                  <span>
+                    Faltam{" "}
+                    {Math.max(0, featuredRaffle.total_tickets - featuredRaffle.sold)}{" "}
+                    números
+                  </span>
+                </div>
+              </div>
+              <Link
+                href={`/raffle/${featuredRaffle.id}`}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-apex-accent to-teal-500 px-6 py-4 text-base font-bold text-apex-bg shadow-[0_4px_18px_rgba(0,229,255,0.35),inset_0_1px_0_rgba(255,255,255,0.18)] transition-all hover:scale-[1.02] hover:shadow-[0_6px_24px_rgba(0,229,255,0.45)] sm:w-auto sm:px-8"
+              >
+                <Ticket className="size-5 shrink-0 opacity-95" aria-hidden />
+                Garantir Meu Número - {formatBRL(featuredRaffle.ticket_price)}
+              </Link>
+            </div>
+
+            <div className="mx-auto w-full max-w-md">
+              <div
+                className={`relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-xl bg-apex-surface ${edgeSurface}`}
+              >
+                {raffleImageUrl(featuredRaffle.image_url) ? (
+                  <Image
+                    src={raffleImageUrl(featuredRaffle.image_url)!}
+                    alt={featuredRaffle.title}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <Gamepad2
+                    className="size-24 text-apex-accent/50 drop-shadow-[0_0_6px_rgba(0,212,255,0.06)] sm:size-32 md:size-36"
+                    strokeWidth={1.5}
+                    aria-hidden
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!loading && !featuredRaffle && !error && (
           <div className="rounded-xl border border-white/[0.08] bg-apex-surface/50 p-12 text-center">
             <Gamepad2 className="mx-auto size-16 text-apex-text-muted/40" aria-hidden />
             <p className="mt-4 text-apex-text-muted/80">
@@ -239,8 +302,14 @@ export default function Home() {
             <p className="text-red-400">{error}</p>
           </div>
         )}
+      </section>
 
-        {!loading && carouselRaffles.length > 0 && (
+      {/* Carrossel — próximas 3–5 rifas */}
+      {carouselRaffles.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 py-16">
+          <h2 className="mb-6 text-2xl font-bold text-apex-text/95">
+            Mais Sorteios
+          </h2>
           <div className="relative px-10 sm:px-12">
             <div className="overflow-hidden" ref={emblaRef}>
               <div className="embla__container flex touch-pan-y gap-0">
@@ -266,9 +335,6 @@ export default function Home() {
               <ChevronRight className="size-6" aria-hidden />
             </button>
           </div>
-        )}
-
-        {!loading && raffles.length > 0 && (
           <div className="mt-8 text-center">
             <Link
               href="/rifas"
@@ -278,8 +344,22 @@ export default function Home() {
               <ChevronRight className="size-4" aria-hidden />
             </Link>
           </div>
-        )}
-      </section>
+        </section>
+      )}
+
+      {!loading && raffles.length === 1 && (
+        <section className="mx-auto max-w-7xl px-4 py-8">
+          <div className="text-center">
+            <Link
+              href="/rifas"
+              className="inline-flex items-center gap-2 rounded-xl border border-apex-accent/30 bg-apex-surface/60 px-6 py-3 text-sm font-semibold text-apex-accent transition-colors hover:border-apex-accent hover:bg-apex-accent/10"
+            >
+              Ver todas as rifas
+              <ChevronRight className="size-4" aria-hidden />
+            </Link>
+          </div>
+        </section>
+      )}
     </>
   );
 }

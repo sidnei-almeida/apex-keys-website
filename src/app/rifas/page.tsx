@@ -13,7 +13,6 @@ export default function RifasPage() {
 
   useEffect(() => {
     getRaffles()
-      .then((all) => all.filter((r) => r.status === "active" || r.status === "sold_out"))
       .then(setRaffles)
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Erro ao carregar rifas")
@@ -25,7 +24,7 @@ export default function RifasPage() {
     <div className="mx-auto max-w-7xl px-4 py-16">
       <h1 className="mb-2 text-3xl font-bold text-apex-text/95">Rifas</h1>
       <p className="mb-10 text-apex-text-muted/80">
-        Todos os sorteios ativos. Clique para escolher seus números.
+        Todas as rifas — ativas, vendendo, esgotadas ou finalizadas. Clique para participar ou ver detalhes.
       </p>
 
       {loading && (
@@ -37,7 +36,7 @@ export default function RifasPage() {
       {!loading && raffles.length === 0 && !error && (
         <div className="rounded-xl border border-white/[0.08] bg-apex-surface/50 p-16 text-center">
           <Box className="mx-auto size-16 text-apex-text-muted/40" aria-hidden />
-          <p className="mt-4 text-apex-text-muted/80">Nenhuma rifa ativa no momento.</p>
+          <p className="mt-4 text-apex-text-muted/80">Nenhuma rifa no momento.</p>
           <p className="mt-2 text-sm text-apex-text-muted/60">
             Volte em breve para conferir novos sorteios.
           </p>

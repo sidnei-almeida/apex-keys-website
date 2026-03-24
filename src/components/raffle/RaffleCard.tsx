@@ -39,12 +39,22 @@ function ProgressFill({ pct }: { pct: number }) {
   );
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  active: "Vendendo",
+  sold_out: "Esgotada",
+  finished: "Finalizada",
+  canceled: "Cancelada",
+};
+
 export function RaffleGridCard({ raffle }: { raffle: RaffleListOut }) {
   const pct =
     raffle.total_tickets > 0
       ? Math.round((raffle.sold / raffle.total_tickets) * 100)
       : 0;
   const imgUrl = raffleImageUrl(raffle.image_url);
+  const statusLabel = STATUS_LABELS[raffle.status] ?? raffle.status;
+  const canParticipate = raffle.status === "active" || raffle.status === "sold_out";
+  const buttonText = canParticipate ? "Participar" : "Ver detalhes";
 
   return (
     <article
@@ -52,6 +62,9 @@ export function RaffleGridCard({ raffle }: { raffle: RaffleListOut }) {
     >
       <Link href={`/raffle/${raffle.id}`}>
         <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden border-b border-white/[0.05] bg-apex-bg">
+          <span className="absolute right-2 top-2 z-10 rounded-md bg-apex-bg/90 px-2 py-0.5 text-xs font-medium text-apex-text/90 backdrop-blur-sm">
+            {statusLabel}
+          </span>
           {imgUrl ? (
             <>
               <img
@@ -89,7 +102,7 @@ export function RaffleGridCard({ raffle }: { raffle: RaffleListOut }) {
           </p>
           <span className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-apex-accent/20 bg-apex-surface py-2.5 text-sm font-semibold text-apex-text-muted transition-all group-hover:border-apex-accent/50 group-hover:bg-apex-accent/10 group-hover:text-apex-accent">
             <Ticket className="size-4" aria-hidden />
-            Participar
+            {buttonText}
           </span>
         </div>
       </Link>

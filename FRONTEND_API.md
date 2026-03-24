@@ -184,6 +184,7 @@ Os endpoints admin usam o prefixo `/api/v1`.
 | `video_id` | string \| null (ID do vídeo YouTube) |
 | `total_price` | > 0 |
 | `total_tickets` | inteiro > 0 |
+| `featured_tier` | `"featured"` \| `"carousel"` \| `"none"` \| null | featured = hero home, carousel = carrossel, none = só em /rifas |
 
 O servidor calcula `ticket_price` = `total_price / total_tickets` arredondado a **2 casas** (half-up).
 
