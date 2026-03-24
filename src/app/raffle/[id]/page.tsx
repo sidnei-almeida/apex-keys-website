@@ -6,10 +6,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getApiBaseUrl } from "@/lib/api/config";
 import { ApiError } from "@/lib/api/http";
 import {
-  buyTicket,
+  completeReservationWallet,
   getRaffleById,
-  getWalletBalance,
-  postMockPixIntent,
+  postReservationPixIntent,
+  reserveRaffleTickets,
+  getReservationStatus,
 } from "@/lib/api/services";
 import { getAccessToken } from "@/lib/auth/token-storage";
 import type { PixIntentResponse, RaffleDetailOut } from "@/types/api";
@@ -33,25 +34,25 @@ function raffleImageUrl(url: string | null) {
   return `${getApiBaseUrl()}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
-const PIX_POLL_INTERVAL_MS = 2500;
-const PIX_POLL_MAX_ATTEMPTS = 120;
+const RES_POLL_INTERVAL_MS = 2500;
+const RES_POLL_MAX_ATTEMPTS = 120;
 
-async function pollBalanceAtLeast(
+async function pollReservationUntilPaid(
   token: string,
-  minTotal: number,
+  holdId: string,
   signal: AbortSignal,
 ): Promise<boolean> {
-  const threshold = minTotal - 0.02;
-  for (let i = 0; i < PIX_POLL_MAX_ATTEMPTS; i++) {
-    if (signal.aborted) return false;
-    await new Promise((r) => setTimeout(r, PIX_POLL_INTERVAL_MS));
+  for (let i = 0; i < RES_POLL_MAX_ATTEMPTS; i++) {
     if (signal.aborted) return false;
     try {
-      const { balance } = await getWalletBalance(token);
-      const b = parseFloat(balance);
-      if (!Number.isNaN(b) && b >= threshold) return true;
+      const st = await getReservationStatus(token, holdId);
+      if (st.state === "paid") return true;
+      if (st.state === "released" || st.state === "unknown") return false;
     } catch {
-      /* continua a tentar */
+      /* continua */
+    }
+    if (i < RES_POLL_MAX_ATTEMPTS - 1) {
+      await new Promise((r) => setTimeout(r, RES_POLL_INTERVAL_MS));
     }
   }
   return false;
@@ -90,17 +91,29 @@ export default function RafflePage() {
 
   const soldSet = useMemo(
     () => new Set(raffle?.sold_numbers ?? []),
-    [raffle?.sold_numbers]
+    [raffle?.sold_numbers],
   );
+
+  const heldSet = useMemo(
+    () => new Set(raffle?.held_numbers ?? []),
+    [raffle?.held_numbers],
+  );
+
+  const unavailableSet = useMemo(() => {
+    const u = new Set<number>();
+    for (const n of soldSet) u.add(n);
+    for (const n of heldSet) u.add(n);
+    return u;
+  }, [soldSet, heldSet]);
 
   const selectedSet = useMemo(
     () => new Set(selectedNumbers),
-    [selectedNumbers]
+    [selectedNumbers],
   );
 
   const toggleNumber = useCallback(
     (num: number) => {
-      if (!raffle || soldSet.has(num)) return;
+      if (!raffle || unavailableSet.has(num)) return;
       const isAdding = !selectedSet.has(num);
       setSelectedNumbers((prev) => {
         if (prev.includes(num)) {
@@ -114,7 +127,7 @@ export default function RafflePage() {
         });
       }
     },
-    [raffle, soldSet, selectedSet, isAuthenticated]
+    [raffle, unavailableSet, selectedSet, isAuthenticated],
   );
 
   const ticketPrice = raffle ? parseFloat(raffle.ticket_price) : 0;
@@ -123,32 +136,8 @@ export default function RafflePage() {
 
   const balance = parseFloat(user?.balance ?? "0");
   const balanceNum = Number.isFinite(balance) ? balance : 0;
-  const amountFromBalance = useBalance ? Math.min(balanceNum, totalPay) : 0;
-  const amountViaMp = totalPay - amountFromBalance;
-  /** Valor a depositar via Pix antes de comprar (saldo atual já cobre o resto se useBalance). */
-  const pixDepositAmount = useBalance
-    ? Math.max(0, totalPay - balanceNum)
-    : totalPay;
-  const canPayWithBalanceOnly = pixDepositAmount < 0.01;
-
-  const runBuyTickets = useCallback(
-    async (token: string, r: RaffleDetailOut, nums: number[]) => {
-      for (const num of [...nums].sort((a, b) => a - b)) {
-        await buyTicket(token, {
-          raffle_id: r.id,
-          ticket_number: num,
-        });
-      }
-      await refreshUser();
-      const updated = await getRaffleById(r.id);
-      setRaffle(updated);
-      setSelectedNumbers([]);
-      toast.success("Compra concluída", {
-        description: `${nums.length} cota(s) garantida(s).`,
-      });
-    },
-    [refreshUser],
-  );
+  const canPayWithBalanceOnly =
+    useBalance && totalPay > 0 && balanceNum + 0.001 >= totalPay;
 
   const cancelPixAwait = useCallback(() => {
     pixAbortRef.current?.abort();
@@ -186,29 +175,39 @@ export default function RafflePage() {
       return;
     }
 
-    if (canPayWithBalanceOnly) {
-      setPaying(true);
-      try {
-        await runBuyTickets(token, raffle, selectedNumbers);
-      } catch (err) {
-        setPayError(
-          err instanceof ApiError
-            ? (err.detail ?? "Erro ao processar pagamento")
-            : "Erro ao processar pagamento",
-        );
-      } finally {
-        setPaying(false);
-      }
+    if (useBalance && !canPayWithBalanceOnly) {
+      setPayError(
+        "Saldo insuficiente para pagar só com a carteira. Escolha Pix ou recarregue a carteira em Minha conta.",
+      );
+      toast.error("Saldo insuficiente", {
+        description:
+          "Marque Pix para pagar o total da reserva ou adicione saldo antes.",
+      });
       return;
     }
 
-    const deposit = Number(pixDepositAmount.toFixed(2));
-    const gatewayRef = `rk-${raffle.id}-${crypto.randomUUID()}`;
-
     setPaying(true);
     try {
-      const intent = await postMockPixIntent(token, {
-        amount: deposit,
+      const reserve = await reserveRaffleTickets(token, {
+        raffle_id: raffle.id,
+        ticket_numbers: [...selectedNumbers].sort((a, b) => a - b),
+      });
+
+      if (canPayWithBalanceOnly) {
+        await completeReservationWallet(token, reserve.payment_hold_id);
+        await refreshUser();
+        const updated = await getRaffleById(raffle.id);
+        setRaffle(updated);
+        setSelectedNumbers([]);
+        toast.success("Compra concluída", {
+          description: `${reserve.ticket_numbers.length} cota(s) garantida(s) na carteira.`,
+        });
+        return;
+      }
+
+      const gatewayRef = `rr-${raffle.id}-${crypto.randomUUID()}`;
+      const intent = await postReservationPixIntent(token, {
+        payment_hold_id: reserve.payment_hold_id,
         gateway_reference: gatewayRef,
       });
       setPixIntent(intent);
@@ -218,53 +217,74 @@ export default function RafflePage() {
       pixAbortRef.current = ac;
       setPixPolling(true);
 
-      const funded = await pollBalanceAtLeast(token, totalPay, ac.signal);
+      const ok = await pollReservationUntilPaid(
+        token,
+        reserve.payment_hold_id,
+        ac.signal,
+      );
       pixAbortRef.current = null;
       setPixPolling(false);
 
-      if (!funded) {
+      if (!ok) {
         if (ac.signal.aborted) {
-          toast.message("Compra cancelada", {
-            description: "O aguardo do Pix foi interrompido.",
+          toast.message("Aguardo interrompido", {
+            description:
+              "Se já pagou o Pix, o sistema pode ainda confirmar — atualize a página em instantes.",
           });
         } else {
-          toast.error("Pix não confirmado a tempo", {
+          toast.error("Pagamento não confirmado a tempo", {
             description:
-              "Tente novamente ou confira o pagamento no app do banco / Mercado Pago.",
+              "Confira o Pix no banco ou tente de novo. Os números ficam reservados até o MP confirmar ou um admin libertar.",
           });
         }
         setPixModalOpen(false);
         setPixIntent(null);
+        const updated = await getRaffleById(raffle.id);
+        setRaffle(updated);
         return;
       }
 
       await refreshUser();
       setPixModalOpen(false);
       setPixIntent(null);
-      toast.success("Saldo atualizado", { description: "Finalizando compra…" });
-
-      try {
-        await runBuyTickets(token, raffle, selectedNumbers);
-      } catch (err) {
-        const msg =
-          err instanceof ApiError
-            ? (err.detail ?? "Erro ao comprar cotas")
-            : "Erro ao comprar cotas";
-        setPayError(msg);
-        toast.error("Erro na compra", { description: msg });
-      }
+      const updated = await getRaffleById(raffle.id);
+      setRaffle(updated);
+      setSelectedNumbers([]);
+      toast.success("Pagamento confirmado", {
+        description: `${reserve.ticket_numbers.length} cota(s) garantida(s).`,
+      });
     } catch (err) {
-      if (err instanceof ApiError) {
-        setPayError(err.detail ?? "Erro ao iniciar Pix");
-        toast.error("Erro no Pix", { description: err.detail });
-      } else {
-        setPayError("Erro ao iniciar Pix");
+      if (err instanceof ApiError && err.status === 409) {
+        const msg =
+          err.detail ?? "Número já foi reservado ou vendido por outro jogador.";
+        setPayError(msg);
+        toast.error("Número indisponível", { description: msg });
+        try {
+          const updated = await getRaffleById(raffle.id);
+          setRaffle(updated);
+        } catch {
+          /* ignore */
+        }
+        setSelectedNumbers([]);
+        return;
       }
+      const msg =
+        err instanceof ApiError
+          ? (err.detail ?? "Erro ao processar")
+          : "Erro ao processar";
+      setPayError(msg);
+      toast.error("Erro no pagamento", { description: msg });
       setPixModalOpen(false);
       setPixIntent(null);
       setPixPolling(false);
       pixAbortRef.current?.abort();
       pixAbortRef.current = null;
+      try {
+        const updated = await getRaffleById(raffle.id);
+        setRaffle(updated);
+      } catch {
+        /* ignore */
+      }
     } finally {
       setPaying(false);
     }
@@ -273,11 +293,9 @@ export default function RafflePage() {
     canPay,
     isAuthenticated,
     isReady,
+    useBalance,
     canPayWithBalanceOnly,
-    pixDepositAmount,
     selectedNumbers,
-    totalPay,
-    runBuyTickets,
     refreshUser,
   ]);
 
@@ -430,16 +448,21 @@ export default function RafflePage() {
 
             {user?.is_admin ? (
               <p className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200/90">
-                <strong>Conta admin:</strong> se o saldo cobrir o total e você marcar
-                &quot;Utilizar saldo&quot;, a compra é só na carteira —{" "}
-                <strong>sem Mercado Pago</strong>. Para testar Pix, deixe marcada a
-                opção <strong>Pix</strong> (padrão) ou use saldo menor que o total.
+                <strong>Conta admin:</strong> com saldo suficiente e &quot;Utilizar
+                saldo&quot;, os números são reservados e debitados na hora. Com{" "}
+                <strong>Pix</strong>, a reserva bloqueia os números até o MP
+                confirmar.
               </p>
             ) : null}
 
             <p className="mt-3 text-xs text-apex-text/55">
-              Padrão: <strong>Pix</strong> (Mercado Pago). Use o saldo só se já tiver
-              crédito e quiser debitar direto.
+              Ao pagar, os números ficam <strong>reservados</strong> para você. Se
+              outro jogador tentar o mesmo, vê que já não está disponível.
+            </p>
+
+            <p className="mt-2 text-xs text-apex-text/55">
+              <strong>Pix</strong>: cobrança Mercado Pago pelo total selecionado.{" "}
+              <strong>Carteira</strong>: apenas se o saldo cobrir o total.
             </p>
 
             <label className="mt-3 flex cursor-pointer items-center gap-2 text-apex-text">
@@ -470,11 +493,10 @@ export default function RafflePage() {
               Utilizar saldo da carteira
             </label>
 
-            {useBalance && amountFromBalance > 0 && (
+            {useBalance && canPayWithBalanceOnly && totalPay > 0 && (
               <p className="mt-2 text-sm text-apex-accent/90">
-                {amountFromBalance >= totalPay
-                  ? `Saldo cobre o total (${formatBRL(totalPay)}) — sem passar pelo Pix.`
-                  : `Saldo: ${formatBRL(amountFromBalance)}. Falta depositar via Pix: ${formatBRL(amountViaMp)}`}
+                Saldo cobre o total ({formatBRL(totalPay)}) — débito direto após
+                reservar.
               </p>
             )}
 
@@ -512,7 +534,7 @@ export default function RafflePage() {
             onCancelAwait={cancelPixAwait}
             intent={pixIntent}
             polling={pixPolling}
-            amountLabel={formatBRL(pixDepositAmount)}
+            amountLabel={formatBRL(totalPay)}
           />
         </div>
 
@@ -538,16 +560,25 @@ export default function RafflePage() {
             </span>
             <span className="inline-flex items-center gap-2">
               <span
+                className="size-3 shrink-0 rounded-full bg-amber-900/80 ring-1 ring-amber-600/50"
+                aria-hidden
+              />
+              Reservado (aguard. pagamento)
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <span
                 className="size-3 shrink-0 rounded-full bg-apex-bg opacity-50 ring-1 ring-apex-bg"
                 aria-hidden
               />
-              Vendido (Escuro/Bloqueado)
+              Vendido
             </span>
           </div>
 
           <div className="mt-6 grid grid-cols-5 gap-2 sm:grid-cols-10">
             {numbers.map((num) => {
               const sold = soldSet.has(num);
+              const held = heldSet.has(num);
+              const blocked = unavailableSet.has(num);
               const selected = selectedSet.has(num);
 
               let className =
@@ -556,6 +587,9 @@ export default function RafflePage() {
               if (sold) {
                 className +=
                   " cursor-not-allowed border-apex-bg/50 bg-apex-bg opacity-50 line-through text-apex-text/40";
+              } else if (held) {
+                className +=
+                  " cursor-not-allowed border-amber-600/35 bg-amber-950/50 text-amber-200/70 line-through";
               } else if (selected) {
                 className +=
                   " scale-105 cursor-pointer border-apex-accent bg-apex-accent font-bold text-apex-bg shadow-md";
@@ -568,16 +602,18 @@ export default function RafflePage() {
                 <button
                   key={num}
                   type="button"
-                  disabled={sold}
+                  disabled={blocked}
                   onClick={() => toggleNumber(num)}
                   className={className}
                   aria-pressed={selected}
                   aria-label={
                     sold
                       ? `Número ${num}, vendido`
-                      : selected
-                        ? `Número ${num}, selecionado`
-                        : `Número ${num}, disponível`
+                      : held
+                        ? `Número ${num}, reservado`
+                        : selected
+                          ? `Número ${num}, selecionado`
+                          : `Número ${num}, disponível`
                   }
                 >
                   {num}

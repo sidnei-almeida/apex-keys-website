@@ -26,7 +26,10 @@ import {
 import type React from "react";
 import { ApiError } from "@/lib/api/http";
 import {
+  adminCancelReservation,
+  adminConfirmReservation,
   adminDeleteRaffle,
+  adminListReservations,
   adminPatchFeaturedTier,
   getRaffles,
 } from "@/lib/api/services";
@@ -35,6 +38,7 @@ import { translateLabelList, translateToPtBr } from "@/lib/translate/client";
 import { getAccessToken } from "@/lib/auth/token-storage";
 import { fetchIgdbGame } from "@/services/api";
 import type {
+  AdminReservationRowOut,
   FeaturedTier,
   IgdbGameInfoResponse,
   RaffleListOut,
@@ -112,7 +116,10 @@ type PendingTxnRow = {
   raffleTitle: string;
   numbersLabel: string;
   amountLabel: string;
+  amountNum: number;
   status: "Aguardando Pagamento" | "Pago" | "Expirado/Caído";
+  paymentChannel: "pix" | "wallet_pending" | "none";
+  gatewayRef: string | null;
 };
 
 function raffleImageUrl(url: string | null): string | undefined {
@@ -123,35 +130,23 @@ function raffleImageUrl(url: string | null): string | undefined {
   return `${base}${u.startsWith("/") ? "" : "/"}${u}`;
 }
 
-const INITIAL_TXNS: PendingTxnRow[] = [
-  {
-    id: "t1",
-    clientName: "João Silva",
-    clientEmail: "joao@email.com",
-    raffleTitle: "Elden Ring",
-    numbersLabel: "#04, #12",
-    amountLabel: "R$ 4,00",
+function mapAdminReservationRow(r: AdminReservationRowOut): PendingTxnRow {
+  const amountNum = parseFloat(r.total_amount);
+  const safe = Number.isFinite(amountNum) ? amountNum : 0;
+  const nums = r.ticket_numbers.map((n) => `#${n}`).join(", ");
+  return {
+    id: r.payment_hold_id,
+    clientName: r.user_name,
+    clientEmail: r.user_email,
+    raffleTitle: r.raffle_title,
+    numbersLabel: nums,
+    amountLabel: `R$ ${safe.toFixed(2).replace(".", ",")}`,
+    amountNum: safe,
     status: "Aguardando Pagamento",
-  },
-  {
-    id: "t2",
-    clientName: "Maria Costa",
-    clientEmail: "maria.c@email.com",
-    raffleTitle: "Dead Space Remake - Steam Key",
-    numbersLabel: "#07",
-    amountLabel: "R$ 3,00",
-    status: "Aguardando Pagamento",
-  },
-  {
-    id: "t3",
-    clientName: "Pedro Alves",
-    clientEmail: "pedro@email.com",
-    raffleTitle: "CS2 Prime + AWP Skin",
-    numbersLabel: "#21, #22",
-    amountLabel: "R$ 3,00",
-    status: "Expirado/Caído",
-  },
-];
+    paymentChannel: r.payment_channel,
+    gatewayRef: r.gateway_reference,
+  };
+}
 
 function formatBrl(n: number): string {
   return `R$ ${n.toFixed(2).replace(".", ",")}`;
@@ -183,6 +178,12 @@ function txnStatusClass(
   if (s === "Pago") return "text-emerald-400/95";
   if (s === "Aguardando Pagamento") return "text-amber-400/95";
   return "text-red-400/90";
+}
+
+function channelLabel(ch: PendingTxnRow["paymentChannel"]): string {
+  if (ch === "pix") return "Pix (MP)";
+  if (ch === "wallet_pending") return "Carteira (não debitado)";
+  return "—";
 }
 
 function IgdbChipRow({
@@ -280,6 +281,7 @@ function mapRaffleListOutToRow(r: RaffleListOut): MockRaffle {
   return {
     ...base,
     sold: r.sold,
+    reservedPending: r.held ?? 0,
     coverUrl: raffleImageUrl(r.image_url) ?? base.coverUrl,
     featuredTier:
       r.featured_tier === "featured" || r.featured_tier === "carousel"
@@ -302,7 +304,9 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>("launch");
   const [raffles, setRaffles] = useState<MockRaffle[]>([]);
   const [rafflesLoading, setRafflesLoading] = useState(true);
-  const [txns, setTxns] = useState<PendingTxnRow[]>(INITIAL_TXNS);
+  const [txns, setTxns] = useState<PendingTxnRow[]>([]);
+  const [txnsLoading, setTxnsLoading] = useState(false);
+  const [txnActionId, setTxnActionId] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -374,6 +378,30 @@ export default function AdminPage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "transactions") return;
+    const token = getAccessToken();
+    if (!token) {
+      setTxns([]);
+      return;
+    }
+    let cancelled = false;
+    setTxnsLoading(true);
+    adminListReservations(token)
+      .then((rows) => {
+        if (!cancelled) setTxns(rows.map(mapAdminReservationRow));
+      })
+      .catch(() => {
+        if (!cancelled) setTxns([]);
+      })
+      .finally(() => {
+        if (!cancelled) setTxnsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab]);
 
   const resetCreateForm = useCallback(() => {
     setTitle("");
@@ -568,63 +596,74 @@ export default function AdminPage() {
     setMessage(null);
   }, [resetCreateForm]);
 
-  /** Cicla featured_tier na tabela: none -> carousel -> featured -> none (via PATCH) */
-  const handleStarClick = useCallback(
-    async (raffle: MockRaffle) => {
-      const next: FeaturedTier =
-        raffle.featuredTier === "none"
-          ? "carousel"
-          : raffle.featuredTier === "carousel"
-            ? "featured"
-            : "none";
+  const approveTxn = useCallback(
+    async (holdId: string) => {
       const token = getAccessToken();
-      if (!token) return;
-      setPatchingFeaturedTierId(raffle.id);
-      setMessage(null);
+      if (!token) {
+        setMessage({
+          type: "error",
+          text: "Faça login novamente para aprovar reservas.",
+        });
+        return;
+      }
+      setTxnActionId(holdId);
       try {
-        await adminPatchFeaturedTier(token, raffle.id, next);
-        setRaffles((prev) =>
-          prev.map((r) =>
-            r.id === raffle.id ? { ...r, featuredTier: next } : r,
-          ),
-        );
-        if (next === "featured") {
-          await demoteOtherFeatured(raffles, raffle.id, token);
-        }
+        await adminConfirmReservation(token, holdId);
+        setTxns((prev) => prev.filter((t) => t.id !== holdId));
+        setMessage({
+          type: "success",
+          text: "Reserva aprovada manualmente. Bilhetes marcados como pagos.",
+        });
       } catch (err) {
         const msg =
           err instanceof ApiError
-            ? err.detail ?? err.message
+            ? (err.detail ?? err.message)
             : err instanceof Error
               ? err.message
-              : "Não foi possível alterar o destaque.";
+              : "Falha ao confirmar reserva.";
         setMessage({ type: "error", text: msg });
       } finally {
-        setPatchingFeaturedTierId(null);
+        setTxnActionId(null);
       }
     },
-    [raffles, demoteOtherFeatured],
+    [],
   );
 
-  const approveTxn = useCallback((id: string) => {
-    setTxns((prev) =>
-      prev.map((t) =>
-        t.id === id && t.status === "Aguardando Pagamento"
-          ? { ...t, status: "Pago" as const }
-          : t,
-      ),
-    );
-  }, []);
-
-  const cancelTxnRelease = useCallback((id: string) => {
-    setTxns((prev) =>
-      prev.map((t) =>
-        t.id === id && t.status === "Aguardando Pagamento"
-          ? { ...t, status: "Expirado/Caído" as const }
-          : t,
-      ),
-    );
-  }, []);
+  const cancelTxnRelease = useCallback(
+    async (holdId: string) => {
+      const token = getAccessToken();
+      if (!token) {
+        setMessage({
+          type: "error",
+          text: "Faça login novamente para libertar números.",
+        });
+        return;
+      }
+      setTxnActionId(holdId);
+      try {
+        await adminCancelReservation(token, holdId);
+        setTxns((prev) => prev.filter((t) => t.id !== holdId));
+        setMessage({
+          type: "success",
+          text: "Reserva cancelada e números libertados.",
+        });
+        void getRaffles().then((list) =>
+          setRaffles(list.map(mapRaffleListOutToRow)),
+        );
+      } catch (err) {
+        const msg =
+          err instanceof ApiError
+            ? (err.detail ?? err.message)
+            : err instanceof Error
+              ? err.message
+              : "Falha ao cancelar reserva.";
+        setMessage({ type: "error", text: msg });
+      } finally {
+        setTxnActionId(null);
+      }
+    },
+    [],
+  );
 
   const buildRafflePayload = useCallback((r: MockRaffle, tier: FeaturedTier) => {
     const payload: Record<string, unknown> = {
@@ -669,6 +708,44 @@ export default function AdminPage() {
       }
     },
     [buildRafflePayload]
+  );
+
+  /** Cicla featured_tier na tabela: none -> carousel -> featured -> none (via PATCH) */
+  const handleStarClick = useCallback(
+    async (raffle: MockRaffle) => {
+      const next: FeaturedTier =
+        raffle.featuredTier === "none"
+          ? "carousel"
+          : raffle.featuredTier === "carousel"
+            ? "featured"
+            : "none";
+      const token = getAccessToken();
+      if (!token) return;
+      setPatchingFeaturedTierId(raffle.id);
+      setMessage(null);
+      try {
+        await adminPatchFeaturedTier(token, raffle.id, next);
+        setRaffles((prev) =>
+          prev.map((r) =>
+            r.id === raffle.id ? { ...r, featuredTier: next } : r,
+          ),
+        );
+        if (next === "featured") {
+          await demoteOtherFeatured(raffles, raffle.id, token);
+        }
+      } catch (err) {
+        const msg =
+          err instanceof ApiError
+            ? err.detail ?? err.message
+            : err instanceof Error
+              ? err.message
+              : "Não foi possível alterar o destaque.";
+        setMessage({ type: "error", text: msg });
+      } finally {
+        setPatchingFeaturedTierId(null);
+      }
+    },
+    [raffles, demoteOtherFeatured],
   );
 
   const handleCreateOrUpdateRaffle = async (e: React.FormEvent) => {
@@ -831,14 +908,15 @@ export default function AdminPage() {
     0,
   );
 
-  // KPI derivations — transactions
+  // KPI derivations — transactions (reservas pendentes na API)
   const pendingTxnsCount = txns.filter(
     (t) => t.status === "Aguardando Pagamento",
   ).length;
-  const paidTxnsCount = txns.filter((t) => t.status === "Pago").length;
-  const expiredTxnsCount = txns.filter(
-    (t) => t.status === "Expirado/Caído",
+  const pixPendingCount = txns.filter((t) => t.paymentChannel === "pix").length;
+  const walletHoldCount = txns.filter(
+    (t) => t.paymentChannel === "wallet_pending",
   ).length;
+  const totalReservedBrl = txns.reduce((acc, t) => acc + t.amountNum, 0);
 
   const innerTitle =
     activeTab === "launch"
@@ -1719,22 +1797,22 @@ export default function AdminPage() {
                   accentClass="text-apex-accent"
                 />
                 <StatCard
-                  title="Aguardando"
-                  value={pendingTxnsCount}
+                  title="Pix (MP) pendente"
+                  value={pixPendingCount}
                   icon={Clock}
                   accentClass="text-amber-400"
                 />
                 <StatCard
-                  title="Aprovados"
-                  value={paidTxnsCount}
+                  title="Só reserva (carteira)"
+                  value={walletHoldCount}
                   icon={BadgeCheck}
-                  accentClass="text-emerald-400"
+                  accentClass="text-sky-400"
                 />
                 <StatCard
-                  title="Cancelados"
-                  value={expiredTxnsCount}
-                  icon={XCircle}
-                  accentClass="text-red-400"
+                  title="Valor em aberto"
+                  value={formatBrl(totalReservedBrl)}
+                  icon={TrendingUp}
+                  accentClass="text-emerald-400"
                 />
               </div>
 
@@ -1748,75 +1826,115 @@ export default function AdminPage() {
                         <th className={thClass}>Rifa</th>
                         <th className={thClass}>Números</th>
                         <th className={thClass}>Valor</th>
+                        <th className={thClass}>Canal</th>
+                        <th className={thClass}>Ref. Pix</th>
                         <th className={thClass}>Status</th>
                         <th className={`${thClass} text-right`}>Ações</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {txns.map((t) => (
-                        <tr key={t.id} className={rowClass}>
-                          <td className={tdClass}>
-                            <div className="flex flex-col gap-0.5">
-                              <span className="font-medium text-apex-text">
-                                {t.clientName}
-                              </span>
-                              <span className="text-xs text-apex-text/50">
-                                {t.clientEmail}
-                              </span>
-                            </div>
-                          </td>
-                          <td className={`${tdClass} max-w-[200px]`}>
-                            <span className="line-clamp-2">
-                              {t.raffleTitle}
-                            </span>
-                          </td>
+                      {txnsLoading ? (
+                        <tr>
                           <td
-                            className={`${tdClass} font-mono text-xs text-apex-accent/90`}
+                            colSpan={8}
+                            className={`${tdClass} py-10 text-center text-apex-text-muted`}
                           >
-                            {t.numbersLabel}
-                          </td>
-                          <td
-                            className={`${tdClass} font-medium tabular-nums`}
-                          >
-                            {t.amountLabel}
-                          </td>
-                          <td className={tdClass}>
-                            <span
-                              className={`text-sm font-medium ${txnStatusClass(t.status)}`}
-                            >
-                              {t.status}
-                            </span>
-                          </td>
-                          <td className={`${tdClass} text-right`}>
-                            <div className="flex flex-wrap items-center justify-end gap-2">
-                              <button
-                                type="button"
-                                disabled={
-                                  t.status !== "Aguardando Pagamento"
-                                }
-                                onClick={() => approveTxn(t.id)}
-                                className="rounded-lg border border-emerald-500/40 px-2.5 py-1.5 text-xs font-semibold text-emerald-400/95 transition-colors hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-35"
-                              >
-                                Aprovar Manualmente
-                              </button>
-                              <button
-                                type="button"
-                                disabled={
-                                  t.status !== "Aguardando Pagamento"
-                                }
-                                onClick={() => cancelTxnRelease(t.id)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-red-500/45 px-2.5 py-1.5 text-xs font-semibold text-red-400/95 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-35"
-                              >
-                                <XCircle
-                                  className="size-3.5 shrink-0"
-                                  aria-hidden
-                                />
-                                Cancelar / Libertar
-                              </button>
-                            </div>
+                            <Loader2
+                              className="mx-auto size-8 animate-spin text-apex-accent"
+                              aria-hidden
+                            />
+                            <p className="mt-2 text-sm">A carregar reservas…</p>
                           </td>
                         </tr>
-                      ))}
+                      ) : txns.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={8}
+                            className={`${tdClass} py-10 text-center text-apex-text-muted`}
+                          >
+                            Nenhuma reserva pendente. As novas aparecem quando um
+                            jogador escolhe números (antes do pagamento).
+                          </td>
+                        </tr>
+                      ) : (
+                        txns.map((t) => (
+                          <tr key={t.id} className={rowClass}>
+                            <td className={tdClass}>
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-medium text-apex-text">
+                                  {t.clientName}
+                                </span>
+                                <span className="text-xs text-apex-text/50">
+                                  {t.clientEmail}
+                                </span>
+                              </div>
+                            </td>
+                            <td className={`${tdClass} max-w-[200px]`}>
+                              <span className="line-clamp-2">
+                                {t.raffleTitle}
+                              </span>
+                            </td>
+                            <td
+                              className={`${tdClass} font-mono text-xs text-apex-accent/90`}
+                            >
+                              {t.numbersLabel}
+                            </td>
+                            <td
+                              className={`${tdClass} font-medium tabular-nums`}
+                            >
+                              {t.amountLabel}
+                            </td>
+                            <td className={`${tdClass} text-xs`}>
+                              {channelLabel(t.paymentChannel)}
+                            </td>
+                            <td
+                              className={`${tdClass} max-w-[140px] truncate font-mono text-[10px] text-apex-text/55`}
+                              title={t.gatewayRef ?? undefined}
+                            >
+                              {t.gatewayRef
+                                ? `${t.gatewayRef.slice(0, 24)}${t.gatewayRef.length > 24 ? "…" : ""}`
+                                : "—"}
+                            </td>
+                            <td className={tdClass}>
+                              <span
+                                className={`text-sm font-medium ${txnStatusClass(t.status)}`}
+                              >
+                                {t.status}
+                              </span>
+                            </td>
+                            <td className={`${tdClass} text-right`}>
+                              <div className="flex flex-wrap items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  disabled={
+                                    t.status !== "Aguardando Pagamento" ||
+                                    txnActionId === t.id
+                                  }
+                                  onClick={() => void approveTxn(t.id)}
+                                  className="rounded-lg border border-emerald-500/40 px-2.5 py-1.5 text-xs font-semibold text-emerald-400/95 transition-colors hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-35"
+                                >
+                                  Aprovar Manualmente
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={
+                                    t.status !== "Aguardando Pagamento" ||
+                                    txnActionId === t.id
+                                  }
+                                  onClick={() => void cancelTxnRelease(t.id)}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-red-500/45 px-2.5 py-1.5 text-xs font-semibold text-red-400/95 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-35"
+                                >
+                                  <XCircle
+                                    className="size-3.5 shrink-0"
+                                    aria-hidden
+                                  />
+                                  Cancelar / Libertar
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>

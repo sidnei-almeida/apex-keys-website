@@ -6,6 +6,7 @@
  */
 import type {
   AdminRaffleCreate,
+  AdminReservationRowOut,
   AdminWalletAdjust,
   AdminWalletAdjustResponse,
   IgdbGameInfoResponse,
@@ -18,6 +19,8 @@ import type {
   RaffleListOut,
   RafflePublic,
   RaffleStatusApi,
+  ReservationStatusOut,
+  ReserveRaffleTicketsResponse,
   SignupRequest,
   TicketPurchaseRequest,
   TicketPurchaseResponse,
@@ -188,6 +191,85 @@ export async function buyTicket(
   return postJson<TicketPurchaseResponse, TicketPurchaseRequest>(
     "/buy-ticket",
     body,
+    token,
+  );
+}
+
+export async function reserveRaffleTickets(
+  token: string,
+  body: { raffle_id: string; ticket_numbers: number[] },
+): Promise<ReserveRaffleTicketsResponse> {
+  return postJson<ReserveRaffleTicketsResponse, typeof body>(
+    "/checkout/reserve-tickets",
+    body,
+    token,
+  );
+}
+
+export async function completeReservationWallet(
+  token: string,
+  payment_hold_id: string,
+): Promise<{ ok: boolean; new_balance: string }> {
+  return postJson<
+    { ok: boolean; new_balance: string },
+    { payment_hold_id: string }
+  >("/checkout/complete-reservation-wallet", { payment_hold_id }, token);
+}
+
+export type ReservationPixIntentResponse = PixIntentResponse & {
+  transaction_id?: string;
+  payment_hold_id?: string;
+  amount?: string;
+};
+
+export async function postReservationPixIntent(
+  token: string,
+  body: { payment_hold_id: string; gateway_reference: string },
+): Promise<ReservationPixIntentResponse> {
+  return postJson<ReservationPixIntentResponse, typeof body>(
+    "/checkout/reservation-pix-intent",
+    body,
+    token,
+  );
+}
+
+export async function getReservationStatus(
+  token: string,
+  holdId: string,
+): Promise<ReservationStatusOut> {
+  return getJson<ReservationStatusOut>(
+    `/checkout/reservation/${encodeURIComponent(holdId)}/status`,
+    token,
+  );
+}
+
+export async function adminListReservations(
+  token: string,
+): Promise<AdminReservationRowOut[]> {
+  return getJson<AdminReservationRowOut[]>(
+    "/api/v1/admin/reservations",
+    token,
+  );
+}
+
+export async function adminConfirmReservation(
+  token: string,
+  holdId: string,
+): Promise<{ ok: boolean }> {
+  return postJson<{ ok: boolean }, Record<string, never>>(
+    `/api/v1/admin/reservations/${encodeURIComponent(holdId)}/confirm`,
+    {},
+    token,
+  );
+}
+
+export async function adminCancelReservation(
+  token: string,
+  holdId: string,
+): Promise<{ released_tickets: number }> {
+  return postJson<{ released_tickets: number }, Record<string, never>>(
+    `/api/v1/admin/reservations/${encodeURIComponent(holdId)}/cancel`,
+    {},
     token,
   );
 }

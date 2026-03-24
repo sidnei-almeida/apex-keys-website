@@ -26,10 +26,16 @@ export type WalletBalanceResponse = {
 export type TransactionOut = {
   id: string;
   amount: string;
-  type: "pix_deposit" | "purchase" | "refund" | "admin_adjustment";
+  type:
+    | "pix_deposit"
+    | "purchase"
+    | "refund"
+    | "admin_adjustment"
+    | "raffle_payment";
   status: "pending" | "completed" | "failed";
   gateway_reference: string | null;
   description: string | null;
+  payment_hold_id?: string | null;
   created_at: string;
 };
 
@@ -83,10 +89,14 @@ export type RafflePublic = {
 };
 
 /** RafflePublic + sold (quantidade vendida) — retorno de GET /raffles */
-export type RaffleListOut = RafflePublic & { sold: number };
+export type RaffleListOut = RafflePublic & { sold: number; held?: number };
 
 /** RaffleListOut + sold_numbers — retorno de GET /raffles/{id} */
-export type RaffleDetailOut = RaffleListOut & { sold_numbers: number[] };
+export type RaffleDetailOut = RaffleListOut & {
+  sold_numbers: number[];
+  /** Números reservados (aguardando pagamento) — bloqueados na grade */
+  held_numbers?: number[];
+};
 
 export type TicketPurchaseRequest = {
   raffle_id: string;
@@ -115,8 +125,44 @@ export type MyTicketOut = {
   ticket_id: string;
   raffle_id: string;
   ticket_number: number;
+  status?: "paid" | "pending_payment";
   raffle: RafflePublic;
   created_at: string;
+};
+
+/** POST /checkout/reserve-tickets */
+export type ReserveRaffleTicketsResponse = {
+  payment_hold_id: string;
+  raffle_id: string;
+  ticket_numbers: number[];
+  total_amount: string;
+};
+
+/** GET /checkout/reservation/{hold_id}/status */
+export type ReservationStatusOut = {
+  payment_hold_id: string;
+  state: "pending_payment" | "paid" | "released" | "unknown";
+  raffle_id: string | null;
+  ticket_numbers: number[];
+  transaction_status: "pending" | "completed" | "failed" | null;
+  gateway_reference: string | null;
+};
+
+/** GET /api/v1/admin/reservations */
+export type AdminReservationRowOut = {
+  payment_hold_id: string;
+  user_id: string;
+  user_email: string;
+  user_name: string;
+  raffle_id: string;
+  raffle_title: string;
+  ticket_numbers: number[];
+  total_amount: string;
+  created_at: string;
+  payment_channel: "pix" | "wallet_pending" | "none";
+  transaction_id: string | null;
+  transaction_status: "pending" | "completed" | "failed" | null;
+  gateway_reference: string | null;
 };
 
 export type SignupRequest = {

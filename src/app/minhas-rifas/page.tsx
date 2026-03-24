@@ -114,6 +114,9 @@ export default function MinhasRifasPage() {
             const first = list[0];
             const r = first.raffle;
             const imgUrl = raffleImageUrl(r.image_url);
+            const hasPending = list.some(
+              (t) => (t.status ?? "paid") === "pending_payment",
+            );
             return (
               <Link
                 key={raffleId}
@@ -143,8 +146,16 @@ export default function MinhasRifasPage() {
                     <div>
                       <h2 className="font-semibold text-apex-text">{r.title}</h2>
                       <p className="mt-1 text-sm text-apex-text-muted/80">
-                        {list.length} bilhete{list.length > 1 ? "s" : ""}: nº {list.map((t) => t.ticket_number).join(", ")}
+                        {list.length} bilhete{list.length > 1 ? "s" : ""}: nº{" "}
+                        {list.map((t) => t.ticket_number).join(", ")}
                       </p>
+                      {hasPending ? (
+                        <p className="mt-1 text-xs text-amber-400/90">
+                          Há número(s){" "}
+                          <strong>aguardando pagamento</strong> — conclua o Pix ou
+                          aguarde a confirmação.
+                        </p>
+                      ) : null}
                     </div>
                     <p className="mt-2 text-sm font-medium text-apex-accent">
                       {formatBRL(r.ticket_price)} / cota
