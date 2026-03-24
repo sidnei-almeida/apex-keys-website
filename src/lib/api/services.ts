@@ -27,7 +27,8 @@ import type {
   UserPublic,
   WalletBalanceResponse,
 } from "@/types/api";
-import { deleteRequest, getJson, patchJson, postJson, putJson } from "./http";
+import { logWalletPixIntentError, logWalletPixIntentOk } from "@/lib/client-log";
+import { ApiError, deleteRequest, getJson, patchJson, postJson, putJson } from "./http";
 
 export async function getHealth(): Promise<{ status: string }> {
   return getJson("/health");
@@ -127,11 +128,44 @@ export async function postMockPixIntent(
   token: string,
   body: MockPixIntentBody,
 ): Promise<PixIntentResponse> {
-  return postJson<PixIntentResponse, MockPixIntentBody>(
-    "/wallet/mock-pix-intent",
-    body,
-    token,
-  );
+  const refPrefix =
+    body.gateway_reference.length > 12
+      ? `${body.gateway_reference.slice(0, 8)}…`
+      : body.gateway_reference;
+  try {
+    const res = await postJson<PixIntentResponse, MockPixIntentBody>(
+      "/wallet/mock-pix-intent",
+      body,
+      token,
+    );
+    logWalletPixIntentOk({
+      provider: res.provider,
+      gatewayRefPrefix: refPrefix,
+      paymentId: res.mercado_pago?.payment_id ?? null,
+      amount: body.amount,
+    });
+    return res;
+  } catch (e) {
+    if (e instanceof ApiError) {
+      const snippet =
+        e.body && typeof e.body === "object"
+          ? JSON.stringify(e.body).slice(0, 400)
+          : String(e.body ?? "").slice(0, 400);
+      logWalletPixIntentError({
+        status: e.status,
+        detail: e.detail,
+        gatewayRefPrefix: refPrefix,
+        bodySnippet: snippet,
+      });
+    } else {
+      logWalletPixIntentError({
+        status: 0,
+        detail: e instanceof Error ? e.message : String(e),
+        gatewayRefPrefix: refPrefix,
+      });
+    }
+    throw e;
+  }
 }
 
 export async function getRaffles(params?: {
