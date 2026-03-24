@@ -346,20 +346,6 @@ export default function Home() {
           </div>
         </section>
       )}
-
-      {!loading && raffles.length === 1 && (
-        <section className="mx-auto max-w-7xl px-4 py-8">
-          <div className="text-center">
-            <Link
-              href="/rifas"
-              className="inline-flex items-center gap-2 rounded-xl border border-apex-accent/30 bg-apex-surface/60 px-6 py-3 text-sm font-semibold text-apex-accent transition-colors hover:border-apex-accent hover:bg-apex-accent/10"
-            >
-              Ver todas as rifas
-              <ChevronRight className="size-4" aria-hidden />
-            </Link>
-          </div>
-        </section>
-      )}
     </>
   );
 }

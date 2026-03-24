@@ -43,13 +43,7 @@ function isValidUserShape(o: unknown): o is UserPublic {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserPublic | null>(() => {
-    if (typeof window === "undefined") return null;
-    const token = getAccessToken();
-    if (!token) return null;
-    const cached = getCachedUser();
-    return isValidUserShape(cached) ? (cached as UserPublic) : null;
-  });
+  const [user, setUser] = useState<UserPublic | null>(null);
   const [isReady, setIsReady] = useState(false);
 
   const refreshUser = useCallback(async () => {
@@ -57,6 +51,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token) {
       setUser(null);
       return;
+    }
+    const cached = getCachedUser();
+    if (isValidUserShape(cached)) {
+      setUser(cached as UserPublic);
     }
     try {
       const me = await getMe(token);
