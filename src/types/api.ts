@@ -72,6 +72,15 @@ export type TicketPurchaseResponse = {
   new_balance: string;
 };
 
+export type NotificationOut = {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  read_at: string | null;
+  created_at: string;
+};
+
 /** Bilhete do usuário com dados da rifa (GET /users/me/tickets) */
 export type MyTicketOut = {
   ticket_id: string;

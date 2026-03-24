@@ -11,6 +11,7 @@ import type {
   IgdbGameInfoResponse,
   IgdbGameUrlRequest,
   MyTicketOut,
+  NotificationOut,
   RaffleCancelResponse,
   RaffleDetailOut,
   RaffleListOut,
@@ -72,6 +73,48 @@ export async function getMyTickets(
 ): Promise<MyTicketOut[]> {
   const q = status ? `?status=${encodeURIComponent(status)}` : "";
   return getJson<MyTicketOut[]>(`/users/me/tickets${q}`, token);
+}
+
+export async function getNotifications(
+  token: string,
+  params?: { unread_only?: boolean; limit?: number; offset?: number },
+): Promise<NotificationOut[]> {
+  const search = new URLSearchParams();
+  if (params?.unread_only) search.set("unread_only", "true");
+  if (params?.limit != null) search.set("limit", String(params.limit));
+  if (params?.offset != null) search.set("offset", String(params.offset));
+  const q = search.toString() ? `?${search}` : "";
+  return getJson<NotificationOut[]>(`/users/me/notifications${q}`, token);
+}
+
+export async function getUnreadNotificationsCount(
+  token: string,
+): Promise<{ unread_count: number }> {
+  return getJson<{ unread_count: number }>(
+    "/users/me/notifications/unread-count",
+    token,
+  );
+}
+
+export async function markNotificationRead(
+  token: string,
+  notificationId: string,
+): Promise<NotificationOut> {
+  return patchJson<NotificationOut, Record<string, never>>(
+    `/users/me/notifications/${encodeURIComponent(notificationId)}/read`,
+    {},
+    token,
+  );
+}
+
+export async function markAllNotificationsRead(
+  token: string,
+): Promise<{ message: string }> {
+  return postJson<{ message: string }, Record<string, never>>(
+    "/users/me/notifications/read-all",
+    {},
+    token,
+  );
 }
 
 export type MockPixIntentBody = {

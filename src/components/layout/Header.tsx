@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import AuthModal from "@/components/layout/AuthModal";
 import WalletDrawer from "@/components/layout/WalletDrawer";
 import {
+  Bell,
   ChevronDown,
   History,
   Menu,
@@ -15,10 +16,19 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useRef, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useRef, useState, useEffect, useCallback } from "react";
+import {
+  getNotifications,
+  getUnreadNotificationsCount,
+  markNotificationRead,
+} from "@/lib/api/services";
+import { getAccessToken } from "@/lib/auth/token-storage";
+import type { NotificationOut } from "@/types/api";
 
 const PROFILE_DROPDOWN_LINKS = [
   { href: "/conta", label: "Configuração", icon: Settings },
+  { href: "/notificacoes", label: "Notificações", icon: Bell },
   { href: "/minhas-rifas", label: "Minhas Rifas", icon: Ticket },
   { href: "/minhas-transacoes", label: "Minhas Transações", icon: ShoppingBag },
   { href: "/historico-rifas", label: "Histórico de Rifas", icon: History },
@@ -48,15 +58,57 @@ const Divider = () => (
   <div className="h-8 w-px shrink-0 bg-white/[0.12]" aria-hidden />
 );
 
+function formatNotificationDate(createdAt: string): string {
+  const d = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 1) return "Agora";
+  if (diffMins < 60) return `${diffMins}min`;
+  if (diffHours < 24) return `${diffHours}h`;
+  if (diffDays < 7) return `${diffDays}d`;
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+}
+
 export default function Header() {
+  const router = useRouter();
   const { user, logout, isAuthenticated } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authInitialMode, setAuthInitialMode] = useState<"login" | "signup">("login");
   const [logoError, setLogoError] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationOut[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+
+  const loadNotifications = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    try {
+      const [list, countRes] = await Promise.all([
+        getNotifications(token, { limit: 10 }),
+        getUnreadNotificationsCount(token),
+      ]);
+      setNotifications(list);
+      setUnreadCount(countRes.unread_count);
+    } catch {
+      // Ignorar erros de notificação
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) loadNotifications();
+    else {
+      setNotifications([]);
+      setUnreadCount(0);
+    }
+  }, [isAuthenticated, loadNotifications]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -67,10 +119,39 @@ export default function Header() {
       ) {
         setProfileDropdownOpen(false);
       }
+      if (
+        notificationsOpen &&
+        notificationsRef.current &&
+        !notificationsRef.current.contains(e.target as Node)
+      ) {
+        setNotificationsOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [profileDropdownOpen]);
+  }, [profileDropdownOpen, notificationsOpen]);
+
+  const handleNotificationClick = useCallback(
+    async (n: NotificationOut) => {
+      const token = getAccessToken();
+      if (token && !n.read_at) {
+        try {
+          await markNotificationRead(token, n.id);
+          setUnreadCount((c) => Math.max(0, c - 1));
+          setNotifications((prev) =>
+            prev.map((x) =>
+              x.id === n.id ? { ...x, read_at: new Date().toISOString() } : x
+            )
+          );
+        } catch {
+          // Ignorar
+        }
+      }
+      setNotificationsOpen(false);
+      router.push("/minhas-transacoes");
+    },
+    [router]
+  );
 
   const walletLabel = user
     ? formatBalanceDisplay(user.balance)
@@ -159,6 +240,77 @@ export default function Header() {
               </span>
             </div>
           </button>
+
+          {/* Notificações — sino + dropdown (apenas logado) */}
+          {isAuthenticated && (
+            <div ref={notificationsRef} className="relative hidden md:block">
+              <button
+                type="button"
+                onClick={() => setNotificationsOpen((o) => !o)}
+                className="relative rounded-lg p-2 text-apex-text-muted transition-colors hover:text-apex-accent"
+                aria-label="Notificações"
+                aria-expanded={notificationsOpen}
+              >
+                <Bell className="size-5" aria-hidden />
+                {unreadCount > 0 && (
+                  <span
+                    className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-apex-accent text-[10px] font-bold text-apex-bg"
+                    aria-hidden
+                  >
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+              {notificationsOpen && (
+                <div
+                  className="absolute right-0 top-full z-50 mt-2 w-80 max-h-[360px] overflow-y-auto rounded-lg border border-white/[0.08] bg-apex-surface/95 py-2 shadow-xl backdrop-blur-xl"
+                  role="menu"
+                >
+                  <div className="px-4 py-2 border-b border-white/[0.06]">
+                    <h3 className="text-sm font-semibold text-apex-text">Notificações</h3>
+                  </div>
+                  {notifications.length === 0 ? (
+                    <p className="px-4 py-6 text-sm text-apex-text-muted/70">
+                      Nenhuma notificação
+                    </p>
+                  ) : (
+                    <ul className="py-1">
+                      {notifications.map((n) => (
+                        <li key={n.id}>
+                          <button
+                            type="button"
+                            className={`flex w-full flex-col gap-0.5 px-4 py-3 text-left transition-colors hover:bg-white/[0.06] ${
+                              !n.read_at ? "bg-apex-accent/5" : ""
+                            }`}
+                            onClick={() => handleNotificationClick(n)}
+                          >
+                            <span className="text-sm font-medium text-apex-text">
+                              {n.title}
+                            </span>
+                            <span className="line-clamp-2 text-xs text-apex-text-muted/80">
+                              {n.body}
+                            </span>
+                            <span className="mt-1 text-[10px] text-apex-text-muted/60">
+                              {formatNotificationDate(n.created_at)}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {notifications.length > 0 && (
+                    <Link
+                      href="/notificacoes"
+                      className="block border-t border-white/[0.06] px-4 py-2.5 text-center text-xs font-medium text-apex-accent hover:bg-white/[0.04]"
+                      onClick={() => setNotificationsOpen(false)}
+                    >
+                      Ver todas
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Perfil — Avatar + Dropdown */}
           {isAuthenticated ? (
