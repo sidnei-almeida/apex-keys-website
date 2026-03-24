@@ -3,7 +3,6 @@
 import { getApiBaseUrl } from "@/lib/api/config";
 import type { RaffleListOut } from "@/types/api";
 import { Gamepad2, Ticket } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
 const edgeSurface =

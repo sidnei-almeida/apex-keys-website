@@ -6,7 +6,7 @@
  */
 import type {
   AdminRaffleCreate,
-  AdminReservationRowOut,
+  AdminReservationsListOut,
   AdminWalletAdjust,
   AdminWalletAdjustResponse,
   IgdbGameInfoResponse,
@@ -257,9 +257,19 @@ export async function releaseReservation(
 
 export async function adminListReservations(
   token: string,
-): Promise<AdminReservationRowOut[]> {
-  return getJson<AdminReservationRowOut[]>(
+): Promise<AdminReservationsListOut> {
+  return getJson<AdminReservationsListOut>(
     "/api/v1/admin/reservations",
+    token,
+  );
+}
+
+export async function adminDeleteRaffleTransactionRecord(
+  token: string,
+  transactionId: string,
+): Promise<void> {
+  await deleteRequest(
+    `/api/v1/admin/transactions/${encodeURIComponent(transactionId)}`,
     token,
   );
 }

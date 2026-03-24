@@ -2,7 +2,45 @@
 
 import type { PixIntentResponse } from "@/types/api";
 import { Check, Copy, ExternalLink, Loader2, X } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+function PixReservationPayCountdown({ expiresAtIso }: { expiresAtIso: string }) {
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  useEffect(() => {
+    const tick = () => setNowMs(Date.now());
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+  const end = Date.parse(expiresAtIso);
+  if (Number.isNaN(end)) return null;
+  if (nowMs === null) {
+    return (
+      <p className="mt-3 rounded-lg border border-apex-accent/20 bg-apex-accent/5 px-3 py-2 text-sm text-apex-text/70">
+        A carregar tempo…
+      </p>
+    );
+  }
+  const secLeft = Math.max(0, Math.floor((end - nowMs) / 1000));
+  if (secLeft <= 0) {
+    return (
+      <p className="mt-3 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-sm text-amber-200/95">
+        O tempo da reserva acabou — os números podem ser libertados em breve. Se já pagou,
+        aguarde a confirmação do Mercado Pago.
+      </p>
+    );
+  }
+  const m = Math.floor(secLeft / 60);
+  const s = secLeft % 60;
+  const mmss = `${m}:${s.toString().padStart(2, "0")}`;
+  return (
+    <p className="mt-3 rounded-lg border border-apex-accent/30 bg-apex-accent/10 px-3 py-2 text-sm text-apex-text">
+      Você tem{" "}
+      <span className="font-bold tabular-nums text-apex-accent">{mmss}</span> para
+      pagar antes da reserva expirar (libertação automática após 15 min).
+    </p>
+  );
+}
 
 type PixDepositModalProps = {
   open: boolean;
@@ -85,6 +123,10 @@ export default function PixDepositModal({
             </span>
           ) : null}
         </p>
+
+        {raffleCheckout && intent?.expires_at ? (
+          <PixReservationPayCountdown expiresAtIso={intent.expires_at} />
+        ) : null}
 
         {polling && (
           <div className="mt-4 flex items-center gap-2 rounded-lg border border-apex-accent/30 bg-apex-accent/10 px-3 py-2 text-sm text-apex-accent">

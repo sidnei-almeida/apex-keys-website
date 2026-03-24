@@ -3,7 +3,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import {
   getNotifications,
-  getUnreadNotificationsCount,
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/lib/api/services";

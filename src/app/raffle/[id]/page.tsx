@@ -351,7 +351,7 @@ export default function RafflePage() {
       raffle
         ? Array.from({ length: raffle.total_tickets }, (_, i) => i + 1)
         : [],
-    [raffle?.total_tickets]
+    [raffle],
   );
 
   const imageUrl = raffle ? raffleImageUrl(raffle.image_url) : null;

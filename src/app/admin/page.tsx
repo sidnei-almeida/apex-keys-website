@@ -29,6 +29,7 @@ import {
   adminCancelReservation,
   adminConfirmReservation,
   adminDeleteRaffle,
+  adminDeleteRaffleTransactionRecord,
   adminListReservations,
   adminPatchFeaturedTier,
   getRaffles,
@@ -45,7 +46,47 @@ import type {
   RafflePublic,
 } from "@/types/api";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+
+function ReservationTtlCountdown({ expiresAtIso }: { expiresAtIso: string }) {
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  useEffect(() => {
+    const tick = () => setNowMs(Date.now());
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+  const end = Date.parse(expiresAtIso);
+  if (Number.isNaN(end)) return null;
+  if (nowMs === null) {
+    return (
+      <span className="text-xs tabular-nums text-apex-text/45">…</span>
+    );
+  }
+  const secLeft = Math.max(0, Math.floor((end - nowMs) / 1000));
+  const m = Math.ceil(secLeft / 60);
+  if (m <= 0) {
+    return (
+      <span className="text-xs text-amber-300/90">a libertar em breve</span>
+    );
+  }
+  if (m === 1) {
+    return <span className="text-xs text-amber-300/90">~1 min restante</span>;
+  }
+  return (
+    <span className="text-xs tabular-nums text-apex-text/65">
+      ~{m} min para libertar
+    </span>
+  );
+}
 
 const inputClass =
   "w-full rounded-lg border border-apex-surface bg-apex-bg px-3 py-2.5 text-apex-text placeholder:text-gray-500 focus:border-apex-accent focus:outline-none";
@@ -110,16 +151,22 @@ type MockRaffle = {
 };
 
 type PendingTxnRow = {
+  rowKind: "active" | "archived";
   id: string;
+  holdId: string | null;
+  transactionId: string | null;
   clientName: string;
   clientEmail: string;
   raffleTitle: string;
   numbersLabel: string;
   amountLabel: string;
   amountNum: number;
-  status: "Aguardando Pagamento" | "Pago" | "Expirado/Caído";
+  statusLabel: string;
   paymentChannel: "pix" | "wallet_pending" | "none";
   gatewayRef: string | null;
+  expiresAtIso: string | null;
+  /** ISO — retenção mínima 14 dias antes de eliminar registo (alinhado à API). */
+  createdAtIso: string;
 };
 
 function raffleImageUrl(url: string | null): string | undefined {
@@ -130,22 +177,62 @@ function raffleImageUrl(url: string | null): string | undefined {
   return `${base}${u.startsWith("/") ? "" : "/"}${u}`;
 }
 
-function mapAdminReservationRow(r: AdminReservationRowOut): PendingTxnRow {
+function mapAdminPanelReservationRow(r: AdminReservationRowOut): PendingTxnRow {
   const amountNum = parseFloat(r.total_amount);
   const safe = Number.isFinite(amountNum) ? amountNum : 0;
-  const nums = r.ticket_numbers.map((n) => `#${n}`).join(", ");
+  const nums = (r.ticket_numbers ?? []).map((n) => `#${n}`).join(", ");
+  if (r.row_kind === "archived") {
+    const st =
+      r.transaction_status === "failed"
+        ? "Falha / recusado (MP)"
+        : r.transaction_status === "canceled"
+          ? "Cancelado (auditoria)"
+          : r.transaction_status === "completed"
+            ? "Pago (concluído)"
+            : "Arquivo";
+    return {
+      rowKind: "archived",
+      id: r.transaction_id ?? "",
+      holdId: r.payment_hold_id,
+      transactionId: r.transaction_id,
+      clientName: r.user_name,
+      clientEmail: r.user_email,
+      raffleTitle: r.raffle_title,
+      numbersLabel: nums || "—",
+      amountLabel: `R$ ${safe.toFixed(2).replace(".", ",")}`,
+      amountNum: safe,
+      statusLabel: st,
+      paymentChannel: r.payment_channel,
+      gatewayRef: r.gateway_reference,
+      expiresAtIso: null,
+      createdAtIso: r.created_at,
+    };
+  }
   return {
-    id: r.payment_hold_id,
+    rowKind: "active",
+    id: r.payment_hold_id ?? "",
+    holdId: r.payment_hold_id ?? null,
+    transactionId: r.transaction_id,
     clientName: r.user_name,
     clientEmail: r.user_email,
     raffleTitle: r.raffle_title,
     numbersLabel: nums,
     amountLabel: `R$ ${safe.toFixed(2).replace(".", ",")}`,
     amountNum: safe,
-    status: "Aguardando Pagamento",
+    statusLabel: "Aguardando pagamento",
     paymentChannel: r.payment_channel,
     gatewayRef: r.gateway_reference,
+    expiresAtIso: r.expires_at,
+    createdAtIso: r.created_at,
   };
+}
+
+const TXN_AUDIT_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
+
+function isTxnDeletionEligible(createdAtIso: string): boolean {
+  const t = Date.parse(createdAtIso);
+  if (Number.isNaN(t)) return false;
+  return Date.now() - t >= TXN_AUDIT_RETENTION_MS;
 }
 
 function formatBrl(n: number): string {
@@ -172,15 +259,24 @@ function statusBadgeClass(
   return "border-apex-text/25 bg-apex-bg text-apex-text/70";
 }
 
-function txnStatusClass(
-  s: PendingTxnRow["status"],
-): string {
+function txnStatusClass(s: string): string {
   if (s === "Pago") return "text-emerald-400/95";
-  if (s === "Aguardando Pagamento") return "text-amber-400/95";
-  return "text-red-400/90";
+  if (s.startsWith("Pago")) return "text-emerald-400/95";
+  if (s === "Aguardando pagamento") return "text-amber-400/95";
+  if (s.startsWith("Cancelado")) return "text-sky-400/90";
+  if (s.startsWith("Falha")) return "text-red-400/90";
+  return "text-apex-text/70";
 }
 
-function channelLabel(ch: PendingTxnRow["paymentChannel"]): string {
+function channelLabel(row: PendingTxnRow): string {
+  const ch = row.paymentChannel;
+  if (
+    row.rowKind === "archived" &&
+    row.statusLabel.startsWith("Pago") &&
+    ch === "none"
+  ) {
+    return "Aprovação manual (QG)";
+  }
   if (ch === "pix") return "Pix (MP)";
   if (ch === "wallet_pending") return "Carteira (não debitado)";
   return "—";
@@ -300,13 +396,82 @@ const TAB_DEF: {
   { id: "transactions", label: "Transações & Controle", icon: ReceiptText },
 ];
 
-export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<AdminTab>("launch");
+const ADMIN_TAB_STORAGE_KEY = "apex-qg-active-tab";
+
+function isValidAdminTab(s: string | null): s is AdminTab {
+  return s === "launch" || s === "raffles" || s === "transactions";
+}
+
+function AdminPanel() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const [activeTab, setActiveTabState] = useState<AdminTab>("launch");
+
+  const selectTab = useCallback(
+    (tab: AdminTab) => {
+      setActiveTabState(tab);
+      try {
+        sessionStorage.setItem(ADMIN_TAB_STORAGE_KEY, tab);
+      } catch {
+        /* modo privado / quota */
+      }
+      const current = searchParams.get("tab");
+      if (current !== tab) {
+        router.replace(`${pathname}?tab=${tab}`, { scroll: false });
+      }
+    },
+    [pathname, router, searchParams],
+  );
+
+  useLayoutEffect(() => {
+    const q = searchParams.get("tab");
+    if (isValidAdminTab(q)) {
+      setActiveTabState((prev) => (prev === q ? prev : q));
+      try {
+        sessionStorage.setItem(ADMIN_TAB_STORAGE_KEY, q);
+      } catch {
+        /* */
+      }
+      return;
+    }
+    try {
+      const stored = sessionStorage.getItem(ADMIN_TAB_STORAGE_KEY);
+      if (isValidAdminTab(stored)) {
+        setActiveTabState(stored);
+        router.replace(`${pathname}?tab=${stored}`, { scroll: false });
+      }
+    } catch {
+      /* */
+    }
+  }, [pathname, router, searchParams]);
+
   const [raffles, setRaffles] = useState<MockRaffle[]>([]);
   const [rafflesLoading, setRafflesLoading] = useState(true);
   const [txns, setTxns] = useState<PendingTxnRow[]>([]);
   const [txnsLoading, setTxnsLoading] = useState(false);
   const [txnActionId, setTxnActionId] = useState<string | null>(null);
+
+  const reloadReservationRows = useCallback(async (opts?: { silent?: boolean }) => {
+    const token = getAccessToken();
+    if (!token) {
+      setTxns([]);
+      return;
+    }
+    if (!opts?.silent) setTxnsLoading(true);
+    try {
+      const panel = await adminListReservations(token);
+      setTxns([
+        ...panel.active.map(mapAdminPanelReservationRow),
+        ...panel.archived.map(mapAdminPanelReservationRow),
+      ]);
+    } catch {
+      setTxns([]);
+    } finally {
+      if (!opts?.silent) setTxnsLoading(false);
+    }
+  }, []);
 
   const [title, setTitle] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -381,27 +546,15 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (activeTab !== "transactions") return;
-    const token = getAccessToken();
-    if (!token) {
-      setTxns([]);
-      return;
-    }
     let cancelled = false;
-    setTxnsLoading(true);
-    adminListReservations(token)
-      .then((rows) => {
-        if (!cancelled) setTxns(rows.map(mapAdminReservationRow));
-      })
-      .catch(() => {
-        if (!cancelled) setTxns([]);
-      })
-      .finally(() => {
-        if (!cancelled) setTxnsLoading(false);
-      });
+    void (async () => {
+      await reloadReservationRows();
+      if (cancelled) return;
+    })();
     return () => {
       cancelled = true;
     };
-  }, [activeTab]);
+  }, [activeTab, reloadReservationRows]);
 
   const resetCreateForm = useCallback(() => {
     setTitle("");
@@ -537,7 +690,7 @@ export default function AdminPage() {
   }, []);
 
   const loadRaffleIntoForm = useCallback((raffle: MockRaffle) => {
-    setActiveTab("launch");
+    selectTab("launch");
     setEditingRaffleId(raffle.id);
     setTitle(raffle.title);
     setImageUrl(
@@ -556,7 +709,7 @@ export default function AdminPage() {
     setSeriesPt(raffle.seriesPt ?? []);
     setGameModesPt(raffle.gameModesPt ?? []);
     setPerspectivesPt(raffle.perspectivesPt ?? []);
-  }, []);
+  }, [selectTab]);
 
   const toggleRafflePause = useCallback((id: string) => {
     setRaffles((prev) =>
@@ -609,11 +762,14 @@ export default function AdminPage() {
       setTxnActionId(holdId);
       try {
         await adminConfirmReservation(token, holdId);
-        setTxns((prev) => prev.filter((t) => t.id !== holdId));
         setMessage({
           type: "success",
           text: "Reserva aprovada manualmente. Bilhetes marcados como pagos.",
         });
+        await reloadReservationRows({ silent: true });
+        void getRaffles().then((list) =>
+          setRaffles(list.map(mapRaffleListOutToRow)),
+        );
       } catch (err) {
         const msg =
           err instanceof ApiError
@@ -626,7 +782,7 @@ export default function AdminPage() {
         setTxnActionId(null);
       }
     },
-    [],
+    [reloadReservationRows],
   );
 
   const cancelTxnRelease = useCallback(
@@ -642,11 +798,11 @@ export default function AdminPage() {
       setTxnActionId(holdId);
       try {
         await adminCancelReservation(token, holdId);
-        setTxns((prev) => prev.filter((t) => t.id !== holdId));
         setMessage({
           type: "success",
-          text: "Reserva cancelada e números libertados.",
+          text: "Reserva cancelada: números libertados; registo Pix mantido como cancelado (auditoria).",
         });
+        await reloadReservationRows({ silent: true });
         void getRaffles().then((list) =>
           setRaffles(list.map(mapRaffleListOutToRow)),
         );
@@ -662,7 +818,40 @@ export default function AdminPage() {
         setTxnActionId(null);
       }
     },
-    [],
+    [reloadReservationRows],
+  );
+
+  const deleteArchivedTxnRecord = useCallback(
+    async (transactionId: string) => {
+      const token = getAccessToken();
+      if (!token) {
+        setMessage({
+          type: "error",
+          text: "Faça login novamente.",
+        });
+        return;
+      }
+      setTxnActionId(transactionId);
+      try {
+        await adminDeleteRaffleTransactionRecord(token, transactionId);
+        setMessage({
+          type: "success",
+          text: "Registo eliminado após o período de retenção de 14 dias.",
+        });
+        await reloadReservationRows({ silent: true });
+      } catch (err) {
+        const msg =
+          err instanceof ApiError
+            ? (err.detail ?? err.message)
+            : err instanceof Error
+              ? err.message
+              : "Falha ao eliminar registo.";
+        setMessage({ type: "error", text: msg });
+      } finally {
+        setTxnActionId(null);
+      }
+    },
+    [reloadReservationRows],
   );
 
   const buildRafflePayload = useCallback((r: MockRaffle, tier: FeaturedTier) => {
@@ -908,15 +1097,20 @@ export default function AdminPage() {
     0,
   );
 
-  // KPI derivations — transactions (reservas pendentes na API)
-  const pendingTxnsCount = txns.filter(
-    (t) => t.status === "Aguardando Pagamento",
+  // KPI derivations — transactions
+  const activeTxnRows = txns.filter((t) => t.rowKind === "active");
+  const archivedTxnCount = txns.filter((t) => t.rowKind === "archived").length;
+  const pendingTxnsCount = activeTxnRows.length;
+  const pixPendingCount = activeTxnRows.filter(
+    (t) => t.paymentChannel === "pix",
   ).length;
-  const pixPendingCount = txns.filter((t) => t.paymentChannel === "pix").length;
-  const walletHoldCount = txns.filter(
+  const walletHoldCount = activeTxnRows.filter(
     (t) => t.paymentChannel === "wallet_pending",
   ).length;
-  const totalReservedBrl = txns.reduce((acc, t) => acc + t.amountNum, 0);
+  const totalReservedBrl = activeTxnRows.reduce(
+    (acc, t) => acc + t.amountNum,
+    0,
+  );
 
   const innerTitle =
     activeTab === "launch"
@@ -934,7 +1128,7 @@ export default function AdminPage() {
         : "Cadastre um novo sorteio na vitrine pública"
       : activeTab === "raffles"
         ? `${raffles.length} operação(ões) registada(s)`
-        : "Aprovação manual e controle de pagamentos";
+        : "Pagamentos concluídos ficam no histórico; eliminar só após 14 dias (retenção).";
 
   return (
     // Full-bleed: escapa o padding do <main> do layout
@@ -963,7 +1157,7 @@ export default function AdminPage() {
               <button
                 key={id}
                 type="button"
-                onClick={() => setActiveTab(id)}
+                onClick={() => selectTab(id)}
                 className={`relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                   active
                     ? "bg-white/[0.06] text-apex-accent"
@@ -1009,7 +1203,7 @@ export default function AdminPage() {
               <button
                 key={id}
                 type="button"
-                onClick={() => setActiveTab(id)}
+                onClick={() => selectTab(id)}
                 className={`flex items-center gap-2 border-b-2 px-3 py-2 text-xs font-semibold transition-colors ${
                   active
                     ? "border-apex-accent text-apex-accent"
@@ -1791,8 +1985,8 @@ export default function AdminPage() {
               {/* KPI cards */}
               <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                 <StatCard
-                  title="Total Transações"
-                  value={txns.length}
+                  title="Lista (ativas · arquivo)"
+                  value={`${pendingTxnsCount} · ${archivedTxnCount}`}
                   icon={ReceiptText}
                   accentClass="text-apex-accent"
                 />
@@ -1819,7 +2013,7 @@ export default function AdminPage() {
               {/* Table */}
               <section className="rounded-xl border border-apex-primary/20 bg-apex-surface shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
                 <div className="overflow-x-auto rounded-xl">
-                  <table className="w-full min-w-[860px] border-collapse text-left">
+                  <table className="w-full min-w-[960px] border-collapse text-left">
                     <thead>
                       <tr className="bg-apex-bg/50">
                         <th className={thClass}>Cliente</th>
@@ -1828,6 +2022,7 @@ export default function AdminPage() {
                         <th className={thClass}>Valor</th>
                         <th className={thClass}>Canal</th>
                         <th className={thClass}>Ref. Pix</th>
+                        <th className={thClass}>Auto-liberta</th>
                         <th className={thClass}>Status</th>
                         <th className={`${thClass} text-right`}>Ações</th>
                       </tr>
@@ -1836,7 +2031,7 @@ export default function AdminPage() {
                       {txnsLoading ? (
                         <tr>
                           <td
-                            colSpan={8}
+                            colSpan={9}
                             className={`${tdClass} py-10 text-center text-apex-text-muted`}
                           >
                             <Loader2
@@ -1849,91 +2044,167 @@ export default function AdminPage() {
                       ) : txns.length === 0 ? (
                         <tr>
                           <td
-                            colSpan={8}
+                            colSpan={9}
                             className={`${tdClass} py-10 text-center text-apex-text-muted`}
                           >
-                            Nenhuma reserva pendente. As novas aparecem quando um
-                            jogador escolhe números (antes do pagamento).
+                            Nenhuma reserva nem histórico. As novas aparecem quando
+                            um jogador inicia o pagamento.
                           </td>
                         </tr>
                       ) : (
-                        txns.map((t) => (
-                          <tr key={t.id} className={rowClass}>
-                            <td className={tdClass}>
-                              <div className="flex flex-col gap-0.5">
-                                <span className="font-medium text-apex-text">
-                                  {t.clientName}
-                                </span>
-                                <span className="text-xs text-apex-text/50">
-                                  {t.clientEmail}
-                                </span>
-                              </div>
-                            </td>
-                            <td className={`${tdClass} max-w-[200px]`}>
-                              <span className="line-clamp-2">
-                                {t.raffleTitle}
-                              </span>
-                            </td>
-                            <td
-                              className={`${tdClass} font-mono text-xs text-apex-accent/90`}
-                            >
-                              {t.numbersLabel}
-                            </td>
-                            <td
-                              className={`${tdClass} font-medium tabular-nums`}
-                            >
-                              {t.amountLabel}
-                            </td>
-                            <td className={`${tdClass} text-xs`}>
-                              {channelLabel(t.paymentChannel)}
-                            </td>
-                            <td
-                              className={`${tdClass} max-w-[140px] truncate font-mono text-[10px] text-apex-text/55`}
-                              title={t.gatewayRef ?? undefined}
-                            >
-                              {t.gatewayRef
-                                ? `${t.gatewayRef.slice(0, 24)}${t.gatewayRef.length > 24 ? "…" : ""}`
-                                : "—"}
-                            </td>
-                            <td className={tdClass}>
-                              <span
-                                className={`text-sm font-medium ${txnStatusClass(t.status)}`}
+                        (() => {
+                          const firstArch = txns.findIndex(
+                            (x) => x.rowKind === "archived",
+                          );
+                          return txns.flatMap((t, i) => {
+                            const sep =
+                              i === firstArch && firstArch >= 0 ? (
+                                <tr key="txn-sep-historico" className="bg-apex-bg/80">
+                                  <td
+                                    colSpan={9}
+                                    className={`${tdClass} py-2.5 text-xs font-semibold uppercase tracking-wide text-apex-text-muted`}
+                                  >
+                                    Histórico (auditoria) — pago, cancelado ou falha.
+                                    Eliminar registo: só após 14 dias (retenção).
+                                  </td>
+                                </tr>
+                              ) : null;
+                            const row = (
+                              <tr
+                                key={`${t.rowKind}-${t.id}`}
+                                className={
+                                  t.rowKind === "archived"
+                                    ? `${rowClass} bg-white/[0.02]`
+                                    : rowClass
+                                }
                               >
-                                {t.status}
-                              </span>
-                            </td>
-                            <td className={`${tdClass} text-right`}>
-                              <div className="flex flex-wrap items-center justify-end gap-2">
-                                <button
-                                  type="button"
-                                  disabled={
-                                    t.status !== "Aguardando Pagamento" ||
-                                    txnActionId === t.id
-                                  }
-                                  onClick={() => void approveTxn(t.id)}
-                                  className="rounded-lg border border-emerald-500/40 px-2.5 py-1.5 text-xs font-semibold text-emerald-400/95 transition-colors hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-35"
+                                <td className={tdClass}>
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-medium text-apex-text">
+                                      {t.clientName}
+                                    </span>
+                                    <span className="text-xs text-apex-text/50">
+                                      {t.clientEmail}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className={`${tdClass} max-w-[200px]`}>
+                                  <span className="line-clamp-2">
+                                    {t.raffleTitle}
+                                  </span>
+                                </td>
+                                <td
+                                  className={`${tdClass} font-mono text-xs text-apex-accent/90`}
                                 >
-                                  Aprovar Manualmente
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={
-                                    t.status !== "Aguardando Pagamento" ||
-                                    txnActionId === t.id
-                                  }
-                                  onClick={() => void cancelTxnRelease(t.id)}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-red-500/45 px-2.5 py-1.5 text-xs font-semibold text-red-400/95 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-35"
+                                  {t.numbersLabel}
+                                </td>
+                                <td
+                                  className={`${tdClass} font-medium tabular-nums`}
                                 >
-                                  <XCircle
-                                    className="size-3.5 shrink-0"
-                                    aria-hidden
-                                  />
-                                  Cancelar / Libertar
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
+                                  {t.amountLabel}
+                                </td>
+                                <td className={`${tdClass} text-xs`}>
+                                  {channelLabel(t)}
+                                </td>
+                                <td
+                                  className={`${tdClass} max-w-[140px] truncate font-mono text-[10px] text-apex-text/55`}
+                                  title={t.gatewayRef ?? undefined}
+                                >
+                                  {t.gatewayRef
+                                    ? `${t.gatewayRef.slice(0, 24)}${t.gatewayRef.length > 24 ? "…" : ""}`
+                                    : "—"}
+                                </td>
+                                <td className={`${tdClass} align-top`}>
+                                  {t.rowKind === "active" &&
+                                  t.expiresAtIso ? (
+                                    <ReservationTtlCountdown
+                                      expiresAtIso={t.expiresAtIso}
+                                    />
+                                  ) : (
+                                    <span className="text-xs text-apex-text/45">
+                                      —
+                                    </span>
+                                  )}
+                                </td>
+                                <td className={tdClass}>
+                                  <span
+                                    className={`text-sm font-medium ${txnStatusClass(t.statusLabel)}`}
+                                  >
+                                    {t.statusLabel}
+                                  </span>
+                                </td>
+                                <td className={`${tdClass} text-right`}>
+                                  <div className="flex flex-wrap items-center justify-end gap-2">
+                                    {t.rowKind === "active" ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          disabled={
+                                            !t.holdId ||
+                                            txnActionId === t.holdId
+                                          }
+                                          onClick={() =>
+                                            t.holdId &&
+                                            void approveTxn(t.holdId)
+                                          }
+                                          className="rounded-lg border border-emerald-500/40 px-2.5 py-1.5 text-xs font-semibold text-emerald-400/95 transition-colors hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-35"
+                                        >
+                                          Aprovar manualmente
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={
+                                            !t.holdId ||
+                                            txnActionId === t.holdId
+                                          }
+                                          onClick={() =>
+                                            t.holdId &&
+                                            void cancelTxnRelease(t.holdId)
+                                          }
+                                          className="inline-flex items-center gap-1 rounded-lg border border-amber-500/45 px-2.5 py-1.5 text-xs font-semibold text-amber-400/95 transition-colors hover:bg-amber-500/10 disabled:cursor-not-allowed disabled:opacity-35"
+                                        >
+                                          <XCircle
+                                            className="size-3.5 shrink-0"
+                                            aria-hidden
+                                          />
+                                          Cancelar reserva
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        disabled={
+                                          !t.transactionId ||
+                                          txnActionId === t.transactionId ||
+                                          !isTxnDeletionEligible(t.createdAtIso)
+                                        }
+                                        title={
+                                          !isTxnDeletionEligible(t.createdAtIso)
+                                            ? "Retenção de 14 dias: só pode eliminar após essa data."
+                                            : undefined
+                                        }
+                                        onClick={() =>
+                                          t.transactionId &&
+                                          void deleteArchivedTxnRecord(
+                                            t.transactionId,
+                                          )
+                                        }
+                                        className="inline-flex items-center gap-1 rounded-lg border border-red-500/50 px-2.5 py-1.5 text-xs font-semibold text-red-400/95 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-35"
+                                      >
+                                        <Trash2
+                                          className="size-3.5 shrink-0"
+                                          aria-hidden
+                                        />
+                                        Eliminar registo
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                            return sep ? [sep, row] : [row];
+                          });
+                        })()
                       )}
                     </tbody>
                   </table>
@@ -1945,5 +2216,22 @@ export default function AdminPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="-mx-4 -mb-8 -mt-6 flex min-h-[calc(100vh-4rem)] items-center justify-center sm:-mx-6 lg:-mx-8">
+          <p className="flex items-center gap-2 text-sm text-apex-text-muted">
+            <Loader2 className="size-4 animate-spin text-apex-accent" aria-hidden />
+            A carregar painel…
+          </p>
+        </div>
+      }
+    >
+      <AdminPanel />
+    </Suspense>
   );
 }

@@ -69,7 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void refreshUser().finally(() => setIsReady(true));
+    queueMicrotask(() => {
+      void refreshUser().finally(() => setIsReady(true));
+    });
   }, [refreshUser]);
 
   const login = useCallback(

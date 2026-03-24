@@ -32,7 +32,7 @@ export type TransactionOut = {
     | "refund"
     | "admin_adjustment"
     | "raffle_payment";
-  status: "pending" | "completed" | "failed";
+  status: "pending" | "completed" | "failed" | "canceled";
   gateway_reference: string | null;
   description: string | null;
   payment_hold_id?: string | null;
@@ -61,6 +61,8 @@ export type PixIntentResponse = {
   provider: "mercadopago" | "mock";
   mercado_pago: MercadoPagoPixPayload | null;
   mock_pix: MockPixPayload | null;
+  /** Fim da janela de 15 min para a reserva (rifa / checkout reserva). */
+  expires_at?: string | null;
 };
 
 export type RaffleStatusApi = "active" | "sold_out" | "finished" | "canceled";
@@ -144,25 +146,33 @@ export type ReservationStatusOut = {
   state: "pending_payment" | "paid" | "released" | "unknown";
   raffle_id: string | null;
   ticket_numbers: number[];
-  transaction_status: "pending" | "completed" | "failed" | null;
+  transaction_status: "pending" | "completed" | "failed" | "canceled" | null;
   gateway_reference: string | null;
 };
 
-/** GET /api/v1/admin/reservations */
+/** GET /api/v1/admin/reservations — item em active ou archived */
 export type AdminReservationRowOut = {
-  payment_hold_id: string;
+  row_kind: "active" | "archived";
+  payment_hold_id: string | null;
   user_id: string;
   user_email: string;
   user_name: string;
-  raffle_id: string;
+  raffle_id: string | null;
   raffle_title: string;
   ticket_numbers: number[];
   total_amount: string;
   created_at: string;
+  /** Só reservas ativas: fim da janela de 15 min */
+  expires_at: string | null;
   payment_channel: "pix" | "wallet_pending" | "none";
   transaction_id: string | null;
-  transaction_status: "pending" | "completed" | "failed" | null;
+  transaction_status: "pending" | "completed" | "failed" | "canceled" | null;
   gateway_reference: string | null;
+};
+
+export type AdminReservationsListOut = {
+  active: AdminReservationRowOut[];
+  archived: AdminReservationRowOut[];
 };
 
 export type SignupRequest = {

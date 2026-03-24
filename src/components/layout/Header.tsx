@@ -103,11 +103,13 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) loadNotifications();
-    else {
-      setNotifications([]);
-      setUnreadCount(0);
-    }
+    queueMicrotask(() => {
+      if (isAuthenticated) void loadNotifications();
+      else {
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    });
   }, [isAuthenticated, loadNotifications]);
 
   useEffect(() => {
