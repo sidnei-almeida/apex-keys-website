@@ -8,6 +8,7 @@ import { getAccessToken } from "@/lib/auth/token-storage";
 import type { RaffleDetailOut } from "@/types/api";
 import { ApiError } from "@/lib/api/http";
 import { ArrowLeft, Gamepad2, Loader2, Wallet } from "lucide-react";
+import { toast } from "sonner";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -66,14 +67,20 @@ export default function RafflePage() {
   const toggleNumber = useCallback(
     (num: number) => {
       if (!raffle || soldSet.has(num)) return;
+      const isAdding = !selectedSet.has(num);
       setSelectedNumbers((prev) => {
         if (prev.includes(num)) {
           return prev.filter((n) => n !== num);
         }
         return [...prev, num].sort((a, b) => a - b);
       });
+      if (isAdding && !isAuthenticated) {
+        toast("Faça login para participar", {
+          description: "Você precisará entrar para finalizar a compra.",
+        });
+      }
     },
-    [raffle, soldSet]
+    [raffle, soldSet, selectedSet, isAuthenticated]
   );
 
   const ticketPrice = raffle ? parseFloat(raffle.ticket_price) : 0;
