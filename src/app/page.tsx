@@ -288,7 +288,7 @@ export default function Home() {
           </div>
         )}
 
-        {!loading && !featuredRaffle && !error && (
+        {!loading && !featuredRaffle && !error && onHome.length === 0 && (
           <div className="rounded-xl border border-white/[0.08] bg-apex-surface/50 p-12 text-center">
             <Gamepad2 className="mx-auto size-16 text-apex-text-muted/40" aria-hidden />
             <p className="mt-4 text-apex-text-muted/80">
