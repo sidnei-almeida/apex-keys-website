@@ -72,7 +72,19 @@ export async function updateProfile(
   return patchJson<UserPublic, UserProfileUpdate>("/users/me", body, token);
 }
 
-/** Multipart — campo `file` (jpg, png, webp; até ~20MB; API devolve WebP otimizado). */
+/** Atualiza a URL do avatar (após upload externo, ex.: UploadThing). */
+export async function updateAvatarUrl(
+  token: string,
+  avatarUrl: string,
+): Promise<UserPublic> {
+  return patchJson<UserPublic, { avatar_url: string }>(
+    "/users/me/avatar",
+    { avatar_url: avatarUrl },
+    token,
+  );
+}
+
+/** Multipart legado — mantido temporariamente para compatibilidade. */
 export async function uploadAvatar(
   token: string,
   file: File,

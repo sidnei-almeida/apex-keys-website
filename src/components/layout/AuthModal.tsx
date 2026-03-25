@@ -3,15 +3,12 @@
 import { ApiError } from "@/lib/api/http";
 import { getLastEmail, setLastEmail } from "@/lib/auth/token-storage";
 import { useAuth } from "@/contexts/AuthContext";
-import { uploadAvatar } from "@/lib/api/services";
+import ProfileUploader from "@/components/user/ProfileUploader";
+import { updateAvatarUrl } from "@/lib/api/services";
 import { getAccessToken } from "@/lib/auth/token-storage";
-import { Camera, Eye, EyeOff, User, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Eye, EyeOff, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-
-/** Limite do ficheiro enviado; o servidor reduz e grava WebP otimizado (≤ 50KB). */
-const AVATAR_MAX_BYTES = 20 * 1024 * 1024;
-const AVATAR_ACCEPT = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
 
 type AuthModalProps = {
   isOpen: boolean;
@@ -35,22 +32,10 @@ export default function AuthModal({
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [pixKey, setPixKey] = useState("");
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-
-  const avatarPreviewUrl = useMemo(() => {
-    if (!avatarFile) return null;
-    return URL.createObjectURL(avatarFile);
-  }, [avatarFile]);
-
-  useEffect(() => {
-    return () => {
-      if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
-    };
-  }, [avatarPreviewUrl]);
 
   useEffect(() => {
     setMounted(true);
@@ -63,7 +48,7 @@ export default function AuthModal({
       setFullName("");
       setWhatsapp("");
       setPixKey("");
-      setAvatarFile(null);
+      setAvatarUrl(null);
       setError(null);
       setIsLoading(false);
       setShowPassword(false);
@@ -116,10 +101,10 @@ export default function AuthModal({
         whatsapp: whatsapp.trim(),
         pix_key: pixKey.trim(),
       });
-      if (avatarFile) {
+      if (avatarUrl) {
         const token = getAccessToken();
         if (token) {
-          const updated = await uploadAvatar(token, avatarFile);
+          const updated = await updateAvatarUrl(token, avatarUrl);
           applyUserUpdate(updated);
         }
       }
@@ -235,63 +220,12 @@ export default function AuthModal({
             </>
           ) : (
             <>
-              {/* Foto de perfil (opcional) — mesmo padrão do /conta */}
-              <div className="mb-4">
-                <span className={labelClass}>Foto de perfil (opcional)</span>
-                <div className="mt-2 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-                  <input
-                    ref={avatarInputRef}
-                    type="file"
-                    accept={AVATAR_ACCEPT}
-                    className="sr-only"
-                    aria-hidden
-                    tabIndex={-1}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0] ?? null;
-                      e.target.value = "";
-                      if (!f) return;
-                      setError(null);
-                      if (f.size > AVATAR_MAX_BYTES) {
-                        setError("A imagem deve ter no máximo 20 MB.");
-                        return;
-                      }
-                      setAvatarFile(f);
-                    }}
-                  />
-                  <div className="relative shrink-0">
-                    <div className="flex size-24 items-center justify-center overflow-hidden rounded-xl ring-2 ring-premium-border ring-offset-2 ring-offset-premium-bg sm:size-24">
-                      {avatarPreviewUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={avatarPreviewUrl}
-                          alt=""
-                          className="size-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex size-full items-center justify-center bg-premium-surface">
-                          <User className="size-10 text-premium-muted sm:size-10" aria-hidden />
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      disabled={isLoading}
-                      onClick={() => avatarInputRef.current?.click()}
-                      className="absolute bottom-0 right-0 flex size-9 items-center justify-center rounded-lg border border-premium-border bg-premium-surface text-premium-text transition-colors hover:border-premium-accent hover:text-premium-accent disabled:cursor-not-allowed disabled:opacity-50"
-                      aria-label="Alterar foto de perfil"
-                      title="JPG, PNG ou WebP — até 20 MB; guardamos em WebP otimizado"
-                    >
-                      <Camera className="size-4" aria-hidden />
-                    </button>
-                  </div>
-                  <div className="text-sm text-premium-muted">
-                    <p className="font-medium text-premium-text">Foto de perfil</p>
-                    <p className="mt-0.5 text-xs text-premium-muted/85">
-                      Toque no ícone da câmara. A imagem é otimizada (≤ 50KB) antes de enviar.
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <ProfileUploader
+                label="Foto de perfil (opcional)"
+                disabled={isLoading}
+                initialUrl={avatarUrl}
+                onUploaded={(url) => setAvatarUrl(url)}
+              />
 
               <label className="block">
                 <span className={labelClass}>

@@ -3,16 +3,13 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api/http";
 import UserAvatar from "@/components/user/UserAvatar";
-import { deactivateAccount, reactivateAccount, updateProfile, uploadAvatar } from "@/lib/api/services";
+import ProfileUploader from "@/components/user/ProfileUploader";
+import { deactivateAccount, reactivateAccount, updateAvatarUrl, updateProfile } from "@/lib/api/services";
 import { getAccessToken } from "@/lib/auth/token-storage";
 import { Camera, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-
-/** Limite do ficheiro enviado; o servidor reduz e grava WebP (~384px). */
-const AVATAR_MAX_BYTES = 20 * 1024 * 1024;
-const AVATAR_ACCEPT = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
 
 const inputClass =
   "w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2.5 text-premium-text placeholder:text-premium-muted/60 focus:border-premium-accent focus:outline-none focus:ring-1 focus:ring-premium-accent/40";
@@ -31,13 +28,11 @@ export default function ContaPage() {
   const [whatsapp, setWhatsapp] = useState("");
   const [pixKey, setPixKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [avatarUploading, setAvatarUploading] = useState(false);
   const [dangerOpen, setDangerOpen] = useState(false);
   const [dangerText, setDangerText] = useState("");
   const [dangerLoading, setDangerLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isReady) return;
@@ -52,34 +47,21 @@ export default function ContaPage() {
     }
   }, [isReady, isAuthenticated, user, router]);
 
-  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  async function handleUploadedAvatarUrl(url: string) {
     setError(null);
     setSuccessMessage(null);
     const token = getAccessToken();
-    if (!token) return;
-    if (file.size > AVATAR_MAX_BYTES) {
-      setError("A imagem deve ter no máximo 20 MB (o servidor otimiza para WebP).");
-      return;
-    }
-    setAvatarUploading(true);
+    if (!token) throw new Error("Sessão expirada. Faça login novamente.");
     try {
-      const updated = await uploadAvatar(token, file);
+      const updated = await updateAvatarUrl(token, url);
       applyUserUpdate(updated);
       await refreshUser();
       setSuccessMessage("Foto de perfil atualizada.");
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.detail ?? "Não foi possível enviar a foto.");
-      } else {
-        setError(
-          err instanceof Error ? err.message : "Erro ao enviar a foto.",
-        );
+        throw new Error(err.detail ?? "Não foi possível salvar a foto.");
       }
-    } finally {
-      setAvatarUploading(false);
+      throw err instanceof Error ? err : new Error("Erro ao salvar a foto.");
     }
   }
 
@@ -129,48 +111,13 @@ export default function ContaPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-          <input
-            ref={avatarInputRef}
-            type="file"
-            accept={AVATAR_ACCEPT}
-            className="sr-only"
-            aria-hidden
-            tabIndex={-1}
-            onChange={handleAvatarChange}
-          />
-          <div className="relative shrink-0">
-            <div className="flex size-24 items-center justify-center overflow-hidden rounded-xl ring-2 ring-premium-border ring-offset-2 ring-offset-premium-bg sm:size-28">
-              <UserAvatar
-                avatarUrl={user?.avatar_url}
-                urlCacheBust={avatarUrlCacheBust}
-                className="size-full rounded-xl"
-                placeholderIconClassName="size-12 text-premium-muted sm:size-14"
-              />
-            </div>
-            <button
-              type="button"
-              disabled={avatarUploading || isLoading}
-              onClick={() => avatarInputRef.current?.click()}
-              className="absolute bottom-0 right-0 flex size-9 items-center justify-center rounded-lg border border-premium-border bg-premium-surface text-premium-text transition-colors hover:border-premium-accent hover:text-premium-accent disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label="Alterar foto de perfil"
-              title="JPG, PNG ou WebP — até 20 MB; guardamos em WebP otimizado"
-            >
-              {avatarUploading ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <Camera className="size-4" aria-hidden />
-              )}
-            </button>
-          </div>
-          <div className="text-sm text-premium-muted">
-            <p className="font-medium text-premium-text">Foto de perfil</p>
-            <p className="mt-0.5 text-xs text-premium-muted/85">
-              Toque no ícone da câmara. JPG, PNG ou WebP até 20 MB — a imagem é
-              redimensionada e guardada em WebP para carregar rápido.
-            </p>
-          </div>
-        </div>
+        <ProfileUploader
+          label="Foto de perfil"
+          disabled={isLoading}
+          initialUrl={user?.avatar_url}
+          urlCacheBust={avatarUrlCacheBust}
+          onUploaded={handleUploadedAvatarUrl}
+        />
 
         <div className="space-y-4">
           <label className="block">
@@ -307,7 +254,7 @@ export default function ContaPage() {
             </p>
             <button
               type="button"
-              disabled={dangerLoading || isLoading || avatarUploading}
+              disabled={dangerLoading || isLoading}
               onClick={async () => {
                 setError(null);
                 setSuccessMessage(null);
