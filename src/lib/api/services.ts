@@ -86,6 +86,20 @@ export async function uploadAvatar(
   });
 }
 
+export async function deactivateAccount(token: string): Promise<UserPublic> {
+  return apiRequest<UserPublic>("/users/me/deactivate", {
+    method: "POST",
+    token,
+  });
+}
+
+export async function reactivateAccount(token: string): Promise<UserPublic> {
+  return apiRequest<UserPublic>("/users/me/reactivate", {
+    method: "POST",
+    token,
+  });
+}
+
 export async function getWalletBalance(token: string): Promise<WalletBalanceResponse> {
   return getJson<WalletBalanceResponse>("/wallet/balance", token);
 }

@@ -3,7 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api/http";
 import UserAvatar from "@/components/user/UserAvatar";
-import { updateProfile, uploadAvatar } from "@/lib/api/services";
+import { deactivateAccount, reactivateAccount, updateProfile, uploadAvatar } from "@/lib/api/services";
 import { getAccessToken } from "@/lib/auth/token-storage";
 import { Camera, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -32,6 +32,9 @@ export default function ContaPage() {
   const [pixKey, setPixKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [dangerOpen, setDangerOpen] = useState(false);
+  const [dangerText, setDangerText] = useState("");
+  const [dangerLoading, setDangerLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -283,6 +286,144 @@ export default function ContaPage() {
           </Link>
         </div>
       </form>
+
+      {/* Zona de perigo — desativar conta */}
+      <section className="mt-12 rounded-2xl border border-red-900/35 bg-red-950/15 p-6 sm:p-7">
+        <h2 className="text-lg font-bold tracking-tight text-premium-text">
+          Zona de perigo
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-premium-muted">
+          Ao desativar a conta, você terá até <span className="text-premium-text/90">30 dias</span> para voltar.
+          Após esse prazo, a conta e os dados associados serão removidos permanentemente.
+        </p>
+
+        {user?.deactivated_at ? (
+          <div className="mt-4 rounded-xl border border-amber-500/25 bg-amber-950/20 px-4 py-3">
+            <p className="text-sm text-amber-100/85">
+              Sua conta está desativada e agendada para exclusão.
+            </p>
+            <p className="mt-1 text-xs text-amber-100/65">
+              Prazo: {user.delete_after ? new Date(user.delete_after).toLocaleDateString("pt-BR") : "—"}
+            </p>
+            <button
+              type="button"
+              disabled={dangerLoading || isLoading || avatarUploading}
+              onClick={async () => {
+                setError(null);
+                setSuccessMessage(null);
+                const token = getAccessToken();
+                if (!token) return;
+                setDangerLoading(true);
+                try {
+                  const updated = await reactivateAccount(token);
+                  applyUserUpdate(updated);
+                  await refreshUser();
+                  setSuccessMessage("Conta reativada com sucesso.");
+                } catch (e) {
+                  const msg =
+                    e instanceof ApiError
+                      ? (e.detail ?? "Não foi possível reativar a conta.")
+                      : e instanceof Error
+                        ? e.message
+                        : "Não foi possível reativar a conta.";
+                  setError(msg);
+                } finally {
+                  setDangerLoading(false);
+                }
+              }}
+              className="mt-3 inline-flex items-center justify-center rounded-lg border border-amber-500/35 bg-transparent px-4 py-2.5 text-sm font-semibold text-amber-200/90 transition-colors hover:bg-amber-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {dangerLoading ? "A reativar…" : "Reativar conta"}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setDangerOpen(true)}
+            className="mt-5 inline-flex items-center justify-center rounded-lg border border-red-500/45 bg-transparent px-4 py-2.5 text-sm font-semibold text-red-300/90 transition-colors hover:bg-red-500/10"
+          >
+            Desativar conta
+          </button>
+        )}
+      </section>
+
+      {dangerOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+          role="presentation"
+          onClick={() => {
+            if (dangerLoading) return;
+            setDangerOpen(false);
+            setDangerText("");
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="w-full max-w-md rounded-2xl border border-premium-border bg-premium-surface p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold text-premium-text">
+              Desativar conta
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-premium-muted">
+              Para confirmar, digite <span className="font-mono text-premium-text">DESATIVAR</span>. Você terá 30 dias para reativar.
+            </p>
+            <input
+              value={dangerText}
+              onChange={(e) => setDangerText(e.target.value)}
+              disabled={dangerLoading}
+              className={`${inputClass} mt-4`}
+              placeholder="DESATIVAR"
+            />
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                disabled={dangerLoading}
+                onClick={() => {
+                  setDangerOpen(false);
+                  setDangerText("");
+                }}
+                className="rounded-lg border border-premium-border bg-premium-bg px-4 py-2.5 text-sm font-semibold text-premium-muted transition-colors hover:border-premium-accent/40 hover:text-premium-text disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={dangerLoading || dangerText.trim().toUpperCase() !== "DESATIVAR"}
+                onClick={async () => {
+                  setError(null);
+                  setSuccessMessage(null);
+                  const token = getAccessToken();
+                  if (!token) return;
+                  setDangerLoading(true);
+                  try {
+                    const updated = await deactivateAccount(token);
+                    applyUserUpdate(updated);
+                    await refreshUser();
+                    setSuccessMessage("Conta desativada. Você pode reativar em até 30 dias.");
+                    setDangerOpen(false);
+                    setDangerText("");
+                  } catch (e) {
+                    const msg =
+                      e instanceof ApiError
+                        ? (e.detail ?? "Não foi possível desativar a conta.")
+                        : e instanceof Error
+                          ? e.message
+                          : "Não foi possível desativar a conta.";
+                    setError(msg);
+                  } finally {
+                    setDangerLoading(false);
+                  }
+                }}
+                className="rounded-lg bg-red-500 px-4 py-2.5 text-sm font-bold text-black transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {dangerLoading ? "A desativar…" : "Confirmar desativação"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

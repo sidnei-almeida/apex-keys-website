@@ -17,6 +17,9 @@ export type UserPublic = {
   created_at: string;
   /** URL da foto de perfil — a implementar no backend */
   avatar_url?: string | null;
+  /** Conta desativada e agendada para exclusão definitiva */
+  deactivated_at?: string | null;
+  delete_after?: string | null;
 };
 
 export type WalletBalanceResponse = {
