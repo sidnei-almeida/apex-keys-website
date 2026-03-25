@@ -2,10 +2,10 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api/http";
+import UserAvatar from "@/components/user/UserAvatar";
 import { updateProfile, uploadAvatar } from "@/lib/api/services";
-import { resolveUserAvatarUrl } from "@/lib/resolve-user-avatar-url";
 import { getAccessToken } from "@/lib/auth/token-storage";
-import { Camera, Loader2, User } from "lucide-react";
+import { Camera, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -15,10 +15,17 @@ const AVATAR_MAX_BYTES = 20 * 1024 * 1024;
 const AVATAR_ACCEPT = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
 
 const inputClass =
-  "w-full rounded-lg border border-white/[0.08] bg-apex-bg px-3 py-2.5 text-apex-text placeholder:text-gray-500 focus:border-apex-accent focus:outline-none focus:ring-1 focus:ring-apex-accent/50";
+  "w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2.5 text-premium-text placeholder:text-premium-muted/60 focus:border-premium-accent focus:outline-none focus:ring-1 focus:ring-premium-accent/40";
 
 export default function ContaPage() {
-  const { user, isReady, isAuthenticated, refreshUser } = useAuth();
+  const {
+    user,
+    isReady,
+    isAuthenticated,
+    refreshUser,
+    applyUserUpdate,
+    avatarUrlCacheBust,
+  } = useAuth();
   const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -56,7 +63,8 @@ export default function ContaPage() {
     }
     setAvatarUploading(true);
     try {
-      await uploadAvatar(token, file);
+      const updated = await uploadAvatar(token, file);
+      applyUserUpdate(updated);
       await refreshUser();
       setSuccessMessage("Foto de perfil atualizada.");
     } catch (err) {
@@ -103,19 +111,17 @@ export default function ContaPage() {
   if (!isReady || !isAuthenticated) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-apex-accent" aria-hidden />
+        <Loader2 className="size-8 animate-spin text-premium-muted" aria-hidden />
       </div>
     );
   }
 
-  const avatarSrc = resolveUserAvatarUrl(user?.avatar_url);
-
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8">
-      <h1 className="text-2xl font-bold tracking-tight text-apex-text/95 sm:text-3xl">
+      <h1 className="text-2xl font-bold tracking-tight text-premium-text sm:text-3xl">
         Configuração do Perfil
       </h1>
-      <p className="mt-1 text-sm text-apex-text-muted/80">
+      <p className="mt-1 text-sm text-premium-muted">
         Atualize suas informações pessoais
       </p>
 
@@ -131,24 +137,19 @@ export default function ContaPage() {
             onChange={handleAvatarChange}
           />
           <div className="relative shrink-0">
-            <div className="flex size-24 items-center justify-center overflow-hidden rounded-xl ring-2 ring-apex-accent/30 ring-offset-2 ring-offset-apex-bg sm:size-28">
-              {avatarSrc ? (
-                <img
-                  src={avatarSrc}
-                  alt=""
-                  className="size-full object-cover"
-                />
-              ) : (
-                <div className="flex size-full items-center justify-center bg-apex-surface/80">
-                  <User className="size-12 text-apex-text-muted sm:size-14" aria-hidden />
-                </div>
-              )}
+            <div className="flex size-24 items-center justify-center overflow-hidden rounded-xl ring-2 ring-premium-border ring-offset-2 ring-offset-premium-bg sm:size-28">
+              <UserAvatar
+                avatarUrl={user?.avatar_url}
+                urlCacheBust={avatarUrlCacheBust}
+                className="size-full rounded-xl"
+                placeholderIconClassName="size-12 text-premium-muted sm:size-14"
+              />
             </div>
             <button
               type="button"
               disabled={avatarUploading || isLoading}
               onClick={() => avatarInputRef.current?.click()}
-              className="absolute bottom-0 right-0 flex size-9 items-center justify-center rounded-lg border border-white/[0.08] bg-apex-surface/90 text-apex-text transition-colors hover:bg-apex-surface hover:text-apex-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="absolute bottom-0 right-0 flex size-9 items-center justify-center rounded-lg border border-premium-border bg-premium-surface text-premium-text transition-colors hover:border-premium-accent hover:text-premium-accent disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Alterar foto de perfil"
               title="JPG, PNG ou WebP — até 20 MB; guardamos em WebP otimizado"
             >
@@ -159,9 +160,9 @@ export default function ContaPage() {
               )}
             </button>
           </div>
-          <div className="text-sm text-apex-text-muted/70">
-            <p className="font-medium text-apex-text/85">Foto de perfil</p>
-            <p className="mt-0.5 text-xs text-apex-text-muted/55">
+          <div className="text-sm text-premium-muted">
+            <p className="font-medium text-premium-text">Foto de perfil</p>
+            <p className="mt-0.5 text-xs text-premium-muted/85">
               Toque no ícone da câmara. JPG, PNG ou WebP até 20 MB — a imagem é
               redimensionada e guardada em WebP para carregar rápido.
             </p>
@@ -170,7 +171,7 @@ export default function ContaPage() {
 
         <div className="space-y-4">
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-apex-text/90">
+            <span className="mb-1.5 block text-sm font-medium text-premium-text">
               Nome completo
             </span>
             <input
@@ -187,23 +188,23 @@ export default function ContaPage() {
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-apex-text/90">
+            <span className="mb-1.5 block text-sm font-medium text-premium-text">
               E-mail
             </span>
             <input
               type="email"
               value={user?.email ?? ""}
               readOnly
-              className={`${inputClass} cursor-not-allowed bg-apex-surface/50 text-apex-text-muted/80`}
+              className={`${inputClass} cursor-not-allowed bg-premium-surface text-premium-muted`}
               aria-describedby="email-help"
             />
-            <p id="email-help" className="mt-1 text-xs text-apex-text-muted/60">
+            <p id="email-help" className="mt-1 text-xs text-premium-muted/80">
               O e-mail não pode ser alterado
             </p>
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-apex-text/90">
+            <span className="mb-1.5 block text-sm font-medium text-premium-text">
               WhatsApp
             </span>
             <input
@@ -217,13 +218,13 @@ export default function ContaPage() {
               placeholder="+5511999999999"
               disabled={isLoading}
             />
-            <p className="mt-1 text-xs text-apex-text-muted/60">
+            <p className="mt-1 text-xs text-premium-muted/80">
               Essencial para comunicação em caso de premiação
             </p>
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-apex-text/90">
+            <span className="mb-1.5 block text-sm font-medium text-premium-text">
               Chave PIX
             </span>
             <input
@@ -235,21 +236,24 @@ export default function ContaPage() {
               placeholder="CPF, e-mail, telefone ou chave aleatória"
               disabled={isLoading}
             />
-            <p className="mt-1 text-xs text-apex-text-muted/60">
+            <p className="mt-1 text-xs text-premium-muted/80">
               Para receber reembolsos e prêmios
             </p>
           </label>
         </div>
 
         {error && (
-          <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400" role="alert">
+          <p
+            className="rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3 text-sm text-red-300/90"
+            role="alert"
+          >
             {error}
           </p>
         )}
 
         {successMessage ? (
           <p
-            className="rounded-lg border border-apex-success/30 bg-apex-success/10 px-4 py-3 text-sm text-apex-success"
+            className="rounded-lg border border-emerald-900/45 bg-emerald-950/25 px-4 py-3 text-sm text-emerald-200/90"
             role="status"
           >
             {successMessage}
@@ -260,7 +264,7 @@ export default function ContaPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-apex-primary px-6 py-3 font-semibold text-white transition-colors hover:bg-apex-accent disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-premium-accent px-6 py-3 font-semibold text-black transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLoading ? (
               <>
@@ -273,7 +277,7 @@ export default function ContaPage() {
           </button>
           <Link
             href="/"
-            className="text-center text-sm font-medium text-apex-text-muted/80 transition-colors hover:text-apex-accent"
+            className="text-center text-sm font-medium text-premium-muted transition-colors hover:text-premium-text"
           >
             Voltar ao início
           </Link>

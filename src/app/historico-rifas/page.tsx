@@ -79,7 +79,7 @@ export default function HistoricoRifasPage() {
   if (!isReady || !isAuthenticated) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-apex-accent" aria-hidden />
+        <Loader2 className="size-8 animate-spin text-premium-muted" aria-hidden />
       </div>
     );
   }
@@ -90,37 +90,37 @@ export default function HistoricoRifasPage() {
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <Link
         href="/"
-        className="inline-flex items-center gap-2 text-sm text-apex-text-muted/80 transition-colors hover:text-apex-accent"
+        className="inline-flex items-center gap-2 text-sm text-premium-muted transition-colors hover:text-premium-text"
       >
         <ArrowLeft className="size-4 shrink-0" aria-hidden />
         Voltar
       </Link>
-      <h1 className="mt-6 text-2xl font-bold tracking-tight text-apex-text/95 sm:text-3xl">
+      <h1 className="mt-6 text-2xl font-bold tracking-tight text-premium-text sm:text-3xl">
         Histórico de Rifas
       </h1>
-      <p className="mt-1 text-sm text-apex-text-muted/80">
+      <p className="mt-1 text-sm text-premium-muted">
         Todas as rifas em que você já participou
       </p>
 
       {loading && (
         <div className="mt-12 flex justify-center">
-          <Loader2 className="size-8 animate-spin text-apex-accent" aria-hidden />
+          <Loader2 className="size-8 animate-spin text-premium-muted" aria-hidden />
         </div>
       )}
 
       {error && (
-        <p className="mt-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400" role="alert">
+        <p className="mt-6 rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3 text-sm text-red-300/90" role="alert">
           {error}
         </p>
       )}
 
       {!loading && !error && grouped.size === 0 && (
-        <div className="mt-12 rounded-xl border border-white/[0.08] bg-apex-surface/50 p-12 text-center">
-          <History className="mx-auto size-14 text-apex-text-muted/40" aria-hidden />
-          <p className="mt-4 text-apex-text-muted/80">Nenhuma participação em rifas ainda.</p>
+        <div className="mt-12 rounded-xl border border-premium-border bg-premium-surface p-12 text-center">
+          <History className="mx-auto size-14 text-premium-muted/50" aria-hidden />
+          <p className="mt-4 text-premium-muted">Nenhuma participação em rifas ainda.</p>
           <Link
             href="/rifas"
-            className="mt-4 inline-block text-sm font-medium text-apex-accent hover:underline"
+            className="mt-4 inline-block text-sm font-medium text-premium-accent hover:underline"
           >
             Ver rifas disponíveis
           </Link>
@@ -138,7 +138,7 @@ export default function HistoricoRifasPage() {
               <Link
                 key={raffleId}
                 href={`/raffle/${raffleId}`}
-                className="block overflow-hidden rounded-xl border border-white/[0.08] bg-apex-surface/50 transition-colors hover:border-apex-accent/30 hover:bg-apex-surface/70"
+                className="block overflow-hidden rounded-xl border border-premium-border bg-premium-surface transition-colors hover:border-premium-accent/35"
               >
                 <div className="flex flex-col sm:flex-row">
                   <div className="relative aspect-video w-full shrink-0 sm:w-48 sm:aspect-square">
@@ -151,25 +151,25 @@ export default function HistoricoRifasPage() {
                         unoptimized
                       />
                     ) : (
-                      <div className="flex size-full items-center justify-center bg-apex-bg/80">
-                        <Gamepad2 className="size-16 text-apex-accent/30" aria-hidden />
+                      <div className="flex size-full items-center justify-center bg-premium-bg">
+                        <Gamepad2 className="size-16 text-premium-muted/45" aria-hidden />
                       </div>
                     )}
-                    <span className="absolute right-2 top-2 rounded bg-apex-surface/90 px-2 py-0.5 text-xs font-medium text-apex-text-muted">
+                    <span className="absolute right-2 top-2 rounded border border-premium-border bg-premium-bg/95 px-2 py-0.5 text-xs font-medium text-premium-muted">
                       {STATUS_LABEL[r.status] ?? r.status}
                     </span>
                   </div>
                   <div className="flex flex-1 flex-col justify-between p-4 sm:p-6">
                     <div>
-                      <h2 className="font-semibold text-apex-text">{r.title}</h2>
-                      <p className="mt-1 text-sm text-apex-text-muted/80">
+                      <h2 className="font-semibold text-premium-text">{r.title}</h2>
+                      <p className="mt-1 text-sm text-premium-muted">
                         {list.length} bilhete{list.length > 1 ? "s" : ""}: nº {list.map((t) => t.ticket_number).join(", ")}
                       </p>
-                      <p className="mt-1 text-xs text-apex-text-muted/60">
+                      <p className="mt-1 text-xs text-premium-muted/80">
                         Participação em {formatDate(created)}
                       </p>
                     </div>
-                    <p className="mt-2 text-sm font-medium text-apex-accent">
+                    <p className="mt-2 text-sm font-medium text-premium-accent">
                       {formatBRL(r.ticket_price)} / cota
                     </p>
                   </div>

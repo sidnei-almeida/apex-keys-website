@@ -6,11 +6,22 @@ import { getApiBaseUrl } from "@/lib/api/config";
  */
 export function resolveUserAvatarUrl(
   raw: string | null | undefined,
+  /** Força novo pedido HTTP quando a URL do ficheiro é a mesma (ex.: overwrite no servidor). */
+  cacheBust?: number,
 ): string | undefined {
   const u = raw?.trim();
   if (!u) return undefined;
-  if (/^https?:\/\//i.test(u)) return u;
-  const base = getApiBaseUrl().replace(/\/+$/, "");
-  const path = u.startsWith("/") ? u : `/${u}`;
-  return `${base}${path}`;
+  let url: string;
+  if (/^https?:\/\//i.test(u)) {
+    url = u;
+  } else {
+    const base = getApiBaseUrl().replace(/\/+$/, "");
+    const path = u.startsWith("/") ? u : `/${u}`;
+    url = `${base}${path}`;
+  }
+  if (cacheBust != null && cacheBust > 0) {
+    const sep = url.includes("?") ? "&" : "?";
+    return `${url}${sep}v=${cacheBust}`;
+  }
+  return url;
 }

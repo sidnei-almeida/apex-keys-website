@@ -196,7 +196,14 @@ export type AdminReservationRowOut = {
   created_at: string;
   /** Só reservas ativas: fim da janela de 15 min */
   expires_at: string | null;
-  payment_channel: "pix" | "wallet_pending" | "none";
+  /** pix = legado (MP); pix_mp = Mercado Pago; wallet = só carteira; pix_mp_wallet = misto (futuro). */
+  payment_channel:
+    | "pix"
+    | "pix_mp"
+    | "wallet"
+    | "wallet_pending"
+    | "none"
+    | "pix_mp_wallet";
   transaction_id: string | null;
   transaction_status: "pending" | "completed" | "failed" | "canceled" | null;
   gateway_reference: string | null;

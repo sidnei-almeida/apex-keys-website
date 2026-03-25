@@ -15,7 +15,7 @@ export default function PrivacidadePage() {
   return (
     <LegalDocShell title="Política de Privacidade">
       <p>
-        A <strong className="text-apex-text/90">Apex Keys</strong>, doravante também
+        A <strong className="text-premium-text">Apex Keys</strong>, doravante também
         designada por &quot;Plataforma&quot; ou referida na primeira pessoa do plural
         como &quot;nós&quot;, respeita a sua privacidade e trata dados pessoais em
         conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 —{" "}
@@ -36,32 +36,32 @@ export default function PrivacidadePage() {
 
       <LegalSectionTitle>2. Dados que podemos coletar</LegalSectionTitle>
       <p>Conforme a sua interação com os serviços, podemos tratar, entre outros:</p>
-      <ul className="list-disc space-y-2 pl-6 marker:text-apex-text-muted/80">
+      <ul className="list-disc space-y-2 pl-6 marker:text-premium-muted">
         <li>
-          <span className="text-apex-text/90">Dados de identificação e contacto:</span>{" "}
+          <span className="text-premium-text">Dados de identificação e contacto:</span>{" "}
           nome, e-mail, telefone/WhatsApp, dados de conta e, quando necessário para
           pagamentos ou reembolsos, chave PIX ou informações solicitadas pelo gateway.
         </li>
         <li>
-          <span className="text-apex-text/90">Dados transacionais:</span> histórico de
+          <span className="text-premium-text">Dados transacionais:</span> histórico de
           compras, participação em sorteios, valores, identificadores de transação e
           estado de pagamento.
         </li>
         <li>
-          <span className="text-apex-text/90">Dados técnicos e de utilização:</span>{" "}
+          <span className="text-premium-text">Dados técnicos e de utilização:</span>{" "}
           endereço IP, tipo de navegador, dispositivo, registos de acesso, cookies e
           tecnologias similares (quando utilizados), para segurança e melhoria do
           serviço.
         </li>
         <li>
-          <span className="text-apex-text/90">Comunicações:</span> conteúdo de
+          <span className="text-premium-text">Comunicações:</span> conteúdo de
           mensagens que nos envie através de formulários ou suporte.
         </li>
       </ul>
 
       <LegalSectionTitle>3. Finalidades e bases legais (LGPD)</LegalSectionTitle>
       <p>Tratamos dados pessoais para finalidades como:</p>
-      <ul className="list-disc space-y-2 pl-6 marker:text-apex-text-muted/80">
+      <ul className="list-disc space-y-2 pl-6 marker:text-premium-muted">
         <li>
           Execução de contrato e gestão da conta: registo, autenticação, processamento
           de pedidos e participação em sorteios (base: execução de contrato).
@@ -137,7 +137,7 @@ export default function PrivacidadePage() {
       <p>
         Dependendo do caso e da legislação, pode solicitar, entre outros:
       </p>
-      <ul className="list-disc space-y-2 pl-6 marker:text-apex-text-muted/80">
+      <ul className="list-disc space-y-2 pl-6 marker:text-premium-muted">
         <li>Confirmação da existência de tratamento e acesso aos dados;</li>
         <li>Correção de dados incompletos, inexatos ou desatualizados;</li>
         <li>
@@ -181,7 +181,7 @@ export default function PrivacidadePage() {
         Autoridade Nacional de Proteção de Dados (ANPD), nos termos da legislação.
       </p>
 
-      <p className="pt-4 text-sm text-apex-text-muted/70">
+      <p className="pt-4 text-sm text-premium-muted">
         Última atualização: março de 2026.
       </p>
     </LegalDocShell>

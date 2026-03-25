@@ -16,13 +16,24 @@ import {
 import { getAccessToken } from "@/lib/auth/token-storage";
 import { dailymotionEmbedSrc } from "@/lib/video-embed";
 import type { PixIntentResponse, RaffleDetailOut } from "@/types/api";
+import type { LucideIcon } from "lucide-react";
 import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  Clock,
+  Columns,
+  Crosshair,
   ExternalLink,
   Gamepad2,
+  Globe,
+  Handshake,
   Loader2,
+  Monitor,
+  PanelLeft,
+  User,
+  UserRound,
+  Users,
   Wallet,
 } from "lucide-react";
 import Image from "next/image";
@@ -74,6 +85,122 @@ function raffleStatusLabelPt(status: string): string {
 }
 
 const SYNOPSIS_COLLAPSE_CHARS = 520;
+
+function normMeta(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .trim();
+}
+
+/** Ícone + rótulo para tooltip / leitores de ecrã (dados vêm da API / IGDB). */
+function iconForGameMode(mode: string): { Icon: LucideIcon; label: string } {
+  const label = mode.trim();
+  const n = normMeta(mode);
+  if (
+    n.includes("um jogador") ||
+    n.includes("single player") ||
+    n.includes("singleplayer") ||
+    n === "single" ||
+    n.includes("solo")
+  ) {
+    return { Icon: User, label };
+  }
+  if (
+    n.includes("coop") ||
+    n.includes("co-op") ||
+    n.includes("cooperativ")
+  ) {
+    return { Icon: Handshake, label };
+  }
+  if (
+    n.includes("multijogador") ||
+    n.includes("multiplayer") ||
+    n.includes("multi player") ||
+    n.includes("versus") ||
+    n.includes(" pvp")
+  ) {
+    return { Icon: Users, label };
+  }
+  if (n.includes("async") || n.includes("assincrono")) {
+    return { Icon: Clock, label };
+  }
+  if (
+    n.includes("split") ||
+    n.includes("tela dividida") ||
+    n.includes("ecra dividido") ||
+    n.includes("partilha")
+  ) {
+    return { Icon: Columns, label };
+  }
+  if (n.includes("mmo") || n.includes("massively")) {
+    return { Icon: Globe, label };
+  }
+  return { Icon: Gamepad2, label };
+}
+
+function iconForPerspective(p: string): { Icon: LucideIcon; label: string } {
+  const label = p.trim();
+  const n = normMeta(p);
+  if (
+    n.includes("primeira pessoa") ||
+    n.includes("first person") ||
+    n.includes("first-person") ||
+    n === "first person"
+  ) {
+    return { Icon: Crosshair, label };
+  }
+  if (
+    n.includes("terceira pessoa") ||
+    n.includes("third person") ||
+    n.includes("third-person")
+  ) {
+    return { Icon: UserRound, label };
+  }
+  if (
+    n.includes("vista lateral") ||
+    n.includes("side view") ||
+    n.includes("side-view") ||
+    n.includes("side scrolling")
+  ) {
+    return { Icon: PanelLeft, label };
+  }
+  if (n.includes("isometric") || n.includes("isometrico")) {
+    return { Icon: Monitor, label };
+  }
+  if (n.includes("text") || n.includes("audio")) {
+    return { Icon: Monitor, label };
+  }
+  return { Icon: Monitor, label };
+}
+
+function HeroMetaIconChip({
+  label,
+  Icon,
+}: {
+  label: string;
+  Icon: LucideIcon;
+}) {
+  return (
+    <span
+      role="listitem"
+      tabIndex={0}
+      className="group relative inline-flex outline-none"
+    >
+      <span className="inline-flex cursor-default rounded p-0.5 text-premium-muted transition-[box-shadow] focus-visible:ring-2 focus-visible:ring-premium-border">
+        <Icon className="size-3.5 sm:size-4" strokeWidth={2} aria-hidden />
+      </span>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute top-full right-0 z-30 mt-1.5 max-w-[11rem] rounded-md border border-premium-border bg-premium-surface px-2 py-1 text-center text-[10px] font-medium leading-snug text-premium-text opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 sm:max-w-[13rem] sm:text-xs"
+      >
+        {label}
+      </span>
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
 
 const RES_POLL_INTERVAL_MS = 2500;
 const RES_POLL_MAX_ATTEMPTS = 120;
@@ -414,7 +541,7 @@ export default function RafflePage() {
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-7xl items-center justify-center px-4">
         <Loader2
-          className="size-12 animate-spin text-apex-accent"
+          className="size-12 animate-spin text-premium-muted"
           aria-hidden
         />
       </div>
@@ -426,13 +553,13 @@ export default function RafflePage() {
       <div className="mx-auto max-w-7xl px-4 py-12">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-apex-accent"
+          className="inline-flex items-center gap-2 text-sm text-premium-muted transition-colors hover:text-premium-text"
         >
           <ArrowLeft className="size-4 shrink-0" aria-hidden />
           Voltar
         </Link>
-        <div className="mt-8 rounded-xl border border-red-500/30 bg-red-500/10 p-8 text-center">
-          <p className="text-red-400">
+        <div className="mt-8 rounded-xl border border-red-900/50 bg-red-950/30 p-8 text-center">
+          <p className="text-red-300/90">
             {error ?? "Rifa não encontrada"}
           </p>
         </div>
@@ -440,28 +567,21 @@ export default function RafflePage() {
     );
   }
 
-  const showTechSheet =
-    (raffle.series?.length ?? 0) > 0 ||
+  const heroMetaIcons =
     (raffle.game_modes?.length ?? 0) > 0 ||
-    (raffle.player_perspectives?.length ?? 0) > 0 ||
-    Boolean(raffle.igdb_game_id?.trim());
-
-  const showStoryBlock =
-    Boolean(summaryPlain) ||
-    showTechSheet ||
-    isIgdbPublicUrl(raffle.igdb_url);
+    (raffle.player_perspectives?.length ?? 0) > 0;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12">
       <Link
         href="/"
-        className="inline-flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-apex-accent"
+        className="inline-flex items-center gap-2 text-sm text-premium-muted transition-colors hover:text-premium-text"
       >
         <ArrowLeft className="size-4 shrink-0" aria-hidden />
         Voltar
       </Link>
 
-      <section className="relative mt-6 min-h-[240px] overflow-hidden rounded-2xl border border-apex-primary/25 shadow-[inset_0_1px_0_rgba(0,212,255,0.08)] sm:min-h-[280px]">
+      <section className="relative mt-6 min-h-[240px] overflow-hidden rounded-2xl border border-premium-border bg-premium-surface sm:min-h-[280px]">
         {imageUrl ? (
           <div className="absolute inset-0">
             <Image
@@ -477,7 +597,7 @@ export default function RafflePage() {
         ) : (
           <>
             <div
-              className="absolute inset-0 bg-gradient-to-br from-apex-surface/95 via-apex-bg to-apex-surface/80"
+              className="absolute inset-0 bg-gradient-to-br from-premium-surface via-premium-bg to-premium-surface"
               aria-hidden
             />
             <div
@@ -485,7 +605,7 @@ export default function RafflePage() {
               aria-hidden
             >
               <Gamepad2
-                className="size-28 text-apex-accent/20 sm:size-36"
+                className="size-28 text-premium-muted/25 sm:size-36"
                 strokeWidth={1.1}
               />
             </div>
@@ -496,24 +616,67 @@ export default function RafflePage() {
         <div
           className={
             imageUrl
-              ? "pointer-events-none absolute inset-0 bg-gradient-to-r from-apex-bg/[0.96] via-apex-bg/78 to-apex-bg/35"
-              : "pointer-events-none absolute inset-0 bg-gradient-to-r from-apex-bg/80 via-apex-bg/35 to-transparent"
+              ? "pointer-events-none absolute inset-0 bg-gradient-to-r from-premium-bg/[0.97] via-premium-bg/82 to-premium-bg/25"
+              : "pointer-events-none absolute inset-0 bg-gradient-to-r from-premium-bg/85 via-premium-bg/40 to-transparent"
           }
           aria-hidden
         />
         {imageUrl ? (
           <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-apex-bg/70 via-transparent to-apex-bg/40 md:hidden"
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-premium-bg/75 via-transparent to-premium-bg/45 md:hidden"
             aria-hidden
           />
         ) : null}
 
-        <div className="relative z-10 max-w-3xl space-y-4 p-6 sm:p-8">
+        {heroMetaIcons ? (
+          <div className="pointer-events-auto absolute right-4 top-4 z-20 flex flex-col items-end gap-1.5 sm:right-6 sm:top-6">
+            {(raffle.player_perspectives?.length ?? 0) > 0 ? (
+              <div
+                className="flex flex-wrap justify-end gap-1.5"
+                role="list"
+                aria-label="Perspectiva"
+              >
+                {raffle.player_perspectives!.map((p) => {
+                  const spec = iconForPerspective(p);
+                  return (
+                    <HeroMetaIconChip
+                      key={`persp-${p}`}
+                      Icon={spec.Icon}
+                      label={spec.label}
+                    />
+                  );
+                })}
+              </div>
+            ) : null}
+            {(raffle.game_modes?.length ?? 0) > 0 ? (
+              <div
+                className="flex max-w-[min(100%,9.5rem)] flex-wrap justify-end gap-1.5 sm:max-w-none"
+                role="list"
+                aria-label="Modos de jogo"
+              >
+                {raffle.game_modes!.map((m) => {
+                  const spec = iconForGameMode(m);
+                  return (
+                    <HeroMetaIconChip
+                      key={`mode-${m}`}
+                      Icon={spec.Icon}
+                      label={spec.label}
+                    />
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div
+          className={`relative z-10 max-w-3xl space-y-4 p-6 pb-8 sm:space-y-5 sm:p-8 sm:pb-10 ${heroMetaIcons ? "pr-11 sm:pr-7 md:pr-9" : ""}`}
+        >
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <span className="rounded-md bg-apex-accent/25 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-apex-accent">
+            <span className="rounded-md border border-premium-border bg-premium-surface px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-premium-accent">
               {raffleStatusLabelPt(raffle.status)}
             </span>
-            <span className="text-xs text-apex-text/75 [text-shadow:0_1px_2px_rgba(0,0,0,0.45)]">
+            <span className="text-xs text-premium-muted [text-shadow:0_1px_2px_rgba(0,0,0,0.5)]">
               {raffle.sold} de {raffle.total_tickets} cotas vendidas
               {heldCount > 0 ? ` · ${heldCount} reservada(s)` : ""}
               {raffle.status === "active" || raffle.status === "sold_out"
@@ -521,65 +684,37 @@ export default function RafflePage() {
                 : null}
             </span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-apex-text [text-shadow:0_2px_12px_rgba(0,0,0,0.55)] sm:text-4xl">
+          <h1 className="text-3xl font-bold tracking-tight text-premium-text [text-shadow:0_2px_12px_rgba(0,0,0,0.55)] sm:text-4xl">
             {raffle.title}
           </h1>
-          <p className="text-xl font-semibold text-apex-success [text-shadow:0_1px_8px_rgba(0,0,0,0.45)]">
+          <p className="text-xl font-semibold text-premium-accent [text-shadow:0_1px_8px_rgba(0,0,0,0.45)]">
             {formatBRL(raffle.ticket_price)}{" "}
-            <span className="text-base font-normal text-apex-text/80">
+            <span className="text-base font-normal text-premium-accent/90">
               / cota
             </span>
           </p>
           {raffle.genres && raffle.genres.length > 0 ? (
-            <div className="flex flex-wrap gap-2 pt-1">
-              {raffle.genres.map((g) => (
-                <span
-                  key={g}
-                  className="rounded-full border border-apex-accent/25 bg-apex-bg/40 px-3 py-1 text-xs font-medium text-apex-accent backdrop-blur-[2px]"
-                >
-                  {g}
-                </span>
-              ))}
-            </div>
+            <p className="pt-1 text-xs font-medium leading-relaxed text-premium-muted sm:text-sm">
+              {raffle.genres.join(" · ")}
+            </p>
           ) : null}
-        </div>
-      </section>
 
-      {videoId ? (
-        <div className="mt-8">
-          <div className="overflow-hidden rounded-2xl bg-black ring-1 ring-apex-primary/30 shadow-[0_24px_56px_rgba(0,0,0,0.45)]">
-            <div className="relative aspect-video w-full overflow-hidden">
-              <iframe
-                src={dailymotionEmbedSrc(videoId)}
-                title={`Trailer — ${raffle.title}`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="strict-origin-when-cross-origin"
-                className="absolute inset-0 h-full w-full border-0"
-              />
-            </div>
-          </div>
-        </div>
-      ) : null}
+          {(raffle.series?.length ?? 0) > 0 ? (
+            <p className="text-xs leading-snug text-premium-muted">
+              {raffle.series!.join(" · ")}
+            </p>
+          ) : null}
 
-      {showStoryBlock ? (
-        <div
-          className={`min-w-0 space-y-6 ${videoId ? "mt-10" : "mt-8"}`}
-        >
           {summaryPlain ? (
-            <div className="rounded-xl border border-apex-primary/20 bg-apex-surface/50 p-5 sm:p-6">
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-apex-accent/90">
-                Sinopse
-              </h2>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-apex-text/88">
+            <div className="space-y-2 pt-1">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-premium-text sm:text-[0.9375rem]">
                 {synopsisDisplay}
               </p>
               {synopsisNeedsToggle ? (
                 <button
                   type="button"
                   onClick={() => setSynopsisExpanded((v) => !v)}
-                  className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-apex-accent transition-colors hover:text-apex-accent/80"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-premium-muted transition-colors hover:text-premium-text"
                 >
                   {synopsisExpanded ? (
                     <>
@@ -597,120 +732,74 @@ export default function RafflePage() {
             </div>
           ) : null}
 
-          {showTechSheet ? (
-            <div className="rounded-xl border border-apex-primary/20 bg-apex-surface/40 p-5 sm:p-6">
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-apex-accent/90">
-                Ficha técnica
-              </h2>
-              <dl className="mt-4 space-y-4 text-sm">
-                {(raffle.series?.length ?? 0) > 0 ? (
-                  <div className="grid gap-1 border-b border-apex-primary/10 pb-4 sm:grid-cols-[minmax(0,140px)_1fr] sm:gap-6">
-                    <dt className="font-medium text-apex-text/50">
-                      Série / franchise
-                    </dt>
-                    <dd className="text-apex-text/90">
-                      {raffle.series!.join(" · ")}
-                    </dd>
-                  </div>
-                ) : null}
-                {(raffle.game_modes?.length ?? 0) > 0 ? (
-                  <div className="grid gap-1 border-b border-apex-primary/10 pb-4 sm:grid-cols-[minmax(0,140px)_1fr] sm:gap-6">
-                    <dt className="font-medium text-apex-text/50">
-                      Modos de jogo
-                    </dt>
-                    <dd className="flex flex-wrap gap-2">
-                      {raffle.game_modes!.map((m) => (
-                        <span
-                          key={m}
-                          className="rounded-md bg-apex-bg px-2.5 py-1 text-xs text-apex-text/85 ring-1 ring-apex-primary/15"
-                        >
-                          {m}
-                        </span>
-                      ))}
-                    </dd>
-                  </div>
-                ) : null}
-                {(raffle.player_perspectives?.length ?? 0) > 0 ? (
-                  <div className="grid gap-1 border-b border-apex-primary/10 pb-4 sm:grid-cols-[minmax(0,140px)_1fr] sm:gap-6">
-                    <dt className="font-medium text-apex-text/50">
-                      Perspectiva
-                    </dt>
-                    <dd className="flex flex-wrap gap-2">
-                      {raffle.player_perspectives!.map((p) => (
-                        <span
-                          key={p}
-                          className="rounded-md bg-apex-bg px-2.5 py-1 text-xs text-apex-text/85 ring-1 ring-apex-primary/15"
-                        >
-                          {p}
-                        </span>
-                      ))}
-                    </dd>
-                  </div>
-                ) : null}
-                {raffle.igdb_game_id?.trim() ? (
-                  <div className="grid gap-1 sm:grid-cols-[minmax(0,140px)_1fr] sm:gap-6">
-                    <dt className="font-medium text-apex-text/50">
-                      ID no IGDB
-                    </dt>
-                    <dd className="font-mono text-xs text-apex-text/80">
-                      {raffle.igdb_game_id.trim()}
-                    </dd>
-                  </div>
-                ) : null}
-              </dl>
-            </div>
-          ) : null}
-
           {isIgdbPublicUrl(raffle.igdb_url) ? (
             <a
               href={raffle.igdb_url!}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-apex-accent/35 bg-apex-accent/10 px-4 py-2.5 text-sm font-semibold text-apex-accent transition-colors hover:border-apex-accent/60 hover:bg-apex-accent/15"
+              className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-premium-muted underline-offset-4 transition-colors hover:text-premium-text hover:underline"
             >
-              <ExternalLink className="size-4 shrink-0" aria-hidden />
-              Ver ficha completa no IGDB
+              <ExternalLink className="size-3.5 shrink-0 opacity-90" aria-hidden />
+              Ver ficha no IGDB
             </a>
           ) : null}
+        </div>
+      </section>
+
+      {videoId ? (
+        <div className="mt-8">
+          <div className="overflow-hidden rounded-2xl border border-premium-border bg-premium-surface">
+            <div className="relative aspect-video w-full overflow-hidden">
+              <iframe
+                src={dailymotionEmbedSrc(videoId)}
+                title={`Trailer — ${raffle.title}`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
+                className="absolute inset-0 h-full w-full border-0"
+              />
+            </div>
+          </div>
         </div>
       ) : null}
 
       {/* Números à esquerda (mais largo) + pagamento à direita (mais estreito) */}
       <div
         className={`grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] lg:items-stretch ${
-          videoId || showStoryBlock ? "mt-10" : "mt-8"
+          videoId ? "mt-10" : "mt-8"
         }`}
       >
-        <div className="min-w-0 rounded-xl border border-apex-primary/25 bg-apex-surface/90 p-5 shadow-sm sm:p-6">
-          <h2 className="text-lg font-bold text-apex-text">
+        <div className="min-w-0 rounded-xl border border-premium-border bg-premium-surface p-5 sm:p-6">
+          <h2 className="text-lg font-bold text-premium-text">
             Escolha seus números
           </h2>
 
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-gray-400 sm:text-sm">
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-premium-muted sm:text-sm">
             <span className="inline-flex items-center gap-2">
               <span
-                className="size-3 shrink-0 rounded-full bg-apex-bg ring-1 ring-apex-primary/30"
+                className="size-3 shrink-0 rounded-full bg-premium-cell ring-1 ring-premium-border"
                 aria-hidden
               />
               Disponível
             </span>
             <span className="inline-flex items-center gap-2">
               <span
-                className="size-3 shrink-0 rounded-full bg-apex-accent"
+                className="size-3 shrink-0 rounded-full bg-premium-accent"
                 aria-hidden
               />
               Selecionado
             </span>
             <span className="inline-flex items-center gap-2">
               <span
-                className="size-3 shrink-0 rounded-full bg-amber-900/80 ring-1 ring-amber-600/50"
+                className="size-3 shrink-0 rounded-full bg-red-950/80 ring-1 ring-red-900/60"
                 aria-hidden
               />
               Reservado
             </span>
             <span className="inline-flex items-center gap-2">
               <span
-                className="size-3 shrink-0 rounded-full bg-apex-bg opacity-50 ring-1 ring-apex-bg"
+                className="size-3 shrink-0 rounded-full bg-premium-bg opacity-80 ring-1 ring-premium-border"
                 aria-hidden
               />
               Vendido
@@ -718,7 +807,7 @@ export default function RafflePage() {
           </div>
 
           <div
-            className="mt-4 max-h-[min(36rem,60vh)] overflow-y-auto overscroll-y-contain rounded-lg border border-apex-primary/15 bg-apex-bg/35 p-3 [-webkit-overflow-scrolling:touch] sm:p-4"
+            className="mt-4 max-h-[min(36rem,60vh)] overflow-y-auto overscroll-y-contain rounded-lg border border-premium-border bg-premium-bg p-3 [-webkit-overflow-scrolling:touch] sm:p-4"
             role="region"
             aria-label="Grelha de números da rifa"
           >
@@ -730,25 +819,25 @@ export default function RafflePage() {
                 const selected = selectedSet.has(num);
 
                 let className =
-                  "flex aspect-square min-h-[2.25rem] items-center justify-center rounded-lg border text-sm font-medium transition-all sm:min-h-0 sm:aspect-auto sm:py-2";
+                  "flex aspect-square min-h-[2.25rem] items-center justify-center rounded-md border text-sm font-medium transition-colors sm:min-h-0 sm:aspect-auto sm:py-2";
 
                 const needsLogin = !isAuthenticated && !sold && !held;
 
                 if (sold) {
                   className +=
-                    " cursor-not-allowed border-apex-bg/50 bg-apex-bg opacity-50 line-through text-apex-text/40";
+                    " cursor-not-allowed border-premium-border/40 bg-[#101010] opacity-55 line-through text-premium-muted/50";
                 } else if (held) {
                   className +=
-                    " cursor-not-allowed border-amber-600/35 bg-amber-950/50 text-amber-200/70 line-through";
+                    " cursor-not-allowed border-red-900/40 bg-red-950/35 text-red-300/55 line-through";
                 } else if (needsLogin) {
                   className +=
-                    " cursor-not-allowed border-apex-primary/15 bg-apex-bg/50 text-apex-text/45 opacity-70";
+                    " cursor-not-allowed border-premium-border/50 bg-premium-bg text-premium-muted/50 opacity-75";
                 } else if (selected) {
                   className +=
-                    " scale-105 cursor-pointer border-apex-accent bg-apex-accent font-bold text-apex-bg shadow-md";
+                    " scale-[1.02] cursor-pointer border-premium-accent bg-premium-accent font-bold text-[#0A0A0A]";
                 } else {
                   className +=
-                    " cursor-pointer border-apex-primary/20 bg-apex-bg text-apex-text hover:border-apex-accent hover:bg-apex-primary/50";
+                    " cursor-pointer border-premium-border bg-premium-cell text-premium-text hover:border-premium-muted/60 hover:bg-[#2a2a2a]";
                 }
 
                 return (
@@ -780,39 +869,39 @@ export default function RafflePage() {
         </div>
 
         <div className="flex min-h-0 flex-col lg:h-full">
-          <div className="flex min-h-0 w-full flex-1 flex-col rounded-xl border border-apex-primary/30 bg-apex-surface p-5 sm:p-6 lg:min-h-full">
-            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b border-apex-primary/15 pb-3">
+          <div className="flex min-h-0 w-full flex-1 flex-col rounded-xl border border-premium-border bg-premium-surface p-5 sm:p-6 lg:min-h-full">
+            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b border-premium-border pb-3">
               <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-wide text-apex-text/55">
+                <p className="text-xs font-medium uppercase tracking-wide text-premium-muted">
                   Seleção
                 </p>
-                <p className="mt-0.5 text-apex-text">
-                  <span className="font-bold text-apex-accent">
+                <p className="mt-0.5 text-premium-text">
+                  <span className="font-bold text-premium-accent">
                     {selectedNumbers.length}{" "}
                     {selectedNumbers.length === 1 ? "número" : "números"}
                   </span>
-                  <span className="text-apex-text/70"> selecionado(s)</span>
+                  <span className="text-premium-muted"> selecionado(s)</span>
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-xs font-medium uppercase tracking-wide text-apex-text/55">
+                <p className="text-xs font-medium uppercase tracking-wide text-premium-muted">
                   Total a pagar
                 </p>
-                <p className="mt-0.5 text-xl font-semibold text-apex-accent">
+                <p className="mt-0.5 text-xl font-semibold text-premium-accent">
                   {formatBRL(totalPay)}
                 </p>
               </div>
             </div>
 
             {isAuthenticated && (
-              <p className="mt-3 text-sm text-apex-text/75">
+              <p className="mt-3 text-sm text-premium-muted">
                 Seu saldo:{" "}
-                <span className="font-medium text-apex-text">{formatBRL(balanceNum)}</span>
+                <span className="font-medium text-premium-text">{formatBRL(balanceNum)}</span>
               </p>
             )}
 
             {user?.is_admin ? (
-              <p className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs leading-snug text-amber-200/90">
+              <p className="mt-3 rounded-lg border border-amber-900/50 bg-amber-950/25 px-3 py-2 text-xs leading-snug text-amber-200/85">
                 <strong>Conta admin:</strong> com saldo suficiente e &quot;Utilizar
                 saldo&quot;, os números são reservados e debitados na hora. Com{" "}
                 <strong>Pix</strong>, a reserva bloqueia os números até o MP
@@ -821,22 +910,22 @@ export default function RafflePage() {
             ) : null}
 
             {/* Ocupa a altura disponível na coluna: texto completo, quebra na largura do card */}
-            <div className="mt-4 min-h-0 flex-1 flex flex-col justify-start gap-4 border-t border-apex-primary/10 pt-4">
-              <p className="text-sm leading-relaxed text-apex-text/80">
-                Ao pagar, os números ficam <strong className="text-apex-text">reservados</strong>{" "}
+            <div className="mt-4 min-h-0 flex-1 flex flex-col justify-start gap-4 border-t border-premium-border pt-4">
+              <p className="text-sm leading-relaxed text-premium-muted">
+                Ao pagar, os números ficam <strong className="text-premium-text">reservados</strong>{" "}
                 para você. Se outro jogador tentar o mesmo, vê que já não está
                 disponível.
               </p>
-              <p className="text-sm leading-relaxed text-apex-text/75">
-                <strong className="text-apex-text/90">Pix</strong>: cobrança Mercado Pago
+              <p className="text-sm leading-relaxed text-premium-muted">
+                <strong className="text-premium-text">Pix</strong>: cobrança Mercado Pago
                 pelo total selecionado (QR ou link).{" "}
-                <strong className="text-apex-text/90">Carteira</strong>: apenas se o
+                <strong className="text-premium-text">Carteira</strong>: apenas se o
                 saldo cobrir o valor total.
               </p>
             </div>
 
             <div className="mt-4 space-y-3">
-              <label className="flex cursor-pointer gap-3 text-sm leading-snug text-apex-text">
+              <label className="flex cursor-pointer gap-3 text-sm leading-snug text-premium-text">
                 <input
                   type="radio"
                   name="payment-method"
@@ -845,13 +934,13 @@ export default function RafflePage() {
                     setUseBalance(false);
                     setPayError(null);
                   }}
-                  className="mt-0.5 size-4 shrink-0 accent-apex-accent"
+                  className="mt-0.5 size-4 shrink-0 accent-[#D4AF37]"
                 />
-                <span>
+                <span className="text-premium-muted">
                   Pix (Mercado Pago — QR ou link; em testes, use conta comprador MP)
                 </span>
               </label>
-              <label className="flex cursor-pointer gap-3 text-sm leading-snug text-apex-text">
+              <label className="flex cursor-pointer gap-3 text-sm leading-snug text-premium-text">
                 <input
                   type="radio"
                   name="payment-method"
@@ -860,24 +949,24 @@ export default function RafflePage() {
                     setUseBalance(true);
                     setPayError(null);
                   }}
-                  className="mt-0.5 size-4 shrink-0 accent-apex-accent"
+                  className="mt-0.5 size-4 shrink-0 accent-[#D4AF37]"
                 />
-                <span className="inline-flex items-start gap-2">
-                  <Wallet className="mt-0.5 size-4 shrink-0 text-apex-accent/80" aria-hidden />
+                <span className="inline-flex items-start gap-2 text-premium-muted">
+                  <Wallet className="mt-0.5 size-4 shrink-0 text-premium-muted" aria-hidden />
                   Utilizar saldo da carteira
                 </span>
               </label>
             </div>
 
             {useBalance && canPayWithBalanceOnly && totalPay > 0 && (
-              <p className="mt-3 text-sm text-apex-accent/90">
+              <p className="mt-3 text-sm text-premium-accent">
                 Saldo cobre o total ({formatBRL(totalPay)}) — débito direto após
                 reservar.
               </p>
             )}
 
             {payError && (
-              <p className="mt-2 text-sm text-red-400">{payError}</p>
+              <p className="mt-2 text-sm text-red-300/90">{payError}</p>
             )}
 
             <div className="mt-auto shrink-0 pt-4">
@@ -885,7 +974,7 @@ export default function RafflePage() {
                 type="button"
                 disabled={!canPay || paying || !isReady}
                 onClick={handlePay}
-                className="w-full rounded-xl bg-apex-accent py-3 text-center font-bold text-apex-bg transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-xl bg-premium-accent py-3 text-center text-base font-bold text-[#0A0A0A] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-45"
               >
                 {paying ? (
                   <span className="inline-flex items-center justify-center gap-2">

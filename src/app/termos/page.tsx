@@ -17,7 +17,7 @@ export default function TermosPage() {
       <p>
         Estes Termos de Serviço (&quot;Termos&quot;) regulam o acesso e a utilização
         do site, aplicativos e serviços da{" "}
-        <strong className="text-apex-text/90">Apex Keys</strong>, doravante também
+        <strong className="text-premium-text">Apex Keys</strong>, doravante também
         designada por &quot;Plataforma&quot; ou referida na primeira pessoa do plural
         como &quot;nós&quot;, incluindo a
         participação em sorteios de cotas, aquisição de produtos digitais e utilização
@@ -54,7 +54,7 @@ export default function TermosPage() {
       </p>
 
       <LegalSectionTitle>3. Elegibilidade e conta</LegalSectionTitle>
-      <ul className="list-disc space-y-2 pl-6 marker:text-apex-text-muted/80">
+      <ul className="list-disc space-y-2 pl-6 marker:text-premium-muted">
         <li>
           Deve ter capacidade legal para celebrar contratos no seu país de residência
           e, quando aplicável, idade mínima legal para participar em atividades de
@@ -73,7 +73,7 @@ export default function TermosPage() {
       </ul>
 
       <LegalSectionTitle>4. Regras de participação nos sorteios</LegalSectionTitle>
-      <ul className="list-disc space-y-2 pl-6 marker:text-apex-text-muted/80">
+      <ul className="list-disc space-y-2 pl-6 marker:text-premium-muted">
         <li>
           Cada sorteio rege-se pelas informações apresentadas na Plataforma (preço da
           cota, quantidade total, estado do sorteio e condições de participação).
@@ -97,7 +97,7 @@ export default function TermosPage() {
         incluindo impostos ou taxas quando aplicáveis e expressas antes da conclusão
         da compra.
       </p>
-      <ul className="list-disc space-y-2 pl-6 marker:text-apex-text-muted/80">
+      <ul className="list-disc space-y-2 pl-6 marker:text-premium-muted">
         <li>
           Transações PIX estão sujeitas aos prazos e confirmações da rede e dos
           parceiros de pagamento; até à confirmação, a reserva de cotas pode estar
@@ -116,7 +116,7 @@ export default function TermosPage() {
         Plataforma (por exemplo, área do utilizador, e-mail registado ou instruções
         na página do prémio).
       </p>
-      <ul className="list-disc space-y-2 pl-6 marker:text-apex-text-muted/80">
+      <ul className="list-disc space-y-2 pl-6 marker:text-premium-muted">
         <li>
           A ativação do produto nas plataformas terceiras (como Steam) está sujeita aos
           termos desses serviços e à região da chave; é sua responsabilidade verificar
@@ -148,7 +148,7 @@ export default function TermosPage() {
 
       <LegalSectionTitle>8. Conduta e uso proibido</LegalSectionTitle>
       <p>É proibido utilizar a Plataforma para:</p>
-      <ul className="list-disc space-y-2 pl-6 marker:text-apex-text-muted/80">
+      <ul className="list-disc space-y-2 pl-6 marker:text-premium-muted">
         <li>Violar leis, direitos de terceiros ou estes Termos;</li>
         <li>
           Burlar sistemas de segurança, automatizar abusivamente compras ou criar
@@ -187,7 +187,7 @@ export default function TermosPage() {
         site (suporte ou e-mail de contacto), quando disponíveis.
       </p>
 
-      <p className="pt-4 text-sm text-apex-text-muted/70">
+      <p className="pt-4 text-sm text-premium-muted">
         Última atualização: março de 2026.
       </p>
     </LegalDocShell>

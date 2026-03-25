@@ -8,8 +8,8 @@ export const metadata: Metadata = {
     "Respostas sobre participação, pagamentos, sorteios e suporte na Apex Keys.",
 };
 
-const glass =
-  "rounded-2xl border border-white/[0.08] bg-white/[0.03] shadow-[0_8px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150";
+const surfacePanel =
+  "rounded-2xl border border-premium-border bg-premium-surface shadow-[0_8px_32px_rgba(0,0,0,0.35)]";
 
 type FaqItem = { q: string; a: string };
 
@@ -92,19 +92,19 @@ const sections: { id: string; title: string; intro: string; items: FaqItem[] }[]
 function FaqDisclosure({ item }: { item: FaqItem }) {
   return (
     <details
-      className={`group ${glass} overflow-hidden transition-[border-color] open:border-apex-accent/30`}
+      className={`group ${surfacePanel} overflow-hidden transition-[border-color] open:border-premium-accent/40`}
     >
       <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 sm:p-6 [&::-webkit-details-marker]:hidden">
-        <span className="text-left text-sm font-semibold leading-snug text-white sm:text-base">
+        <span className="text-left text-sm font-semibold leading-snug text-premium-text sm:text-base">
           {item.q}
         </span>
         <ChevronDown
-          className="size-5 shrink-0 text-apex-accent/75 transition-transform duration-200 ease-out group-open:rotate-180"
+          className="size-5 shrink-0 text-premium-muted transition-transform duration-200 ease-out group-open:rotate-180 group-open:text-premium-accent"
           aria-hidden
         />
       </summary>
-      <div className="border-t border-white/[0.06] px-5 pb-5 pt-4 sm:px-6 sm:pb-6">
-        <p className="text-sm leading-relaxed text-apex-text-muted/88">
+      <div className="border-t border-premium-border px-5 pb-5 pt-4 sm:px-6 sm:pb-6">
+        <p className="text-sm leading-relaxed text-premium-muted">
           {item.a}
         </p>
       </div>
@@ -116,19 +116,19 @@ export default function FaqPage() {
   return (
     <div className="relative">
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-gradient-to-b from-apex-accent/[0.07] via-transparent to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-gradient-to-b from-premium-accent/[0.06] via-transparent to-transparent"
         aria-hidden
       />
 
       <div className="relative mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
         <header className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-apex-accent/90">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-premium-muted">
             Ajuda
           </p>
-          <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
+          <h1 className="mt-4 text-3xl font-bold tracking-tight text-premium-text sm:text-4xl md:text-5xl">
             Perguntas frequentes
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-apex-text-muted/90 sm:text-lg">
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-premium-muted sm:text-lg">
             Respostas objetivas sobre participação, pagamentos e sorteios. Os textos
             abaixo são base profissional para você substituir pelas políticas e
             processos reais da Apex Keys.
@@ -144,11 +144,11 @@ export default function FaqPage() {
               <div className="mb-6">
                 <h2
                   id={`faq-${section.id}-heading`}
-                  className="text-xl font-bold tracking-tight text-white sm:text-2xl"
+                  className="text-xl font-bold tracking-tight text-premium-text sm:text-2xl"
                 >
                   {section.title}
                 </h2>
-                <p className="mt-2 text-sm leading-relaxed text-apex-text-muted/78 sm:text-base">
+                <p className="mt-2 text-sm leading-relaxed text-premium-muted sm:text-base">
                   {section.intro}
                 </p>
               </div>
@@ -162,21 +162,21 @@ export default function FaqPage() {
         </div>
 
         <aside
-          className={`${glass} mt-14 flex flex-col gap-5 border-apex-accent/15 bg-gradient-to-br from-apex-accent/[0.05] to-transparent p-6 sm:mt-16 sm:flex-row sm:items-center sm:justify-between sm:p-8`}
+          className={`${surfacePanel} mt-14 flex flex-col gap-5 border-premium-border p-6 sm:mt-16 sm:flex-row sm:items-center sm:justify-between sm:p-8`}
           aria-labelledby="faq-aside-heading"
         >
           <div className="flex gap-4">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.1] bg-white/[0.04] text-apex-accent">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-premium-border bg-premium-bg text-premium-accent">
               <HelpCircle className="size-5" strokeWidth={1.75} aria-hidden />
             </div>
             <div className="min-w-0">
               <h2
                 id="faq-aside-heading"
-                className="text-base font-bold text-white sm:text-lg"
+                className="text-base font-bold text-premium-text sm:text-lg"
               >
                 Não achou o que precisa?
               </h2>
-              <p className="mt-1 text-sm text-apex-text-muted/85">
+              <p className="mt-1 text-sm text-premium-muted">
                 Veja também a página institucional ou o catálogo de rifas. Inclua
                 aqui o canal de suporte quando estiver definido.
               </p>
@@ -185,14 +185,14 @@ export default function FaqPage() {
           <div className="flex flex-col gap-2 sm:shrink-0 sm:flex-row">
             <Link
               href="/sobre"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.04] px-5 py-3 text-sm font-semibold text-white transition-colors hover:border-apex-accent/35 hover:text-apex-accent"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-premium-border bg-premium-bg px-5 py-3 text-sm font-semibold text-premium-text transition-colors hover:border-premium-accent hover:text-premium-accent"
             >
               <MessageCircle className="size-4" aria-hidden />
               Sobre nós
             </Link>
             <Link
               href="/rifas"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-apex-accent to-cyan-400 px-5 py-3 text-sm font-bold text-[#031018] shadow-[0_0_20px_rgba(0,229,255,0.2)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-premium-accent px-5 py-3 text-sm font-bold text-black transition-opacity hover:opacity-95 active:opacity-90"
             >
               Ver rifas
             </Link>

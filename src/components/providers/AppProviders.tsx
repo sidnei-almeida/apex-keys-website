@@ -12,9 +12,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         toastOptions={{
           duration: 3000,
           style: {
-            background: "rgba(10, 17, 31, 0.95)",
-            border: "1px solid rgba(0, 229, 255, 0.2)",
-            color: "#e2e8f0",
+            background: "rgba(22, 22, 22, 0.97)",
+            border: "1px solid #2A2A2A",
+            color: "#F3F4F6",
           },
         }}
       />

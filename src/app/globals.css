@@ -35,7 +35,7 @@
   }
 
   body {
-    @apply min-h-full bg-apex-bg text-apex-text antialiased;
+    @apply min-h-full bg-premium-bg text-premium-text antialiased;
   }
 
   /* Cursor pointer em elementos clicáveis (Preflight remove em alguns casos) */
@@ -60,7 +60,7 @@
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: #111a2e #0a111f;
+    scrollbar-color: #2a2a2a #0a0a0a;
   }
 
   *::-webkit-scrollbar {
@@ -69,16 +69,16 @@
   }
 
   *::-webkit-scrollbar-track {
-    background: #0a111f;
+    background: #0a0a0a;
   }
 
   *::-webkit-scrollbar-thumb {
-    background: #111a2e;
+    background: #2a2a2a;
     border-radius: 4px;
   }
 
   *::-webkit-scrollbar-thumb:hover {
-    background: #00e5ff40;
+    background: #3f3f3f;
   }
 }
 

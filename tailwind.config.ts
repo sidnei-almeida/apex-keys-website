@@ -39,6 +39,19 @@ const config: Config = {
         "apex-text-muted": "#A1AABF",
         /** Sucesso / progresso */
         "apex-success": "#34D399",
+
+        /**
+         * Premium Dark — detalhe de rifa (cinema / streaming / IMDb-like).
+         * Uso cirúrgico de `premium-accent` (ouro) em CTA e estados-chave.
+         */
+        "premium-bg": "#0A0A0A",
+        "premium-surface": "#161616",
+        "premium-border": "#2A2A2A",
+        "premium-cell": "#202020",
+        "premium-accent": "#D4AF37",
+        "premium-accent-amber": "#F5A623",
+        "premium-text": "#F3F4F6",
+        "premium-muted": "#9CA3AF",
       },
     },
   },

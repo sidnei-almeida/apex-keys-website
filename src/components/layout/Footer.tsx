@@ -45,7 +45,7 @@ function FooterColumn({
 }) {
   return (
     <div className="flex min-h-0 flex-col items-start gap-3">
-      <p className="mb-0 w-full border-b border-white/5 pb-2 font-body text-xs font-bold uppercase tracking-[0.14em] text-apex-text/90">
+      <p className="mb-0 w-full border-b border-premium-border/30 pb-2 font-body text-xs font-bold uppercase tracking-[0.14em] text-premium-text">
         {title}
       </p>
       <ul className="flex w-full flex-col gap-2">
@@ -53,7 +53,7 @@ function FooterColumn({
           <li key={label} className="w-full">
             <Link
               href={href}
-              className="font-body text-sm text-apex-text-muted transition-colors duration-300 ease-in-out hover:text-white"
+              className="font-body text-sm text-premium-muted transition-colors duration-300 ease-in-out hover:text-premium-text"
             >
               {label}
             </Link>
@@ -68,25 +68,25 @@ const FOOTER_CONTAINER = "mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8";
 
 export default function Footer() {
   return (
-    <footer className="relative z-10 mt-auto border-t border-white/5 bg-apex-base/50">
+    <footer className="relative z-10 mt-auto border-t border-premium-border/20 bg-premium-bg">
       {/* Pagamento seguro — credibilidade */}
-      <div className="border-b border-white/5 bg-black/20">
+      <div className="border-b border-premium-border/20 bg-premium-bg">
         <div
           className={`${FOOTER_CONTAINER} flex flex-col gap-5 py-5 md:flex-row md:items-center md:justify-between md:py-6`}
         >
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-apex-accent/90">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-premium-accent">
               Pagamento seguro
             </p>
-            <p className="mt-2 max-w-md text-sm leading-relaxed text-apex-text-muted/75">
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-premium-muted">
               Transações com criptografia e parceiros reconhecidos. O site utiliza
               conexão HTTPS (SSL) para proteger os seus dados.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-4 md:gap-5">
-            <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 backdrop-blur-sm">
-              <Lock className="size-4 shrink-0 text-emerald-400/90" aria-hidden />
-              <span className="text-xs font-semibold text-apex-text/85">
+            <div className="flex items-center gap-2 rounded-lg border border-premium-border bg-premium-surface px-3 py-2">
+              <Lock className="size-4 shrink-0 text-premium-muted" aria-hidden />
+              <span className="text-xs font-semibold text-premium-text">
                 SSL / HTTPS
               </span>
             </div>
@@ -114,14 +114,14 @@ export default function Footer() {
             <div className="flex flex-col items-start gap-1.5">
               <div className="flex items-center gap-2">
                 <ShieldCheck
-                  className="size-5 shrink-0 text-apex-accent/90"
+                  className="size-5 shrink-0 text-premium-accent"
                   aria-hidden
                 />
-                <span className="text-sm font-semibold text-apex-text/90">
+                <span className="text-sm font-semibold text-premium-text">
                   Transação Segura
                 </span>
               </div>
-              <p className="text-xs text-apex-text-muted/60">
+              <p className="text-xs text-premium-muted">
                 Pagamentos seguros e rastreáveis
               </p>
             </div>
@@ -144,7 +144,7 @@ export default function Footer() {
 
           {/* 5. Redes Sociais */}
           <div className="flex flex-col items-start md:col-span-2">
-            <p className="mb-0 w-full border-b border-white/5 pb-2 font-body text-xs font-bold uppercase tracking-[0.14em] text-apex-text/90">
+            <p className="mb-0 w-full border-b border-premium-border/30 pb-2 font-body text-xs font-bold uppercase tracking-[0.14em] text-premium-text">
               Redes Sociais
             </p>
             <div className="mt-3 flex flex-row flex-wrap gap-4">
@@ -153,7 +153,7 @@ export default function Footer() {
                   key={label}
                   href={href}
                   aria-label={label}
-                  className="text-apex-text-muted transition-all duration-200 hover:-translate-y-0.5 hover:text-white"
+                  className="text-premium-muted transition-all duration-200 hover:-translate-y-0.5 hover:text-premium-text"
                 >
                   <Icon className="size-6" aria-hidden />
                 </Link>
@@ -164,11 +164,11 @@ export default function Footer() {
       </div>
 
       {/* Sub-footer — mesmo container para alinhamento vertical com a logo */}
-      <div className="border-t border-white/5 bg-black/15">
+      <div className="border-t border-premium-border/20 bg-premium-bg">
         <div
           className={`${FOOTER_CONTAINER} flex flex-col items-start justify-between gap-3 pt-6 pb-4 sm:flex-row sm:items-center`}
         >
-          <p className="font-body text-xs text-apex-text-muted">
+          <p className="font-body text-xs text-premium-muted">
             © 2026 Apex Keys. Todos os direitos reservados.
           </p>
         </div>

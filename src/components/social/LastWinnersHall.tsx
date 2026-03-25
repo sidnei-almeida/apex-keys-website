@@ -213,7 +213,7 @@ function PodiumAvatar({
   if (failed) {
     return (
       <div
-        className={`flex size-full items-center justify-center rounded-full bg-gradient-to-br from-apex-surface to-black font-heading font-bold text-apex-accent ring-2 ring-black/50 ${
+        className={`flex size-full items-center justify-center rounded-full bg-premium-cell font-heading font-bold text-premium-muted ring-2 ring-premium-border ${
           isChamp ? "text-2xl" : "text-xl"
         }`}
         aria-hidden
@@ -231,7 +231,7 @@ function PodiumAvatar({
       width={256}
       height={256}
       onError={() => setFailed(true)}
-      className="size-full rounded-full object-cover ring-2 ring-black/50 transition duration-300 group-hover:scale-[1.03] group-hover:ring-apex-accent/30"
+      className="size-full rounded-full object-cover ring-2 ring-premium-border transition duration-300 group-hover:scale-[1.03]"
     />
   );
 }
@@ -243,7 +243,7 @@ const slotBadge: Record<
   champion: {
     label: "Campeão",
     className:
-      "border-amber-500/40 bg-gradient-to-br from-amber-500/20 to-apex-secondary/10 text-amber-200",
+      "border-amber-600/40 bg-gradient-to-br from-amber-900/35 to-amber-950/25 text-amber-200",
     icon: Trophy,
   },
   silver: {
@@ -258,7 +258,8 @@ const slotBadge: Record<
   },
   honor: {
     label: "Elite",
-    className: "border-apex-accent/25 bg-apex-accent/10 text-apex-accent",
+    className:
+      "border-premium-border bg-premium-bg text-premium-muted",
     icon: Medal,
   },
 };
@@ -271,7 +272,7 @@ function HallSkeleton() {
           key={i}
           className="w-full max-w-md shrink-0 self-center lg:max-w-[13.5rem] lg:self-end xl:max-w-[15rem]"
         >
-          <div className="h-[24rem] animate-pulse rounded-2xl border border-white/10 bg-white/[0.06] lg:min-h-[24rem]" />
+          <div className="h-[24rem] animate-pulse rounded-2xl border border-premium-border bg-premium-surface lg:min-h-[24rem]" />
         </div>
       ))}
     </div>
@@ -330,16 +331,16 @@ export function LastWinnersHall() {
       aria-labelledby="hall-fama-heading"
     >
       <div className="mb-10 max-w-2xl">
-        <p className="font-body text-xs font-semibold uppercase tracking-[0.2em] text-apex-secondary/90">
+        <p className="font-body text-xs font-semibold uppercase tracking-[0.2em] text-premium-muted">
           Ranking de elite
         </p>
         <h2
           id="hall-fama-heading"
-          className="mt-2 font-heading text-3xl font-bold tracking-tight text-white md:text-4xl"
+          className="mt-2 font-heading text-3xl font-bold tracking-tight text-premium-text md:text-4xl"
         >
           Hall da Fama
         </h2>
-        <p className="mt-3 font-body text-sm leading-relaxed text-apex-text-muted/85 md:text-base">
+        <p className="mt-3 font-body text-sm leading-relaxed text-premium-muted md:text-base">
           Pódium de campeões Apex — cada vitória é sorteada com transparência
           total e entrega de chave comprovada.
         </p>
@@ -356,7 +357,8 @@ export function LastWinnersHall() {
       {loading ? (
         <HallSkeleton />
       ) : !error ? (
-        <div className="flex flex-col items-stretch gap-6 lg:flex-row lg:items-end lg:justify-center lg:gap-3 xl:gap-5">
+        <div className="flex flex-col">
+          <div className="flex flex-col items-stretch gap-6 lg:flex-row lg:items-end lg:justify-center lg:gap-3 xl:gap-5">
           {displayOrdered.map((w) => {
             const badge = slotBadge[w.slot];
             const BadgeIcon = badge.icon;
@@ -374,9 +376,9 @@ export function LastWinnersHall() {
                   }}
                 >
                   <article
-                    className={`group relative flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-2xl backdrop-blur-md transition-all duration-300 hover:bg-white/[0.08] hover:shadow-[0_24px_64px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,179,0,0.12)] sm:p-6 ${
+                    className={`group relative flex h-full flex-col rounded-2xl border border-premium-border bg-premium-surface p-5 shadow-lg transition-colors duration-300 hover:border-premium-border sm:p-6 ${
                       isChamp
-                        ? "ring-1 ring-apex-secondary/20 lg:min-h-[28rem] xl:min-h-[30rem]"
+                        ? "lg:min-h-[28rem] xl:min-h-[30rem]"
                         : "lg:min-h-[24rem] xl:min-h-[25rem]"
                     } `}
                   >
@@ -389,7 +391,7 @@ export function LastWinnersHall() {
 
                     <div className="mt-6 flex flex-col items-center text-center">
                       <div
-                        className={`relative rounded-full border-2 border-apex-secondary/30 bg-apex-surface/50 p-0.5 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition duration-300 ease-out group-hover:border-apex-accent/50 group-hover:shadow-[0_0_28px_rgba(0,229,255,0.18)] ${
+                        className={`relative rounded-full border border-premium-border bg-premium-bg p-0.5 transition duration-300 ease-out ${
                           isChamp ? "size-28 sm:size-32" : "size-24 sm:size-28"
                         }`}
                       >
@@ -400,23 +402,23 @@ export function LastWinnersHall() {
                         />
                       </div>
 
-                      <h3 className="mt-5 line-clamp-2 font-heading text-lg font-bold leading-tight tracking-tight text-white sm:text-xl">
+                      <h3 className="mt-5 line-clamp-2 font-heading text-lg font-bold leading-tight tracking-tight text-premium-text sm:text-xl">
                         {w.fullName}
                       </h3>
 
-                      <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 font-body text-xs text-apex-text-muted">
-                        <span className="font-mono tabular-nums text-apex-text-muted/90">
+                      <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 font-body text-xs text-premium-muted">
+                        <span className="font-mono tabular-nums">
                           Ticket {w.ticket}
                         </span>
-                        <span className="text-apex-text-muted/50" aria-hidden>
+                        <span className="text-premium-muted/60" aria-hidden>
                           ·
                         </span>
                         <span>{w.winnerStat}</span>
                       </div>
                     </div>
 
-                    <div className="mt-5 flex flex-1 flex-col">
-                      <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-apex-surface to-black shadow-inner">
+                    <div className="mt-5 flex min-h-0 flex-1 flex-col">
+                      <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-xl border border-premium-border bg-premium-bg shadow-inner">
                         {w.gameCoverUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -426,16 +428,38 @@ export function LastWinnersHall() {
                           />
                         ) : null}
                         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                        <p className="absolute bottom-2 left-2 right-2 font-heading text-sm font-bold leading-snug text-white drop-shadow-md sm:text-base">
+                        <p className="absolute bottom-2 left-2 right-2 font-heading text-sm font-bold leading-snug text-premium-text drop-shadow-md sm:text-base">
                           {w.gameTitle}
                         </p>
                       </div>
+                      {isChamp ? (
+                        <p
+                          className="mt-auto border-t border-amber-500/20 pt-4 text-center font-body text-xs leading-relaxed text-amber-100/85 sm:text-[13px]"
+                          role="note"
+                        >
+                          Um obrigado especial: a tua confiança e entusiasmo fazem
+                          parte do que a Apex Keys é. Parabéns por esta conquista —
+                          és inspiração para toda a comunidade.
+                        </p>
+                      ) : null}
                     </div>
                   </article>
                 </div>
               </div>
             );
           })}
+          </div>
+          <p
+            className="mx-auto mt-10 max-w-3xl px-2 text-center font-body text-sm leading-relaxed text-premium-muted md:mt-12 md:text-base"
+            role="note"
+          >
+            À comunidade que compra rifas, partilha, comenta ou se envolve com o
+            nosso projeto de qualquer forma:{" "}
+            <span className="text-premium-text/90">
+              o nosso muito obrigado.
+            </span>{" "}
+            Sem vocês, nada disto seria possível.
+          </p>
         </div>
       ) : null}
     </section>

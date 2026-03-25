@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0A111F",
+  themeColor: "#0A0A0A",
   colorScheme: "dark",
 };
 
@@ -53,7 +53,7 @@ export default function RootLayout({
         <ApiOriginPreconnect />
       </head>
       <body
-        className={`relative min-h-screen bg-apex-bg text-apex-text ${plusJakartaSans.className}`}
+        className={`relative min-h-screen bg-premium-bg text-premium-text ${plusJakartaSans.className}`}
       >
         {/*
           Acentos fixos à viewport (não acompanham o scroll).
@@ -63,9 +63,8 @@ export default function RootLayout({
           className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
           aria-hidden
         >
-          {/* Sem spotlight cobalto: elipses grandes ainda “lavavam” o canto superior esquerdo (texto do Hero). */}
-          {/* Âmbar — canto inferior direito, muito suave */}
-          <div className="absolute -bottom-[8%] -right-[6%] h-[22rem] w-[22rem] sm:h-[26rem] sm:w-[26rem] bg-[radial-gradient(ellipse_at_center,theme(colors.apex-secondary/0.035)_0%,transparent_65%)]" />
+          {/* Brilho neutro mínimo — sem cor de marca, fundo #0A0A0A */}
+          <div className="absolute -bottom-[10%] -right-[8%] h-[20rem] w-[20rem] sm:h-[24rem] sm:w-[24rem] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.02)_0%,transparent_62%)]" />
         </div>
 
         <div className="relative z-0 flex min-h-screen flex-col overflow-x-clip">

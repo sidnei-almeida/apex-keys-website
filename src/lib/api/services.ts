@@ -151,6 +151,22 @@ export type MockPixIntentBody = {
   gateway_reference: string;
 };
 
+export type AbandonPixDepositBody = {
+  gateway_reference: string;
+};
+
+/** Marca depósito Pix pendente como cancelado (ex.: utilizador clicou «Parar de aguardar»). */
+export async function postAbandonWalletPixDeposit(
+  token: string,
+  body: AbandonPixDepositBody,
+): Promise<{ message: string; status: string }> {
+  return postJson<{ message: string; status: string }, AbandonPixDepositBody>(
+    "/wallet/abandon-pix-deposit",
+    body,
+    token,
+  );
+}
+
 export async function postMockPixIntent(
   token: string,
   body: MockPixIntentBody,

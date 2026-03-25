@@ -140,12 +140,12 @@ export function LiveSalesPulse() {
     >
       <div
         key={display.key}
-        className="apex-fomo-enter rounded-xl border border-white/10 bg-apex-surface/40 p-3 shadow-2xl backdrop-blur-md sm:p-3.5"
+        className="apex-fomo-enter rounded-xl border border-premium-border bg-premium-surface p-3 shadow-lg sm:p-3.5"
       >
         <div className="flex gap-3">
-          <div className="relative flex size-10 shrink-0 items-center justify-center rounded-lg border border-apex-accent/25 bg-apex-accent/10">
+          <div className="relative flex size-10 shrink-0 items-center justify-center rounded-lg border border-premium-border bg-premium-bg">
             <Flame
-              className="size-5 text-apex-secondary"
+              className="size-5 text-premium-accent"
               strokeWidth={2}
               aria-hidden
             />
@@ -153,15 +153,15 @@ export function LiveSalesPulse() {
               className="absolute -right-0.5 -top-0.5 flex size-2.5 items-center justify-center"
               aria-hidden
             >
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400/70 opacity-75" />
-              <span className="relative size-2 rounded-full border border-apex-bg bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.55)]" />
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-600/35 opacity-75" />
+              <span className="relative size-2 rounded-full border border-premium-border bg-emerald-700/90" />
             </span>
           </div>
           <div className="min-w-0 flex-1 pt-0.5">
-            <p className="font-body text-sm leading-snug text-apex-text/95">
+            <p className="font-body text-sm leading-snug text-premium-text">
               {display.line}
             </p>
-            <p className="mt-1 font-body text-xs text-apex-text-muted">
+            <p className="mt-1 font-body text-xs text-premium-muted">
               {display.time}
             </p>
           </div>

@@ -53,13 +53,15 @@ function TransactionRow({ t }: { t: TransactionOut }) {
 
   return (
     <div
-      className="flex items-start justify-between gap-4 border-b border-white/[0.06] py-4 last:border-0"
+      className="flex items-start justify-between gap-4 border-b border-premium-border py-4 last:border-0"
       role="row"
     >
       <div className="flex min-w-0 shrink-0 items-center gap-3">
         <div
           className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${
-            isCredit ? "bg-apex-success/20 text-apex-success" : "bg-apex-surface text-apex-text-muted"
+            isCredit
+              ? "bg-emerald-950/40 text-emerald-400/95"
+              : "bg-premium-bg text-premium-muted"
           }`}
         >
           {isCredit ? (
@@ -69,12 +71,12 @@ function TransactionRow({ t }: { t: TransactionOut }) {
           )}
         </div>
         <div>
-          <p className="font-medium text-apex-text">{TYPE_LABEL[t.type] ?? t.type}</p>
-          <p className="text-xs text-apex-text-muted/80">
+          <p className="font-medium text-premium-text">{TYPE_LABEL[t.type] ?? t.type}</p>
+          <p className="text-xs text-premium-muted">
             {STATUS_LABEL[t.status] ?? t.status} · {formatDate(t.created_at)}
           </p>
           {t.description && (
-            <p className="mt-0.5 max-w-md truncate text-xs text-apex-text-muted/60" title={t.description}>
+            <p className="mt-0.5 max-w-md truncate text-xs text-premium-muted/75" title={t.description}>
               {t.description}
             </p>
           )}
@@ -82,7 +84,7 @@ function TransactionRow({ t }: { t: TransactionOut }) {
       </div>
       <span
         className={`shrink-0 font-semibold tabular-nums ${
-          isCredit ? "text-apex-success" : "text-apex-text-muted"
+          isCredit ? "text-emerald-400/95" : "text-premium-muted"
         }`}
       >
         {displayAmount >= 0 ? "+" : ""}{formatBRL(displayAmount)}
@@ -115,7 +117,7 @@ export default function MinhasTransacoesPage() {
   if (!isReady || !isAuthenticated) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-apex-accent" aria-hidden />
+        <Loader2 className="size-8 animate-spin text-premium-muted" aria-hidden />
       </div>
     );
   }
@@ -124,40 +126,43 @@ export default function MinhasTransacoesPage() {
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <Link
         href="/"
-        className="inline-flex items-center gap-2 text-sm text-apex-text-muted/80 transition-colors hover:text-apex-accent"
+        className="inline-flex items-center gap-2 text-sm text-premium-muted transition-colors hover:text-premium-text"
       >
         <ArrowLeft className="size-4 shrink-0" aria-hidden />
         Voltar
       </Link>
-      <h1 className="mt-6 text-2xl font-bold tracking-tight text-apex-text/95 sm:text-3xl">
+      <h1 className="mt-6 text-2xl font-bold tracking-tight text-premium-text sm:text-3xl">
         Minhas Transações
       </h1>
-      <p className="mt-1 text-sm text-apex-text-muted/80">
+      <p className="mt-1 text-sm text-premium-muted">
         Histórico completo de movimentações na sua carteira
       </p>
 
       {loading && (
         <div className="mt-12 flex justify-center">
-          <Loader2 className="size-8 animate-spin text-apex-accent" aria-hidden />
+          <Loader2 className="size-8 animate-spin text-premium-muted" aria-hidden />
         </div>
       )}
 
       {error && (
-        <p className="mt-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400" role="alert">
+        <p
+          className="mt-6 rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3 text-sm text-red-300/90"
+          role="alert"
+        >
           {error}
         </p>
       )}
 
       {!loading && !error && transactions.length === 0 && (
-        <div className="mt-12 rounded-xl border border-white/[0.08] bg-apex-surface/50 p-12 text-center">
-          <Receipt className="mx-auto size-14 text-apex-text-muted/40" aria-hidden />
-          <p className="mt-4 text-apex-text-muted/80">Nenhuma transação ainda.</p>
+        <div className="mt-12 rounded-xl border border-premium-border bg-premium-surface p-12 text-center">
+          <Receipt className="mx-auto size-14 text-premium-muted/50" aria-hidden />
+          <p className="mt-4 text-premium-muted">Nenhuma transação ainda.</p>
         </div>
       )}
 
       {!loading && !error && transactions.length > 0 && (
-        <div className="mt-8 overflow-hidden rounded-xl border border-white/[0.08] bg-apex-surface/50">
-          <div className="divide-y divide-white/[0.06] px-4 sm:px-6">
+        <div className="mt-8 overflow-hidden rounded-xl border border-premium-border bg-premium-surface">
+          <div className="divide-y divide-premium-border px-4 sm:px-6">
             {transactions.map((t) => (
               <TransactionRow key={t.id} t={t} />
             ))}

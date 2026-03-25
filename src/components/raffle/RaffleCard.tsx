@@ -6,7 +6,7 @@ import { Gamepad2, Ticket } from "lucide-react";
 import Link from "next/link";
 
 const edgeSurface =
-  "border border-apex-accent/15 shadow-[0_8px_30px_rgb(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.03)]";
+  "border border-premium-border shadow-[0_8px_28px_rgba(0,0,0,0.4)]";
 
 function formatBRL(value: string | number) {
   const n = typeof value === "string" ? parseFloat(value) : value;
@@ -23,7 +23,7 @@ function raffleImageUrl(url: string | null) {
 
 function ProgressTrack({ children }: { children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-full border border-white/[0.06] bg-apex-bg shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
+    <div className="overflow-hidden rounded-full border border-premium-border bg-premium-bg shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
       {children}
     </div>
   );
@@ -32,7 +32,7 @@ function ProgressTrack({ children }: { children: React.ReactNode }) {
 function ProgressFill({ pct }: { pct: number }) {
   return (
     <div
-      className="h-full rounded-full bg-apex-accent/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
+      className="h-full rounded-full bg-premium-accent"
       style={{ width: `${Math.min(100, pct)}%` }}
     />
   );
@@ -57,11 +57,11 @@ export function RaffleGridCard({ raffle }: { raffle: RaffleListOut }) {
 
   return (
     <article
-      className={`group overflow-hidden rounded-xl bg-apex-surface ${edgeSurface} transition-all duration-300 hover:-translate-y-1 hover:border-apex-accent/40 hover:shadow-[0_12px_40px_rgb(0,0,0,0.45)]`}
+      className={`group overflow-hidden rounded-xl bg-premium-surface ${edgeSurface} transition-all duration-300 hover:-translate-y-1 hover:border-premium-muted/40`}
     >
       <Link href={`/raffle/${raffle.id}`}>
-        <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden border-b border-white/[0.05] bg-apex-bg">
-          <span className="absolute right-2 top-2 z-10 rounded-md bg-apex-bg/90 px-2 py-0.5 font-body text-xs font-medium text-apex-text/90 backdrop-blur-sm">
+        <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden border-b border-premium-border bg-premium-bg">
+          <span className="absolute right-2 top-2 z-10 rounded-md border border-premium-border bg-premium-bg/95 px-2 py-0.5 font-body text-xs font-medium text-premium-text">
             {statusLabel}
           </span>
           {imgUrl ? (
@@ -80,26 +80,26 @@ export function RaffleGridCard({ raffle }: { raffle: RaffleListOut }) {
             </>
           ) : (
             <Gamepad2
-              className="size-14 text-apex-accent/45"
+              className="size-14 text-premium-muted/50"
               strokeWidth={1.5}
               aria-hidden
             />
           )}
         </div>
         <div className="p-5">
-          <h3 className="truncate font-heading text-lg font-bold text-apex-text/95">
+          <h3 className="truncate font-heading text-lg font-bold text-premium-text">
             {raffle.title}
           </h3>
-          <p className="mt-2 font-mono text-sm font-semibold text-apex-success/90">
+          <p className="mt-2 font-mono text-sm font-semibold text-premium-text">
             {formatBRL(raffle.ticket_price)} / número
           </p>
           <ProgressTrack>
             <ProgressFill pct={pct} />
           </ProgressTrack>
-          <p className="mt-2 font-mono text-sm tabular-nums text-apex-text/50">
+          <p className="mt-2 font-mono text-sm tabular-nums text-premium-muted">
             {raffle.sold}/{raffle.total_tickets} vendidos
           </p>
-          <span className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-apex-accent/20 bg-apex-surface py-2.5 font-body text-sm font-semibold text-apex-text-muted transition-all group-hover:border-apex-accent/50 group-hover:bg-apex-accent/10 group-hover:text-apex-accent">
+          <span className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-premium-accent bg-transparent py-2.5 font-body text-sm font-semibold text-premium-accent transition-colors group-hover:bg-premium-accent group-hover:text-black">
             <Ticket className="size-4" aria-hidden />
             {buttonText}
           </span>

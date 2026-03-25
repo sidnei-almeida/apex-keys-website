@@ -12,6 +12,7 @@ import {
   Hash,
   Link as LinkIcon,
   Loader2,
+  Play,
   Plus,
   ReceiptText,
   Rocket,
@@ -73,7 +74,7 @@ function ReservationTtlCountdown({ expiresAtIso }: { expiresAtIso: string }) {
   if (Number.isNaN(end)) return null;
   if (nowMs === null) {
     return (
-      <span className="text-xs tabular-nums text-apex-text/45">…</span>
+      <span className="text-xs tabular-nums text-premium-muted/55">…</span>
     );
   }
   const secLeft = Math.max(0, Math.floor((end - nowMs) / 1000));
@@ -87,14 +88,14 @@ function ReservationTtlCountdown({ expiresAtIso }: { expiresAtIso: string }) {
     return <span className="text-xs text-amber-300/90">~1 min restante</span>;
   }
   return (
-    <span className="text-xs tabular-nums text-apex-text/65">
+    <span className="text-xs tabular-nums text-premium-muted/75">
       ~{m} min para libertar
     </span>
   );
 }
 
 const inputClass =
-  "w-full rounded-lg border border-apex-surface bg-apex-bg px-3 py-2.5 text-apex-text placeholder:text-gray-500 focus:border-apex-accent focus:outline-none";
+  "w-full rounded-lg border border-premium-border bg-premium-surface px-3 py-2.5 text-premium-text placeholder:text-premium-muted/50 focus:border-premium-accent focus:outline-none focus:ring-1 focus:ring-premium-accent/35";
 
 const IGDB_LOADING_STEPS = [
   "Conectando ao IGDB…",
@@ -105,10 +106,10 @@ const IGDB_LOADING_STEPS = [
 ] as const;
 
 const thClass =
-  "px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-apex-text-muted";
-const tdClass = "px-3 py-3 align-middle text-sm text-apex-text/90";
+  "px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-premium-text";
+const tdClass = "px-3 py-3 align-middle text-sm text-premium-text";
 const rowClass =
-  "border-t border-white/[0.06] transition-colors hover:bg-white/5";
+  "border-t border-premium-border bg-premium-bg transition-colors hover:bg-[#111111]";
 
 type AdminTab = "launch" | "raffles" | "transactions";
 
@@ -146,7 +147,13 @@ type PendingTxnRow = {
   amountLabel: string;
   amountNum: number;
   statusLabel: string;
-  paymentChannel: "pix" | "wallet_pending" | "none";
+  paymentChannel:
+    | "pix"
+    | "pix_mp"
+    | "wallet"
+    | "wallet_pending"
+    | "none"
+    | "pix_mp_wallet";
   gatewayRef: string | null;
   expiresAtIso: string | null;
   /** ISO — retenção mínima 14 dias antes de eliminar registo (alinhado à API). */
@@ -237,19 +244,19 @@ function statusBadgeClass(
   status: "Aberta" | "Encerrada" | "Pausada",
 ): string {
   if (status === "Aberta")
-    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400/95";
+    return "border-premium-border bg-[#1c1c1c] text-premium-accent";
   if (status === "Pausada")
-    return "border-amber-500/35 bg-amber-500/10 text-amber-400/95";
-  return "border-apex-text/25 bg-apex-bg text-apex-text/70";
+    return "border-emerald-500/40 bg-emerald-500/10 text-emerald-400/95";
+  return "border-premium-border bg-[#141414] text-premium-muted";
 }
 
 function txnStatusClass(s: string): string {
   if (s === "Pago") return "text-emerald-400/95";
   if (s.startsWith("Pago")) return "text-emerald-400/95";
   if (s === "Aguardando pagamento") return "text-amber-400/95";
-  if (s.startsWith("Cancelado")) return "text-sky-400/90";
+  if (s.startsWith("Cancelado")) return "text-premium-muted";
   if (s.startsWith("Falha")) return "text-red-400/90";
-  return "text-apex-text/70";
+  return "text-premium-muted";
 }
 
 function channelLabel(row: PendingTxnRow): string {
@@ -261,8 +268,11 @@ function channelLabel(row: PendingTxnRow): string {
   ) {
     return "Aprovação manual (QG)";
   }
-  if (ch === "pix") return "Pix (MP)";
-  if (ch === "wallet_pending") return "Carteira (não debitado)";
+  if (ch === "wallet") return "Carteira";
+  if (ch === "pix_mp_wallet") return "Pix (MP) + Carteira";
+  if (ch === "pix" || ch === "pix_mp") return "Pix (MP)";
+  if (ch === "wallet_pending")
+    return "Reserva (sem Pix) — pode pagar na carteira";
   return "—";
 }
 
@@ -276,14 +286,14 @@ function IgdbChipRow({
   if (!items.length) return null;
   return (
     <div className="mt-2.5">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-apex-text/45">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-premium-muted/60">
         {label}
       </p>
       <div className="mt-1 flex flex-wrap gap-1.5">
         {items.map((x, i) => (
           <span
             key={`${label}-${i}-${x}`}
-            className="rounded-md border border-apex-accent/20 bg-apex-accent/5 px-2 py-0.5 text-xs text-apex-text/85"
+            className="rounded-md border border-premium-border bg-premium-bg px-2 py-0.5 text-xs text-premium-muted"
           >
             {x}
           </span>
@@ -297,7 +307,7 @@ function StatCard({
   title,
   value,
   icon: Icon,
-  accentClass = "text-apex-accent",
+  accentClass = "text-premium-accent",
 }: {
   title: string;
   value: string | number;
@@ -305,16 +315,16 @@ function StatCard({
   accentClass?: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/5 bg-apex-surface/60 p-5 shadow-[0_4px_24px_rgb(0,0,0,0.2)] backdrop-blur-md">
+    <div className="rounded-xl border border-premium-border bg-premium-surface p-5 shadow-none">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-apex-text-muted">
+        <p className="text-xs font-semibold uppercase tracking-wide text-premium-muted">
           {title}
         </p>
-        <div className="shrink-0 rounded-md bg-white/[0.04] p-1.5">
+        <div className="shrink-0 rounded-md border border-premium-border bg-premium-bg p-1.5">
           <Icon className={`size-4 ${accentClass}`} aria-hidden />
         </div>
       </div>
-      <p className="mt-3 text-2xl font-bold tabular-nums text-apex-text">
+      <p className="mt-3 text-2xl font-bold tabular-nums text-premium-text">
         {value}
       </p>
     </div>
@@ -1056,7 +1066,7 @@ function AdminPanel() {
   const archivedTxnCount = txns.filter((t) => t.rowKind === "archived").length;
   const pendingTxnsCount = activeTxnRows.length;
   const pixPendingCount = activeTxnRows.filter(
-    (t) => t.paymentChannel === "pix",
+    (t) => t.paymentChannel === "pix" || t.paymentChannel === "pix_mp",
   ).length;
   const walletHoldCount = activeTxnRows.filter(
     (t) => t.paymentChannel === "wallet_pending",
@@ -1085,28 +1095,20 @@ function AdminPanel() {
         : "Pagamentos concluídos ficam no histórico; eliminar só após 14 dias (retenção).";
 
   return (
-    <div className="relative isolate -mb-8 flex min-h-[calc(100vh-4rem)]">
+    <div className="relative isolate -mb-8 flex min-h-[calc(100vh-4rem)] bg-premium-bg">
       <div
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_90%_55%_at_12%_-5%,rgba(0,77,230,0.1)_0%,transparent_58%)]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_75%_50%_at_88%_25%,rgba(99,102,241,0.09)_0%,transparent_52%)]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_65%_42%_at_50%_95%,rgba(0,229,255,0.05)_0%,transparent_48%)]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_70%_45%_at_50%_-8%,rgba(212,175,55,0.035)_0%,transparent_55%)]"
         aria-hidden
       />
 
       {/* ── SIDEBAR ────────────────────────────────────────────── */}
-      <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 flex-col overflow-y-auto border-r border-white/5 bg-apex-surface/60 backdrop-blur-lg lg:flex">
+      <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 flex-col overflow-y-auto border-r border-premium-border/25 bg-premium-bg lg:flex">
         {/* Brand */}
-        <div className="flex items-center gap-3 border-b border-white/5 px-5 py-5">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-apex-accent/10 text-apex-accent">
+        <div className="flex items-center gap-3 border-b border-premium-border/25 px-5 py-5">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-premium-border bg-premium-surface text-premium-accent">
             <ShieldAlert className="size-4" aria-hidden />
           </div>
-          <span className="font-bold tracking-tight text-apex-text">
+          <span className="font-bold tracking-tight text-premium-text">
             Apex QG
           </span>
         </div>
@@ -1125,13 +1127,13 @@ function AdminPanel() {
                 onClick={() => selectTab(id)}
                 className={`relative flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                   active
-                    ? "bg-white/[0.06] text-apex-accent"
-                    : "text-apex-text-muted hover:bg-white/[0.04] hover:text-apex-text"
+                    ? "bg-premium-surface/80 text-premium-accent"
+                    : "text-premium-muted hover:bg-premium-surface/50 hover:text-premium-text"
                 }`}
               >
                 {active && (
                   <span
-                    className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-apex-accent"
+                    className="absolute inset-y-1.5 left-0 w-[3px] rounded-r-full bg-premium-accent"
                     aria-hidden
                   />
                 )}
@@ -1143,10 +1145,10 @@ function AdminPanel() {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-white/5 px-4 py-4">
+        <div className="border-t border-premium-border/25 px-4 py-4">
           <Link
             href="/"
-            className="flex items-center gap-2 text-sm text-apex-text-muted transition-colors hover:text-apex-accent"
+            className="flex items-center gap-2 text-sm text-premium-muted transition-colors hover:text-premium-accent"
           >
             <ArrowLeft className="size-4 shrink-0" aria-hidden />
             Voltar ao Site
@@ -1159,7 +1161,7 @@ function AdminPanel() {
 
         {/* Mobile tab bar (< lg) */}
         <nav
-          className="flex flex-wrap gap-1 border-b border-white/5 bg-apex-bg/50 px-4 py-2 backdrop-blur-md lg:hidden"
+          className="flex flex-wrap gap-1 border-b border-premium-border/25 bg-premium-bg px-4 py-2 lg:hidden"
           aria-label="Secções do painel"
         >
           {TAB_DEF.map(({ id, label, icon: Icon }) => {
@@ -1171,8 +1173,8 @@ function AdminPanel() {
                 onClick={() => selectTab(id)}
                 className={`flex items-center gap-2 border-b-2 px-3 py-2 text-xs font-semibold transition-colors ${
                   active
-                    ? "border-apex-accent text-apex-accent"
-                    : "border-transparent text-apex-text-muted hover:text-apex-text"
+                    ? "border-premium-accent text-premium-accent"
+                    : "border-transparent text-premium-muted hover:text-premium-text"
                 }`}
               >
                 <Icon className="size-3.5 shrink-0" aria-hidden />
@@ -1183,26 +1185,26 @@ function AdminPanel() {
         </nav>
 
         {/* Inner header (desktop) */}
-        <header className="sticky top-16 z-10 hidden items-center justify-between border-b border-white/5 bg-apex-bg/70 px-6 py-4 backdrop-blur-md lg:flex">
+        <header className="sticky top-16 z-10 hidden items-center justify-between border-b border-premium-border/25 bg-premium-bg px-6 py-4 lg:flex">
           <div>
-            <h1 className="text-base font-bold text-apex-text lg:text-lg">
+            <h1 className="text-base font-bold text-premium-text lg:text-lg">
               {innerTitle}
             </h1>
-            <p className="text-xs text-apex-text-muted">{innerSubtitle}</p>
+            <p className="text-xs text-premium-muted">{innerSubtitle}</p>
           </div>
           <div className="flex items-center gap-3">
             {activeTab === "launch" && isEditing && (
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="text-sm text-apex-text-muted transition-colors hover:text-red-400"
+                className="text-sm text-premium-muted transition-colors hover:text-red-400"
               >
                 Cancelar edição
               </button>
             )}
             <Link
               href="/"
-              className="hidden items-center gap-1.5 text-sm text-apex-text-muted transition-colors hover:text-apex-accent xl:flex"
+              className="hidden items-center gap-1.5 text-sm text-premium-muted transition-colors hover:text-premium-accent xl:flex"
             >
               <ArrowLeft className="size-4 shrink-0" aria-hidden />
               Voltar ao Site
@@ -1220,12 +1222,12 @@ function AdminPanel() {
               className="grid min-h-0 grid-cols-1 gap-4 lg:max-h-[calc(100vh-8rem)] lg:grid-cols-2 lg:items-stretch"
             >
               {/* Left — formulário compacto, scroll interno */}
-              <div className="flex min-h-0 flex-col gap-3 overflow-y-auto rounded-xl border border-white/5 bg-apex-surface/60 p-4 shadow-[0_8px_32px_rgb(0,0,0,0.25)] backdrop-blur-lg sm:p-5">
+              <div className="flex min-h-0 flex-col gap-3 overflow-y-auto rounded-xl border border-premium-border bg-premium-surface p-4 sm:p-5">
                 <div className="grid gap-3 sm:grid-cols-2">
                   {/* IGDB URL */}
                   <div className="sm:col-span-2">
                     <label className="block">
-                      <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                      <span className="mb-1.5 block text-sm font-medium text-premium-text">
                         URL da ficha do jogo no IGDB
                       </span>
                       <input
@@ -1246,15 +1248,18 @@ function AdminPanel() {
                         type="button"
                         onClick={() => void handleFetchIgdb()}
                         disabled={isFetchingIgdb}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-apex-accent/50 px-4 py-2 text-sm font-semibold text-apex-text-muted transition-colors hover:border-apex-accent hover:text-apex-accent disabled:cursor-not-allowed disabled:opacity-45"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-premium-border px-4 py-2 text-sm font-semibold text-premium-muted transition-colors hover:border-premium-accent hover:text-premium-text disabled:cursor-not-allowed disabled:opacity-45"
                       >
                         {isFetchingIgdb ? (
                           <Loader2
-                            className="size-4 shrink-0 animate-spin"
+                            className="size-4 shrink-0 animate-spin text-premium-accent"
                             aria-hidden
                           />
                         ) : (
-                          <Wand2 className="size-4 shrink-0" aria-hidden />
+                          <Wand2
+                            className="size-4 shrink-0 text-premium-accent"
+                            aria-hidden
+                          />
                         )}
                         {isFetchingIgdb ? "Buscando…" : "Buscar Dados"}
                       </button>
@@ -1264,23 +1269,23 @@ function AdminPanel() {
                       <div
                         role="status"
                         aria-live="polite"
-                        className="mt-3 flex items-center gap-3 rounded-lg border border-apex-accent/20 bg-apex-bg/70 px-4 py-3 backdrop-blur-sm"
+                        className="mt-3 flex items-center gap-3 rounded-lg border border-premium-border bg-premium-bg px-4 py-3"
                       >
                         <div className="relative shrink-0">
-                          <span className="absolute inset-0 animate-ping rounded-full bg-apex-accent/20" />
+                          <span className="absolute inset-0 animate-ping rounded-full bg-premium-accent/12" />
                           <Wand2
-                            className="relative size-4 text-apex-accent/80"
+                            className="relative size-4 text-premium-accent/90"
                             aria-hidden
                           />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p
                             key={igdbStep}
-                            className="text-sm font-medium text-apex-accent/90"
+                            className="text-sm font-medium text-premium-accent"
                           >
                             {IGDB_LOADING_STEPS[igdbStep]}
                           </p>
-                          <p className="mt-0.5 text-xs text-apex-text-muted">
+                          <p className="mt-0.5 text-xs text-premium-muted">
                             O scraper pode levar até 10 s na primeira tentativa
                           </p>
                         </div>
@@ -1288,7 +1293,7 @@ function AdminPanel() {
                           {[0, 1, 2].map((i) => (
                             <span
                               key={i}
-                              className="block w-[3px] animate-pulse rounded-full bg-apex-accent/50"
+                              className="block w-[3px] animate-pulse rounded-full bg-premium-accent/40"
                               style={{
                                 height: `${8 + i * 4}px`,
                                 animationDelay: `${i * 200}ms`,
@@ -1311,7 +1316,7 @@ function AdminPanel() {
 
                   {/* Título */}
                   <label className="block sm:col-span-2">
-                    <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                    <span className="mb-1.5 block text-sm font-medium text-premium-text">
                       Título da rifa
                     </span>
                     <input
@@ -1326,7 +1331,7 @@ function AdminPanel() {
 
                   {/* URL capa */}
                   <label className="block sm:col-span-2">
-                    <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                    <span className="mb-1.5 block text-sm font-medium text-premium-text">
                       URL da Imagem de Capa
                     </span>
                     <input
@@ -1336,14 +1341,14 @@ function AdminPanel() {
                       className={inputClass}
                       placeholder="Cole a URL da imagem de alta qualidade (ex: alphacoders.com)"
                     />
-                    <p className="mt-1 text-[11px] text-apex-text/40">
+                    <p className="mt-1 text-[11px] text-premium-muted/65">
                       Inserir manualmente — use imagens de alta qualidade do AlphaCoders ou similar.
                     </p>
                   </label>
 
                   {/* Destaque na Home */}
                   <div className="sm:col-span-2">
-                    <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                    <span className="mb-1.5 block text-sm font-medium text-premium-text">
                       Exibição na Home
                     </span>
                     <div className="flex items-center gap-2">
@@ -1362,7 +1367,7 @@ function AdminPanel() {
                           {
                             tier: "none" as const,
                             label: "Só em Rifas",
-                            className: "text-apex-text/30",
+                            className: "text-premium-muted/50",
                           },
                         ] as const
                       ).map(({ tier, label, className }) => (
@@ -1373,8 +1378,8 @@ function AdminPanel() {
                           title={label}
                           className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors ${
                             featuredTier === tier
-                              ? "border-apex-accent/50 bg-apex-accent/10"
-                              : "border-apex-primary/20 hover:border-apex-text/30"
+                              ? "border-premium-accent/55 bg-premium-accent/12"
+                              : "border-premium-border hover:border-premium-muted/45"
                           }`}
                         >
                           <Star
@@ -1385,11 +1390,11 @@ function AdminPanel() {
                             strokeWidth={tier === "none" ? 1.5 : 0}
                             aria-hidden
                           />
-                          <span className="text-apex-text/90">{label}</span>
+                          <span className="text-premium-text">{label}</span>
                         </button>
                       ))}
                     </div>
-                    <p className="mt-1 text-[11px] text-apex-text/40">
+                    <p className="mt-1 text-[11px] text-premium-muted/65">
                       Ouro = hero no topo (várias possíveis; rotação lenta na home) · Prata =
                       carrossel · Vazio = só na aba Rifas
                     </p>
@@ -1398,7 +1403,7 @@ function AdminPanel() {
 
                 {/* Traduzindo */}
                 {isTranslatingMeta ? (
-                  <p className="flex items-center gap-2 text-sm text-apex-accent/90">
+                  <p className="flex items-center gap-2 text-sm text-premium-accent">
                     <Loader2
                       className="size-4 shrink-0 animate-spin"
                       aria-hidden
@@ -1409,21 +1414,21 @@ function AdminPanel() {
 
                 {/* Resumo */}
                 <div>
-                  <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                  <span className="mb-1.5 block text-sm font-medium text-premium-text">
                     Resumo (trecho IGDB)
                   </span>
                   <div
-                    className={`${inputClass} min-h-[3.5rem] max-h-[5rem] overflow-y-auto cursor-default bg-apex-bg/70 text-apex-text/90`}
+                    className={`${inputClass} min-h-[3.5rem] max-h-[5rem] overflow-y-auto cursor-default bg-premium-surface text-premium-text`}
                     aria-readonly
                   >
                     {isTranslatingMeta ? (
-                      <p className="text-sm text-apex-text/40">…</p>
+                      <p className="text-sm text-premium-muted/65">…</p>
                     ) : summaryPt.trim() ? (
                       <p className="whitespace-pre-wrap text-sm leading-relaxed">
                         {summaryPt.trim()}
                       </p>
                     ) : (
-                      <p className="text-sm text-apex-text/45">
+                      <p className="text-sm text-premium-muted/70">
                         Use «Buscar Dados» para carregar o resumo público da
                         ficha.
                       </p>
@@ -1439,11 +1444,11 @@ function AdminPanel() {
                         href={moreUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-apex-accent transition-colors hover:text-apex-accent/85"
+                        className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-premium-accent transition-colors hover:text-premium-accent/85"
                       >
                         Ver mais no IGDB
                         <ExternalLink
-                          className="size-3.5 shrink-0 opacity-80"
+                          className="size-3.5 shrink-0 text-premium-accent opacity-90"
                           aria-hidden
                         />
                       </a>
@@ -1464,13 +1469,13 @@ function AdminPanel() {
                 />
 
                 {/* Valores e lançamento — separado dos previews */}
-                <div className="rounded-lg border border-apex-primary/20 bg-apex-bg/50 p-3">
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-apex-text-muted">
+                <div className="rounded-lg border border-premium-border bg-premium-bg p-3">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-premium-muted">
                     Valores e lançamento
                   </p>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="block">
-                      <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                      <span className="mb-1.5 block text-sm font-medium text-premium-text">
                         Preço total (R$)
                       </span>
                       <input
@@ -1488,7 +1493,7 @@ function AdminPanel() {
                       />
                     </label>
                     <label className="block">
-                      <span className="mb-1.5 block text-sm font-medium text-apex-text/85">
+                      <span className="mb-1.5 block text-sm font-medium text-premium-text">
                         Total de bilhetes
                       </span>
                       <input
@@ -1509,7 +1514,7 @@ function AdminPanel() {
                     <button
                       type="submit"
                       disabled={isLoading || isFetchingIgdb || isTranslatingMeta}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-apex-accent to-teal-500 py-3 font-bold text-apex-bg shadow-[0_4px_16px_rgba(0,229,255,0.3)] transition-all hover:shadow-[0_6px_22px_rgba(0,229,255,0.4)] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-premium-accent py-3 font-bold text-black transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {isEditing ? (
                         <Check className="size-5 shrink-0" aria-hidden />
@@ -1529,7 +1534,7 @@ function AdminPanel() {
                         type="button"
                         disabled={isLoading}
                         onClick={handleCancelEdit}
-                        className="shrink-0 rounded-xl border border-apex-text/20 bg-transparent px-5 py-3 text-sm font-medium text-apex-text/55 transition-colors hover:border-apex-text/35 hover:bg-apex-bg/50 hover:text-apex-text/80 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="shrink-0 rounded-xl border border-premium-border bg-transparent px-5 py-3 text-sm font-medium text-premium-muted transition-colors hover:border-premium-muted/55 hover:bg-premium-bg hover:text-premium-text/90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Cancelar
                       </button>
@@ -1540,7 +1545,7 @@ function AdminPanel() {
                       role="status"
                       className={
                         message.type === "success"
-                          ? "mt-3 text-center text-sm text-apex-success"
+                          ? "mt-3 text-center text-sm text-emerald-400/95"
                           : "mt-3 text-center text-sm text-red-400"
                       }
                     >
@@ -1551,8 +1556,8 @@ function AdminPanel() {
 
                 {/* IGDB ref */}
                 {igdbMeta ? (
-                  <div className="rounded-lg border border-apex-primary/15 bg-apex-bg/45 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-apex-text-muted">
+                  <div className="rounded-lg border border-premium-border bg-premium-surface p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-premium-muted">
                       Referência IGDB
                     </p>
                     {(() => {
@@ -1561,25 +1566,25 @@ function AdminPanel() {
                       if (!igdbName || (igdbTitle && igdbName === igdbTitle))
                         return null;
                       return (
-                        <p className="mt-2 text-xs text-apex-text/55">
-                          <span className="text-apex-text/40">
+                        <p className="mt-2 text-xs text-premium-muted">
+                          <span className="text-premium-muted/65">
                             Nome (IGDB):{" "}
                           </span>
                           {igdbName}
                         </p>
                       );
                     })()}
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-apex-text/55">
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-premium-muted">
                       <span>
-                        <span className="text-apex-text/40">slug: </span>
-                        <code className="text-apex-text/70">
+                        <span className="text-premium-muted/65">slug: </span>
+                        <code className="text-premium-muted/90">
                           {igdbMeta.slug}
                         </code>
                       </span>
                       {igdbMeta.igdb_game_id ? (
                         <span>
-                          <span className="text-apex-text/40">id: </span>
-                          <code className="text-apex-text/70">
+                          <span className="text-premium-muted/65">id: </span>
+                          <code className="text-premium-muted/90">
                             {igdbMeta.igdb_game_id}
                           </code>
                         </span>
@@ -1592,12 +1597,12 @@ function AdminPanel() {
               {/* Right — previews fixos, sempre visíveis (sticky) */}
               <div className="flex min-h-0 flex-col gap-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
                 {/* Preview da capa */}
-                <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/5 bg-apex-surface/60 p-3 shadow-[0_8px_32px_rgb(0,0,0,0.22)] backdrop-blur-lg">
-                  <p className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-apex-text-muted">
+                <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-premium-border bg-premium-surface p-3">
+                  <p className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-premium-muted">
                     Preview da capa
                   </p>
                   <div className="relative mt-2 min-h-0 flex-1">
-                    <div className="group relative size-full overflow-hidden rounded-lg border border-apex-primary/15 bg-apex-bg shadow-[0_4px_20px_rgb(0,0,0,0.4)] transition-all duration-300 hover:border-apex-secondary/40">
+                    <div className="group relative size-full overflow-hidden rounded-lg border border-premium-border bg-premium-bg transition-colors duration-300 hover:border-premium-accent/40">
                       <div
                         className={`relative size-full min-h-[120px] transition-opacity ${isFetchingIgdb ? "opacity-40" : ""}`}
                       >
@@ -1614,19 +1619,19 @@ function AdminPanel() {
                             <img
                               src={imageUrl}
                               alt={title || "Capa do jogo"}
-                              className="absolute inset-0 z-10 size-full object-cover object-center drop-shadow-[0_6px_20px_rgba(0,0,0,0.7)] ring-1 ring-apex-secondary/25"
+                              className="absolute inset-0 z-10 size-full object-cover object-center drop-shadow-[0_6px_20px_rgba(0,0,0,0.7)] ring-1 ring-premium-accent/20"
                             />
                           </>
                         ) : (
-                          <div className="flex size-full min-h-0 items-center justify-center px-3 py-8 text-center text-sm text-apex-text/40">
+                          <div className="flex size-full min-h-0 items-center justify-center px-3 py-8 text-center text-sm text-premium-muted/65">
                             Busque no IGDB ou cole uma URL de imagem
                           </div>
                         )}
                       </div>
                       {isFetchingIgdb ? (
-                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-lg bg-apex-bg/80 backdrop-blur-sm">
-                          <Wand2 className="size-6 animate-pulse text-apex-accent" aria-hidden />
-                          <p key={igdbStep} className="text-xs font-medium text-apex-accent/90">
+                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-lg bg-premium-bg/92">
+                          <Wand2 className="size-6 animate-pulse text-premium-accent" aria-hidden />
+                          <p key={igdbStep} className="text-xs font-medium text-premium-accent">
                             {IGDB_LOADING_STEPS[igdbStep]}
                           </p>
                         </div>
@@ -1636,9 +1641,9 @@ function AdminPanel() {
                 </section>
 
                 {/* Preview do vídeo Dailymotion */}
-                <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/5 bg-apex-surface/60 p-3 shadow-[0_8px_32px_rgb(0,0,0,0.22)] backdrop-blur-lg">
+                <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-premium-border bg-premium-surface p-3">
                   <label className="shrink-0">
-                    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-apex-text-muted">
+                    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-premium-muted">
                       Link do trailer no Dailymotion (opcional)
                     </span>
                     <input
@@ -1661,7 +1666,7 @@ function AdminPanel() {
 
                   <div className="relative mt-2 min-h-0 flex-1">
                     {videoIdForApi(videoId) ? (
-                      <div className="absolute inset-0 overflow-hidden rounded-lg border border-apex-primary/15 bg-apex-bg">
+                      <div className="absolute inset-0 overflow-hidden rounded-lg border border-premium-border bg-premium-bg">
                         <iframe
                           title="Preview do vídeo no Dailymotion"
                           src={dailymotionEmbedSrc(videoIdForApi(videoId)!)}
@@ -1672,8 +1677,8 @@ function AdminPanel() {
                         />
                       </div>
                     ) : (
-                      <div className="flex size-full min-h-[100px] items-center justify-center rounded-lg border border-dashed border-apex-primary/20 bg-apex-bg/50">
-                        <p className="text-center text-xs text-apex-text/40">
+                      <div className="flex size-full min-h-[100px] items-center justify-center rounded-lg border border-dashed border-premium-border bg-premium-bg">
+                        <p className="text-center text-xs text-premium-muted/65">
                           Cole a URL do Dailymotion para ver o preview
                         </p>
                       </div>
@@ -1699,24 +1704,24 @@ function AdminPanel() {
                   title="Arrecadado Total"
                   value={formatBrl(totalCollected)}
                   icon={TrendingUp}
-                  accentClass="text-apex-accent"
+                  accentClass="text-premium-accent"
                 />
                 <StatCard
                   title="Bilhetes Vendidos"
                   value={totalSoldTickets}
                   icon={Hash}
-                  accentClass="text-apex-secondary"
+                  accentClass="text-premium-accent"
                 />
                 <StatCard
                   title="Aguardando"
                   value={totalPendingPix}
                   icon={Clock}
-                  accentClass="text-amber-400"
+                  accentClass="text-premium-accent"
                 />
               </div>
 
               {/* Table */}
-              <section className="rounded-xl border border-white/5 bg-apex-surface/60 shadow-[0_8px_32px_rgb(0,0,0,0.25)] backdrop-blur-lg">
+              <section className="rounded-xl border border-premium-border bg-premium-surface">
                 {rafflesDeleteError ? (
                   <p
                     role="alert"
@@ -1728,7 +1733,7 @@ function AdminPanel() {
                 <div className="overflow-x-auto rounded-xl">
                   <table className="w-full min-w-[920px] border-collapse text-left">
                     <thead>
-                      <tr className="border-b border-white/[0.06] bg-white/[0.04] backdrop-blur-sm">
+                      <tr className="border-b border-premium-border bg-premium-surface">
                         <th className={thClass}>Jogo / Título</th>
                         <th className={`${thClass} min-w-[140px]`}>
                           Progresso
@@ -1745,7 +1750,7 @@ function AdminPanel() {
                         <tr>
                           <td
                             colSpan={7}
-                            className="py-12 text-center text-apex-text/60"
+                            className="py-12 text-center text-premium-muted/80"
                           >
                             Carregando rifas…
                           </td>
@@ -1767,7 +1772,7 @@ function AdminPanel() {
                             <td className={tdClass}>
                               <div className="flex min-w-0 items-center gap-3">
                                 {raffle.coverUrl ? (
-                                  <div className="relative size-10 shrink-0 overflow-hidden rounded-md border border-apex-primary/20">
+                                  <div className="relative size-10 shrink-0 overflow-hidden rounded-md border border-premium-border">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
                                       src={raffle.coverUrl}
@@ -1776,7 +1781,7 @@ function AdminPanel() {
                                     />
                                   </div>
                                 ) : (
-                                  <div className="size-10 shrink-0 rounded-md border border-dashed border-apex-text/20 bg-apex-bg" />
+                                  <div className="size-10 shrink-0 rounded-md border border-dashed border-premium-border bg-premium-bg" />
                                 )}
                                 <button
                                   type="button"
@@ -1797,7 +1802,7 @@ function AdminPanel() {
                                 >
                                   {patchingFeaturedTierId === raffle.id ? (
                                     <Loader2
-                                      className="size-4 animate-spin text-apex-accent"
+                                      className="size-4 animate-spin text-premium-accent"
                                       aria-hidden
                                     />
                                   ) : (
@@ -1807,7 +1812,7 @@ function AdminPanel() {
                                           ? "text-amber-400 fill-amber-400"
                                           : raffle.featuredTier === "carousel"
                                             ? "text-slate-400 fill-slate-400"
-                                            : "text-apex-text/20"
+                                            : "text-premium-muted/35"
                                       }`}
                                       fill={
                                         raffle.featuredTier === "none"
@@ -1823,40 +1828,40 @@ function AdminPanel() {
                                     />
                                   )}
                                 </button>
-                                <span className="min-w-0 font-medium text-apex-text">
+                                <span className="min-w-0 font-medium text-premium-text">
                                   {raffle.title}
                                 </span>
                               </div>
                             </td>
                             <td className={tdClass}>
                               <div className="flex flex-col gap-1.5">
-                                <span className="text-xs text-apex-text/55">
+                                <span className="text-xs tabular-nums text-premium-accent">
                                   {raffle.sold}/{raffle.total}
                                 </span>
-                                <div className="h-1.5 w-full max-w-[120px] overflow-hidden rounded-full border border-white/[0.06] bg-apex-bg">
+                                <div className="h-1.5 w-full max-w-[120px] overflow-hidden rounded-full border border-premium-border bg-premium-bg">
                                   <div
-                                    className="h-full rounded-full bg-apex-accent/85"
+                                    className="h-full rounded-full bg-premium-accent"
                                     style={{ width: `${pct}%` }}
                                   />
                                 </div>
                               </div>
                             </td>
-                            <td className={`${tdClass} text-apex-text/75`}>
+                            <td className={`${tdClass} text-premium-muted`}>
                               {raffle.reservedPending} aguardando
                             </td>
-                            <td className={`${tdClass} text-apex-text/80`}>
-                              <span className="text-apex-accent/90">
+                            <td className={`${tdClass} text-premium-text/90`}>
+                              <span className="text-premium-accent">
                                 {raffle.priceLabel}
                               </span>
-                              <span className="text-apex-text/45"> · </span>
-                              <span>
+                              <span className="text-premium-muted/70"> · </span>
+                              <span className="text-premium-accent/90 tabular-nums">
                                 {raffle.totalPriceNum != null
                                   ? formatBrl(raffle.totalPriceNum)
                                   : "—"}
                               </span>
                             </td>
                             <td
-                              className={`${tdClass} font-medium tabular-nums text-apex-text`}
+                              className={`${tdClass} font-medium tabular-nums text-premium-accent`}
                             >
                               {formatBrl(collected)}
                             </td>
@@ -1872,8 +1877,9 @@ function AdminPanel() {
                                 <button
                                   type="button"
                                   onClick={() => loadRaffleIntoForm(raffle)}
-                                  className="rounded-md p-2 text-apex-text-muted transition-colors hover:bg-apex-accent/5 hover:text-apex-accent"
+                                  className="rounded-md border border-premium-accent/45 bg-transparent p-2 text-premium-accent transition-colors hover:bg-premium-accent hover:text-black"
                                   aria-label="Editar dados da rifa"
+                                  title="Editar rifa"
                                 >
                                   <Edit className="size-4" aria-hidden />
                                 </button>
@@ -1883,13 +1889,14 @@ function AdminPanel() {
                                     onClick={() =>
                                       copyRafflePublicLink(raffle.id)
                                     }
-                                    className="rounded-md p-2 text-apex-text-muted transition-colors hover:bg-apex-accent/5 hover:text-apex-accent"
+                                    className="rounded-md border border-premium-accent/45 bg-transparent p-2 text-premium-accent transition-colors hover:bg-premium-accent hover:text-black"
                                     aria-label="Copiar link público"
+                                    title="Copiar link público"
                                   >
                                     <LinkIcon className="size-4" aria-hidden />
                                   </button>
                                   {copiedRaffleId === raffle.id ? (
-                                    <span className="pointer-events-none absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap rounded border border-apex-accent/25 bg-apex-bg px-1.5 py-0.5 text-[10px] font-semibold text-apex-accent">
+                                    <span className="pointer-events-none absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap rounded border border-premium-accent/35 bg-premium-surface px-1.5 py-0.5 text-[10px] font-semibold text-premium-accent">
                                       Copiado
                                     </span>
                                   ) : null}
@@ -1897,17 +1904,34 @@ function AdminPanel() {
                                 <button
                                   type="button"
                                   onClick={() => toggleRafflePause(raffle.id)}
-                                  className="rounded-md p-2 text-apex-text-muted transition-colors hover:bg-apex-secondary/5 hover:text-apex-secondary"
+                                  className={`rounded-md border bg-transparent p-2 transition-colors ${
+                                    raffle.paused
+                                      ? "border-emerald-500/40 text-emerald-400/95 hover:bg-emerald-500/12 hover:text-emerald-200"
+                                      : "border-premium-accent/45 text-premium-accent hover:bg-premium-accent hover:text-black"
+                                  }`}
                                   aria-label={
                                     raffle.paused
                                       ? "Retomar rifa"
                                       : "Pausar rifa"
                                   }
+                                  title={
+                                    raffle.paused
+                                      ? "Retomar rifa"
+                                      : "Pausar rifa"
+                                  }
                                 >
-                                  <CirclePause
-                                    className="size-4"
-                                    aria-hidden
-                                  />
+                                  {raffle.paused ? (
+                                    <Play
+                                      className="size-4"
+                                      aria-hidden
+                                      fill="currentColor"
+                                    />
+                                  ) : (
+                                    <CirclePause
+                                      className="size-4"
+                                      aria-hidden
+                                    />
+                                  )}
                                 </button>
                                 <button
                                   type="button"
@@ -1915,8 +1939,9 @@ function AdminPanel() {
                                     void handleDeleteRaffle(raffle.id)
                                   }
                                   disabled={deletingRaffleId === raffle.id}
-                                  className="rounded-md p-2 text-apex-text-muted transition-colors hover:bg-red-500/8 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+                                  className="rounded-md border border-red-500/45 bg-transparent p-2 text-red-400/95 transition-colors hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-40"
                                   aria-label="Apagar rifa"
+                                  title="Apagar rifa"
                                 >
                                   {deletingRaffleId === raffle.id ? (
                                     <Loader2
@@ -1949,19 +1974,19 @@ function AdminPanel() {
                   title="Lista (ativas · arquivo)"
                   value={`${pendingTxnsCount} · ${archivedTxnCount}`}
                   icon={ReceiptText}
-                  accentClass="text-apex-accent"
+                  accentClass="text-premium-accent"
                 />
                 <StatCard
                   title="Pix (MP) pendente"
                   value={pixPendingCount}
                   icon={Clock}
-                  accentClass="text-amber-400"
+                  accentClass="text-premium-accent"
                 />
                 <StatCard
                   title="Só reserva (carteira)"
                   value={walletHoldCount}
                   icon={BadgeCheck}
-                  accentClass="text-sky-400"
+                  accentClass="text-premium-muted"
                 />
                 <StatCard
                   title="Valor em aberto"
@@ -1972,11 +1997,11 @@ function AdminPanel() {
               </div>
 
               {/* Table */}
-              <section className="rounded-xl border border-white/5 bg-apex-surface/60 shadow-[0_8px_32px_rgb(0,0,0,0.25)] backdrop-blur-lg">
+              <section className="rounded-xl border border-premium-border bg-premium-surface">
                 <div className="overflow-x-auto rounded-xl">
                   <table className="w-full min-w-[960px] border-collapse text-left">
                     <thead>
-                      <tr className="border-b border-white/[0.06] bg-white/[0.04] backdrop-blur-sm">
+                      <tr className="border-b border-premium-border bg-premium-surface">
                         <th className={thClass}>Cliente</th>
                         <th className={thClass}>Rifa</th>
                         <th className={thClass}>Números</th>
@@ -1993,10 +2018,10 @@ function AdminPanel() {
                         <tr>
                           <td
                             colSpan={9}
-                            className={`${tdClass} py-10 text-center text-apex-text-muted`}
+                            className={`${tdClass} py-10 text-center text-premium-muted`}
                           >
                             <Loader2
-                              className="mx-auto size-8 animate-spin text-apex-accent"
+                              className="mx-auto size-8 animate-spin text-premium-accent"
                               aria-hidden
                             />
                             <p className="mt-2 text-sm">A carregar reservas…</p>
@@ -2006,7 +2031,7 @@ function AdminPanel() {
                         <tr>
                           <td
                             colSpan={9}
-                            className={`${tdClass} py-10 text-center text-apex-text-muted`}
+                            className={`${tdClass} py-10 text-center text-premium-muted`}
                           >
                             Nenhuma reserva nem histórico. As novas aparecem quando
                             um jogador inicia o pagamento.
@@ -2020,10 +2045,10 @@ function AdminPanel() {
                           return txns.flatMap((t, i) => {
                             const sep =
                               i === firstArch && firstArch >= 0 ? (
-                                <tr key="txn-sep-historico" className="bg-apex-bg/80">
+                                <tr key="txn-sep-historico" className="bg-premium-surface/65">
                                   <td
                                     colSpan={9}
-                                    className={`${tdClass} py-2.5 text-xs font-semibold uppercase tracking-wide text-apex-text-muted`}
+                                    className={`${tdClass} py-2.5 text-xs font-semibold uppercase tracking-wide text-premium-muted`}
                                   >
                                     Histórico (auditoria) — pago, cancelado ou falha.
                                     Eliminar registo: só após 14 dias (retenção).
@@ -2035,16 +2060,16 @@ function AdminPanel() {
                                 key={`${t.rowKind}-${t.id}`}
                                 className={
                                   t.rowKind === "archived"
-                                    ? `${rowClass} bg-white/[0.02]`
+                                    ? `${rowClass} bg-[#0c0c0c]`
                                     : rowClass
                                 }
                               >
                                 <td className={tdClass}>
                                   <div className="flex flex-col gap-0.5">
-                                    <span className="font-medium text-apex-text">
+                                    <span className="font-medium text-premium-text">
                                       {t.clientName}
                                     </span>
-                                    <span className="text-xs text-apex-text/50">
+                                    <span className="text-xs text-premium-muted/85">
                                       {t.clientEmail}
                                     </span>
                                   </div>
@@ -2055,12 +2080,12 @@ function AdminPanel() {
                                   </span>
                                 </td>
                                 <td
-                                  className={`${tdClass} font-mono text-xs text-apex-accent/90`}
+                                  className={`${tdClass} font-mono text-xs text-premium-accent`}
                                 >
                                   {t.numbersLabel}
                                 </td>
                                 <td
-                                  className={`${tdClass} font-medium tabular-nums`}
+                                  className={`${tdClass} font-medium tabular-nums text-premium-accent`}
                                 >
                                   {t.amountLabel}
                                 </td>
@@ -2068,7 +2093,7 @@ function AdminPanel() {
                                   {channelLabel(t)}
                                 </td>
                                 <td
-                                  className={`${tdClass} max-w-[140px] truncate font-mono text-[10px] text-apex-text/55`}
+                                  className={`${tdClass} max-w-[140px] truncate font-mono text-[10px] text-premium-muted`}
                                   title={t.gatewayRef ?? undefined}
                                 >
                                   {t.gatewayRef
@@ -2082,7 +2107,7 @@ function AdminPanel() {
                                       expiresAtIso={t.expiresAtIso}
                                     />
                                   ) : (
-                                    <span className="text-xs text-apex-text/45">
+                                    <span className="text-xs text-premium-muted/70">
                                       —
                                     </span>
                                   )}
@@ -2108,6 +2133,7 @@ function AdminPanel() {
                                             t.holdId &&
                                             void approveTxn(t.holdId)
                                           }
+                                          title="Aprovar pagamento"
                                           className="rounded-lg border border-emerald-500/40 px-2.5 py-1.5 text-xs font-semibold text-emerald-400/95 transition-colors hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-35"
                                         >
                                           Aprovar manualmente
@@ -2122,6 +2148,7 @@ function AdminPanel() {
                                             t.holdId &&
                                             void cancelTxnRelease(t.holdId)
                                           }
+                                          title="Cancelar reserva"
                                           className="inline-flex items-center gap-1 rounded-lg border border-amber-500/45 px-2.5 py-1.5 text-xs font-semibold text-amber-400/95 transition-colors hover:bg-amber-500/10 disabled:cursor-not-allowed disabled:opacity-35"
                                         >
                                           <XCircle
@@ -2141,8 +2168,8 @@ function AdminPanel() {
                                         }
                                         title={
                                           !isTxnDeletionEligible(t.createdAtIso)
-                                            ? "Retenção de 14 dias: só pode eliminar após essa data."
-                                            : undefined
+                                            ? "Retenção 14 dias"
+                                            : "Eliminar registo"
                                         }
                                         onClick={() =>
                                           t.transactionId &&
@@ -2184,9 +2211,9 @@ export default function AdminPage() {
   return (
     <Suspense
       fallback={
-        <div className="-mb-8 flex min-h-[calc(100vh-4rem)] items-center justify-center">
-          <p className="flex items-center gap-2 text-sm text-apex-text-muted">
-            <Loader2 className="size-4 animate-spin text-apex-accent" aria-hidden />
+        <div className="-mb-8 flex min-h-[calc(100vh-4rem)] items-center justify-center bg-premium-bg">
+          <p className="flex items-center gap-2 text-sm text-premium-muted">
+            <Loader2 className="size-4 animate-spin text-premium-accent" aria-hidden />
             A carregar painel…
           </p>
         </div>

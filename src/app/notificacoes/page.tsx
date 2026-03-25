@@ -83,8 +83,8 @@ export default function NotificacoesPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
       <div className="mb-8 flex items-center justify-between">
-        <h1 className="flex items-center gap-2 text-2xl font-bold text-apex-text">
-          <Bell className="size-6 text-apex-accent" aria-hidden />
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-premium-text">
+          <Bell className="size-6 text-premium-accent" aria-hidden />
           Notificações
         </h1>
         {unreadCount > 0 && (
@@ -92,7 +92,7 @@ export default function NotificacoesPage() {
             type="button"
             disabled={markingAll}
             onClick={handleMarkAllRead}
-            className="text-sm font-medium text-apex-accent hover:underline disabled:opacity-50"
+            className="text-sm font-medium text-premium-accent hover:underline disabled:opacity-50"
           >
             {markingAll ? "Marcando…" : "Marcar todas como lidas"}
           </button>
@@ -101,15 +101,15 @@ export default function NotificacoesPage() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="size-8 animate-spin text-apex-accent" aria-hidden />
+          <Loader2 className="size-8 animate-spin text-premium-muted" aria-hidden />
         </div>
       ) : notifications.length === 0 ? (
-        <div className="rounded-xl border border-white/[0.08] bg-apex-surface/50 p-12 text-center">
-          <Bell className="mx-auto size-14 text-apex-text-muted/40" aria-hidden />
-          <p className="mt-4 text-apex-text-muted/80">Nenhuma notificação</p>
+        <div className="rounded-xl border border-premium-border bg-premium-surface p-12 text-center">
+          <Bell className="mx-auto size-14 text-premium-muted/50" aria-hidden />
+          <p className="mt-4 text-premium-muted">Nenhuma notificação</p>
           <Link
             href="/minhas-transacoes"
-            className="mt-4 inline-block text-sm font-medium text-apex-accent hover:underline"
+            className="mt-4 inline-block text-sm font-medium text-premium-accent hover:underline"
           >
             Ver transações
           </Link>
@@ -120,16 +120,16 @@ export default function NotificacoesPage() {
             <li key={n.id}>
               <button
                 type="button"
-                className={`flex w-full flex-col gap-1 rounded-xl border px-4 py-4 text-left transition-colors hover:border-apex-accent/30 ${
+                className={`flex w-full flex-col gap-1 rounded-xl border px-4 py-4 text-left transition-colors hover:border-premium-accent/40 ${
                   !n.read_at
-                    ? "border-apex-accent/20 bg-apex-accent/5"
-                    : "border-white/[0.06] bg-apex-surface/60"
+                    ? "border-premium-accent/35 bg-premium-accent/10"
+                    : "border-premium-border bg-premium-surface"
                 }`}
                 onClick={() => handleNotificationClick(n)}
               >
-                <span className="font-medium text-apex-text">{n.title}</span>
-                <span className="text-sm text-apex-text-muted/80">{n.body}</span>
-                <span className="text-xs text-apex-text-muted/60">
+                <span className="font-medium text-premium-text">{n.title}</span>
+                <span className="text-sm text-premium-muted">{n.body}</span>
+                <span className="text-xs text-premium-muted/80">
                   {formatNotificationDate(n.created_at)}
                 </span>
               </button>

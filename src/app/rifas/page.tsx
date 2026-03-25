@@ -22,30 +22,30 @@ export default function RifasPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-16">
-      <h1 className="mb-2 text-3xl font-bold text-apex-text/95">Rifas</h1>
-      <p className="mb-10 text-apex-text-muted/80">
+      <h1 className="mb-2 text-3xl font-bold text-premium-text">Rifas</h1>
+      <p className="mb-10 text-premium-muted">
         Todas as rifas — ativas, vendendo, esgotadas ou finalizadas. Clique para participar ou ver detalhes.
       </p>
 
       {loading && (
         <div className="flex justify-center py-24">
-          <Loader2 className="size-10 animate-spin text-apex-accent" aria-hidden />
+          <Loader2 className="size-10 animate-spin text-premium-muted" aria-hidden />
         </div>
       )}
 
       {!loading && raffles.length === 0 && !error && (
-        <div className="rounded-xl border border-white/[0.08] bg-apex-surface/50 p-16 text-center">
-          <Box className="mx-auto size-16 text-apex-text-muted/40" aria-hidden />
-          <p className="mt-4 text-apex-text-muted/80">Nenhuma rifa no momento.</p>
-          <p className="mt-2 text-sm text-apex-text-muted/60">
+        <div className="rounded-xl border border-premium-border bg-premium-surface p-16 text-center">
+          <Box className="mx-auto size-16 text-premium-muted/50" aria-hidden />
+          <p className="mt-4 text-premium-muted">Nenhuma rifa no momento.</p>
+          <p className="mt-2 text-sm text-premium-muted/80">
             Volte em breve para conferir novos sorteios.
           </p>
         </div>
       )}
 
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-8 text-center">
-          <p className="text-red-400">{error}</p>
+        <div className="rounded-xl border border-red-900/50 bg-red-950/30 p-8 text-center">
+          <p className="text-red-300/90">{error}</p>
         </div>
       )}
 

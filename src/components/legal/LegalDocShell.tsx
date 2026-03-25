@@ -11,12 +11,12 @@ export function LegalDocShell({
   children: ReactNode;
 }) {
   return (
-    <main className="min-h-[70vh] bg-apex-base">
+    <main className="min-h-[70vh] bg-premium-bg">
       <article className="mx-auto max-w-4xl px-6 py-24">
-        <h1 className="mb-8 font-heading text-4xl font-bold tracking-tight text-white">
+        <h1 className="mb-8 font-heading text-4xl font-bold tracking-tight text-premium-text">
           {title}
         </h1>
-        <div className="space-y-6 font-body leading-relaxed text-apex-text-muted">
+        <div className="space-y-6 font-body leading-relaxed text-premium-muted">
           {children}
         </div>
       </article>
@@ -34,7 +34,7 @@ export function LegalSectionTitle({
 }) {
   return (
     <h2
-      className={`font-heading text-2xl font-semibold tracking-tight text-white ${firstSection ? "mb-4 mt-0" : "mb-4 mt-12"}`}
+      className={`font-heading text-2xl font-semibold tracking-tight text-premium-text ${firstSection ? "mb-4 mt-0" : "mb-4 mt-12"}`}
     >
       {children}
     </h2>

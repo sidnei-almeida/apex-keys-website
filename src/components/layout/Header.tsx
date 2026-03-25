@@ -23,7 +23,7 @@ import {
   getUnreadNotificationsCount,
   markNotificationRead,
 } from "@/lib/api/services";
-import { resolveUserAvatarUrl } from "@/lib/resolve-user-avatar-url";
+import UserAvatar from "@/components/user/UserAvatar";
 import { getAccessToken } from "@/lib/auth/token-storage";
 import type { NotificationOut } from "@/types/api";
 
@@ -35,16 +35,14 @@ const PROFILE_DROPDOWN_LINKS = [
   { href: "/historico-rifas", label: "Histórico de Rifas", icon: History },
 ] as const;
 
-const MOCK_BALANCE = "R$ 45,00";
-
 /** Logo Apex Keys (lobo) — manter intacta, efeito bleeding */
 const LOGO_BLEEDING = "/logos/apex logo no bakground.png";
 
-function formatBalanceDisplay(balance: string): string {
-  const t = balance.trim();
-  if (!t) return MOCK_BALANCE;
-  if (/^r\$/i.test(t) || /^R\$\s?/.test(t)) return t;
-  return `R$ ${t}`;
+function formatHeaderWalletBalance(balance: string | undefined | null): string {
+  if (balance == null || !String(balance).trim()) return "R$ 0,00";
+  const n = parseFloat(String(balance).replace(",", "."));
+  if (!Number.isFinite(n)) return "R$ 0,00";
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 const NAV_LINKS = [
@@ -56,7 +54,7 @@ const NAV_LINKS = [
 
 /** Linha vertical sutil entre blocos */
 const Divider = () => (
-  <div className="h-8 w-px shrink-0 bg-white/[0.12]" aria-hidden />
+  <div className="h-8 w-px shrink-0 bg-premium-border/50" aria-hidden />
 );
 
 function formatNotificationDate(createdAt: string): string {
@@ -75,7 +73,7 @@ function formatNotificationDate(createdAt: string): string {
 
 export default function Header() {
   const router = useRouter();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, avatarUrlCacheBust } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -157,10 +155,8 @@ export default function Header() {
   );
 
   const walletLabel = user
-    ? formatBalanceDisplay(user.balance)
-    : MOCK_BALANCE;
-
-  const userAvatarSrc = resolveUserAvatarUrl(user?.avatar_url);
+    ? formatHeaderWalletBalance(user.balance)
+    : "R$ 0,00";
 
   const openWallet = () => {
     setMenuOpen(false);
@@ -176,7 +172,8 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 overflow-visible border-b border-white/5 bg-apex-bg/70 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-md backdrop-saturate-150">
+    <>
+    <header className="sticky top-0 z-[100] overflow-visible border-b border-premium-border/20 bg-premium-bg/90 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-sm">
       <div className="relative mx-auto flex min-h-24 w-full max-w-none items-center justify-between gap-0 px-4 py-3 sm:px-6 lg:min-h-28 lg:px-8 xl:px-10 2xl:px-12">
         {/* 1. LOGO (esquerda) — bleeding */}
         <div className="flex min-w-0 shrink-0 items-center sm:w-36 lg:w-40">
@@ -193,13 +190,13 @@ export default function Header() {
                 onError={() => setLogoError(true)}
               />
             ) : (
-              <span className="flex h-24 items-center font-heading text-lg font-bold italic tracking-tight text-apex-text">
+              <span className="flex h-24 items-center font-heading text-lg font-bold italic tracking-tight text-premium-text">
                 APEX KEYS
               </span>
             )}
           </Link>
           <Link href="/" className="md:hidden">
-            <span className="font-heading text-base font-bold italic tracking-tight text-apex-text">
+            <span className="font-heading text-base font-bold italic tracking-tight text-premium-text">
               APEX KEYS
             </span>
           </Link>
@@ -213,7 +210,7 @@ export default function Header() {
               <Link
                 key={href}
                 href={href}
-                className="relative px-4 py-2.5 font-body text-sm font-medium tracking-wide text-apex-text-muted/80 transition-colors duration-200 hover:text-apex-text after:absolute after:bottom-1.5 after:left-1/2 after:h-0.5 after:w-0 after:-translate-x-1/2 after:rounded-full after:bg-apex-accent after:transition-all after:duration-200 hover:after:w-[calc(100%-2rem)]"
+                className="relative px-4 py-2.5 font-body text-sm font-medium tracking-wide text-premium-muted/80 transition-colors duration-200 hover:text-premium-text after:absolute after:bottom-1.5 after:left-1/2 after:h-0.5 after:w-0 after:-translate-x-1/2 after:rounded-full after:bg-premium-accent after:transition-all after:duration-200 hover:after:w-[calc(100%-2rem)]"
               >
                 {label}
               </Link>
@@ -230,13 +227,13 @@ export default function Header() {
             onClick={openWallet}
             className="hidden cursor-pointer items-center gap-3 border-none bg-transparent p-0 text-left outline-none md:flex"
           >
-            <Wallet className="size-5 shrink-0 text-apex-accent/90" aria-hidden />
+            <Wallet className="size-5 shrink-0 text-premium-accent/90" aria-hidden />
             <div className="flex flex-col items-end">
-              <span className="font-body text-[11px] font-medium uppercase tracking-wider text-apex-text-muted/70">
+              <span className="font-body text-[11px] font-medium uppercase tracking-wider text-premium-muted/70">
                 Carteira
               </span>
               <span
-                className="font-mono text-base font-bold tabular-nums text-apex-accent"
+                className="font-mono text-base font-bold tabular-nums text-premium-accent"
                 style={{
                   textShadow: "0 0 20px rgba(0,229,255,0.25)",
                 }}
@@ -252,14 +249,14 @@ export default function Header() {
               <button
                 type="button"
                 onClick={() => setNotificationsOpen((o) => !o)}
-                className="relative rounded-lg p-2 text-apex-text-muted transition-colors hover:text-apex-accent"
+                className="relative rounded-lg p-2 text-premium-muted transition-colors hover:text-premium-accent"
                 aria-label="Notificações"
                 aria-expanded={notificationsOpen}
               >
                 <Bell className="size-5" aria-hidden />
                 {unreadCount > 0 && (
                   <span
-                    className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-apex-accent font-mono text-[10px] font-bold text-apex-bg"
+                    className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-premium-accent font-mono text-[10px] font-bold text-black"
                     aria-hidden
                   >
                     {unreadCount > 9 ? "9+" : unreadCount}
@@ -268,14 +265,14 @@ export default function Header() {
               </button>
               {notificationsOpen && (
                 <div
-                  className="absolute right-0 top-full z-50 mt-2 w-80 max-h-[360px] overflow-y-auto rounded-lg border border-white/[0.08] bg-apex-surface/95 py-2 shadow-xl backdrop-blur-xl"
+                  className="absolute right-0 top-full z-50 mt-2 w-80 max-h-[360px] overflow-y-auto rounded-lg border border-premium-border/50 bg-premium-surface py-2 shadow-xl backdrop-blur-xl"
                   role="menu"
                 >
                   <div className="px-4 py-2 border-b border-white/[0.06]">
-                    <h3 className="font-heading text-sm font-semibold text-apex-text">Notificações</h3>
+                    <h3 className="font-heading text-sm font-semibold text-premium-text">Notificações</h3>
                   </div>
                   {notifications.length === 0 ? (
-                    <p className="px-4 py-6 font-body text-sm text-apex-text-muted/70">
+                    <p className="px-4 py-6 font-body text-sm text-premium-muted/70">
                       Nenhuma notificação
                     </p>
                   ) : (
@@ -285,17 +282,17 @@ export default function Header() {
                           <button
                             type="button"
                             className={`flex w-full flex-col gap-0.5 px-4 py-3 text-left transition-colors hover:bg-white/[0.06] ${
-                              !n.read_at ? "bg-apex-accent/5" : ""
+                              !n.read_at ? "bg-premium-accent/10" : ""
                             }`}
                             onClick={() => handleNotificationClick(n)}
                           >
-                            <span className="font-body text-sm font-medium text-apex-text">
+                            <span className="font-body text-sm font-medium text-premium-text">
                               {n.title}
                             </span>
-                            <span className="line-clamp-2 font-body text-xs text-apex-text-muted/80">
+                            <span className="line-clamp-2 font-body text-xs text-premium-muted/80">
                               {n.body}
                             </span>
-                            <span className="mt-1 font-mono text-[10px] text-apex-text-muted/60">
+                            <span className="mt-1 font-mono text-[10px] text-premium-muted/60">
                               {formatNotificationDate(n.created_at)}
                             </span>
                           </button>
@@ -306,7 +303,7 @@ export default function Header() {
                   {notifications.length > 0 && (
                     <Link
                       href="/notificacoes"
-                      className="block border-t border-white/[0.06] px-4 py-2.5 text-center font-body text-xs font-medium text-apex-accent hover:bg-white/[0.04]"
+                      className="block border-t border-premium-border/30 px-4 py-2.5 text-center font-body text-xs font-medium text-premium-accent hover:bg-white/[0.04]"
                       onClick={() => setNotificationsOpen(false)}
                     >
                       Ver todas
@@ -326,39 +323,34 @@ export default function Header() {
               <button
                 type="button"
                 onClick={() => setProfileDropdownOpen((o) => !o)}
-                className="flex items-center gap-2 rounded-lg transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-apex-accent/50 focus:ring-offset-2 focus:ring-offset-apex-bg"
+                className="flex items-center gap-2 rounded-lg transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-premium-accent/50 focus:ring-offset-2 focus:ring-offset-premium-bg"
                 aria-expanded={profileDropdownOpen}
                 aria-haspopup="true"
                 aria-label="Menu do perfil"
               >
                 <div className="relative shrink-0">
-                  <div className="flex size-11 items-center justify-center overflow-hidden rounded-lg ring-2 ring-apex-accent/40 ring-offset-2 ring-offset-apex-bg lg:size-12">
-                    {userAvatarSrc ? (
-                      <img
-                        src={userAvatarSrc}
-                        alt=""
-                        className="size-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex size-full items-center justify-center bg-apex-surface/80">
-                        <User className="size-5 text-apex-text-muted lg:size-6" aria-hidden />
-                      </div>
-                    )}
+                  <div className="flex size-11 items-center justify-center overflow-hidden rounded-lg ring-2 ring-premium-border ring-offset-2 ring-offset-premium-bg lg:size-12">
+                    <UserAvatar
+                      avatarUrl={user?.avatar_url}
+                      urlCacheBust={avatarUrlCacheBust}
+                      className="size-full"
+                      placeholderIconClassName="size-5 text-premium-muted lg:size-6"
+                    />
                   </div>
                   <span
-                    className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-apex-bg bg-apex-accent"
+                    className="absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-premium-bg bg-premium-accent"
                     aria-hidden
                   />
                 </div>
                 <ChevronDown
-                  className={`size-4 text-apex-text-muted/60 transition-transform ${profileDropdownOpen ? "rotate-180" : ""}`}
+                  className={`size-4 text-premium-muted/60 transition-transform ${profileDropdownOpen ? "rotate-180" : ""}`}
                   aria-hidden
                 />
               </button>
 
               {profileDropdownOpen && (
                 <div
-                  className="absolute right-0 top-full z-50 mt-2 min-w-[220px] rounded-lg border border-white/[0.08] bg-apex-surface/95 py-2 shadow-xl backdrop-blur-xl"
+                  className="absolute right-0 top-full z-50 mt-2 min-w-[220px] rounded-lg border border-premium-border/50 bg-premium-surface py-2 shadow-xl backdrop-blur-xl"
                   role="menu"
                 >
                   {PROFILE_DROPDOWN_LINKS.map(({ href, label, icon: Icon }) => (
@@ -366,7 +358,7 @@ export default function Header() {
                       key={label}
                       href={href}
                       role="menuitem"
-                      className="flex items-center gap-3 px-4 py-2.5 font-body text-sm text-apex-text-muted/90 transition-colors hover:bg-white/[0.06] hover:text-apex-accent"
+                      className="flex items-center gap-3 px-4 py-2.5 font-body text-sm text-premium-muted/90 transition-colors hover:bg-white/[0.06] hover:text-premium-accent"
                       onClick={() => setProfileDropdownOpen(false)}
                     >
                       <Icon className="size-4 shrink-0" aria-hidden />
@@ -375,22 +367,22 @@ export default function Header() {
                   ))}
                   {user?.is_admin && (
                     <>
-                      <div className="my-1.5 border-t border-white/[0.06]" />
+                      <div className="my-1.5 border-t border-premium-border/30" />
                       <Link
                         href="/admin"
                         role="menuitem"
-                        className="flex items-center gap-3 px-4 py-2.5 font-body text-sm font-medium text-apex-accent transition-colors hover:bg-white/[0.06]"
+                        className="flex items-center gap-3 px-4 py-2.5 font-body text-sm font-medium text-premium-accent transition-colors hover:bg-white/[0.06]"
                         onClick={() => setProfileDropdownOpen(false)}
                       >
                         QG / Admin
                       </Link>
                     </>
                   )}
-                  <div className="my-1.5 border-t border-white/[0.06]" />
+                  <div className="my-1.5 border-t border-premium-border/30" />
                   <button
                     type="button"
                     role="menuitem"
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left font-body text-sm text-apex-text-muted/90 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left font-body text-sm text-premium-muted/90 transition-colors hover:bg-red-500/10 hover:text-red-400"
                     onClick={() => {
                       setProfileDropdownOpen(false);
                       logout();
@@ -409,31 +401,31 @@ export default function Header() {
               <button
                 type="button"
                 onClick={() => setProfileDropdownOpen((o) => !o)}
-                className="flex items-center gap-2 rounded-lg transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-apex-accent/50 focus:ring-offset-2 focus:ring-offset-apex-bg"
+                className="flex items-center gap-2 rounded-lg transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-premium-accent/50 focus:ring-offset-2 focus:ring-offset-premium-bg"
                 aria-expanded={profileDropdownOpen}
                 aria-haspopup="true"
                 aria-label="Entrar ou cadastrar"
               >
-                <div className="flex size-11 items-center justify-center overflow-hidden rounded-lg ring-2 ring-apex-accent/30 ring-offset-2 ring-offset-apex-bg lg:size-12">
-                  <div className="flex size-full items-center justify-center bg-apex-surface/50">
-                    <User className="size-5 text-apex-text-muted lg:size-6" aria-hidden />
+                <div className="flex size-11 items-center justify-center overflow-hidden rounded-lg ring-2 ring-premium-border ring-offset-2 ring-offset-premium-bg lg:size-12">
+                  <div className="flex size-full items-center justify-center bg-premium-bg">
+                    <User className="size-5 text-premium-muted lg:size-6" aria-hidden />
                   </div>
                 </div>
                 <ChevronDown
-                  className={`size-4 text-apex-text-muted/60 transition-transform ${profileDropdownOpen ? "rotate-180" : ""}`}
+                  className={`size-4 text-premium-muted/60 transition-transform ${profileDropdownOpen ? "rotate-180" : ""}`}
                   aria-hidden
                 />
               </button>
 
               {profileDropdownOpen && (
                 <div
-                  className="absolute right-0 top-full z-50 mt-2 min-w-[200px] rounded-lg border border-white/[0.08] bg-apex-surface/95 py-2 shadow-xl backdrop-blur-xl"
+                  className="absolute right-0 top-full z-50 mt-2 min-w-[200px] rounded-lg border border-premium-border/50 bg-premium-surface py-2 shadow-xl backdrop-blur-xl"
                   role="menu"
                 >
                   <button
                     type="button"
                     role="menuitem"
-                    className="flex w-full items-center px-4 py-2.5 text-left font-body text-sm text-apex-text-muted/90 transition-colors hover:bg-white/[0.06] hover:text-apex-accent"
+                    className="flex w-full items-center px-4 py-2.5 text-left font-body text-sm text-premium-muted/90 transition-colors hover:bg-white/[0.06] hover:text-premium-accent"
                     onClick={() => {
                       setProfileDropdownOpen(false);
                       openAuth("login");
@@ -444,7 +436,7 @@ export default function Header() {
                   <button
                     type="button"
                     role="menuitem"
-                    className="flex w-full items-center px-4 py-2.5 text-left font-body text-sm font-medium text-apex-accent transition-colors hover:bg-white/[0.06]"
+                    className="flex w-full items-center px-4 py-2.5 text-left font-body text-sm font-medium text-premium-accent transition-colors hover:bg-white/[0.06]"
                     onClick={() => {
                       setProfileDropdownOpen(false);
                       openAuth("signup");
@@ -466,11 +458,11 @@ export default function Header() {
             className="flex flex-col items-end border-none bg-transparent p-0 text-right outline-none"
             aria-label="Carteira"
           >
-            <span className="font-body text-[10px] font-medium uppercase tracking-wider text-apex-text-muted/70">
+            <span className="font-body text-[10px] font-medium uppercase tracking-wider text-premium-muted/70">
               Carteira
             </span>
             <span
-              className="font-mono text-sm font-bold tabular-nums text-apex-accent"
+              className="font-mono text-sm font-bold tabular-nums text-premium-accent"
               style={{ textShadow: "0 0 12px rgba(0,229,255,0.2)" }}
             >
               {walletLabel}
@@ -478,7 +470,7 @@ export default function Header() {
           </button>
           <button
             type="button"
-            className="rounded-lg p-2 text-apex-text-muted transition hover:text-apex-text"
+            className="rounded-lg p-2 text-premium-muted transition hover:text-premium-text"
             aria-label="Abrir menu"
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen(true)}
@@ -497,12 +489,12 @@ export default function Header() {
             aria-label="Fechar menu"
             onClick={() => setMenuOpen(false)}
           />
-          <div className="fixed inset-y-0 right-0 z-50 flex w-[min(18rem,85vw)] flex-col border-l border-white/[0.06] bg-apex-bg/95 shadow-[-4px_0_40px_rgb(0,0,0,0.5)] backdrop-blur-xl md:hidden">
+          <div className="fixed inset-y-0 right-0 z-50 flex w-[min(18rem,85vw)] flex-col border-l border-premium-border/30 bg-premium-bg/95 shadow-[-4px_0_40px_rgb(0,0,0,0.5)] backdrop-blur-xl md:hidden">
             <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-4">
-              <span className="font-heading text-sm font-semibold text-apex-text">Menu</span>
+              <span className="font-heading text-sm font-semibold text-premium-text">Menu</span>
               <button
                 type="button"
-                className="rounded-lg p-2 text-apex-text-muted transition hover:bg-white/[0.06] hover:text-apex-text"
+                className="rounded-lg p-2 text-premium-muted transition hover:bg-white/[0.06] hover:text-premium-text"
                 aria-label="Fechar menu"
                 onClick={() => setMenuOpen(false)}
               >
@@ -514,7 +506,7 @@ export default function Header() {
                 <Link
                   key={href}
                   href={href}
-                  className="rounded-lg px-4 py-3 font-body text-sm font-medium text-apex-text-muted transition-colors hover:bg-white/[0.04] hover:text-apex-accent"
+                  className="rounded-lg px-4 py-3 font-body text-sm font-medium text-premium-muted transition-colors hover:bg-white/[0.04] hover:text-premium-accent"
                   onClick={() => setMenuOpen(false)}
                 >
                   {label}
@@ -526,28 +518,23 @@ export default function Header() {
                 <>
                   <div className="mb-2 flex items-center gap-3 rounded-lg px-3 py-2">
                     <div className="relative shrink-0">
-                      <div className="flex size-10 items-center justify-center overflow-hidden rounded-lg ring-2 ring-apex-accent/30 ring-offset-2 ring-offset-apex-bg">
-                        {userAvatarSrc ? (
-                          <img
-                            src={userAvatarSrc}
-                            alt=""
-                            className="size-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex size-full items-center justify-center bg-apex-surface/80">
-                            <User className="size-5 text-apex-text-muted" aria-hidden />
-                          </div>
-                        )}
+                      <div className="flex size-10 items-center justify-center overflow-hidden rounded-lg ring-2 ring-premium-border ring-offset-2 ring-offset-premium-bg">
+                        <UserAvatar
+                          avatarUrl={user?.avatar_url}
+                          urlCacheBust={avatarUrlCacheBust}
+                          className="size-full"
+                          placeholderIconClassName="size-5 text-premium-muted"
+                        />
                       </div>
-                      <span className="absolute bottom-0 right-0 size-2 rounded-full border-2 border-apex-bg bg-apex-accent" aria-hidden />
+                      <span className="absolute bottom-0 right-0 size-2 rounded-full border-2 border-premium-bg bg-premium-accent" aria-hidden />
                     </div>
-                    <span className="font-body font-medium text-apex-text">Perfil</span>
+                    <span className="font-body font-medium text-premium-text">Perfil</span>
                   </div>
                   {PROFILE_DROPDOWN_LINKS.map(({ href, label, icon: Icon }) => (
                     <Link
                       key={label}
                       href={href}
-                      className="flex items-center gap-3 rounded-lg px-4 py-3 font-body text-sm font-medium text-apex-text-muted transition-colors hover:bg-white/[0.04] hover:text-apex-accent"
+                      className="flex items-center gap-3 rounded-lg px-4 py-3 font-body text-sm font-medium text-premium-muted transition-colors hover:bg-white/[0.04] hover:text-premium-accent"
                       onClick={() => setMenuOpen(false)}
                     >
                       <Icon className="size-4 shrink-0" aria-hidden />
@@ -557,7 +544,7 @@ export default function Header() {
                   {user?.is_admin && (
                     <Link
                       href="/admin"
-                      className="flex items-center gap-3 rounded-lg px-4 py-3 font-body text-sm font-medium text-apex-accent transition-colors hover:bg-white/[0.04]"
+                      className="flex items-center gap-3 rounded-lg px-4 py-3 font-body text-sm font-medium text-premium-accent transition-colors hover:bg-white/[0.04]"
                       onClick={() => setMenuOpen(false)}
                     >
                       QG / Admin
@@ -565,7 +552,7 @@ export default function Header() {
                   )}
                   <button
                     type="button"
-                    className="mt-2 flex items-center gap-3 rounded-lg px-4 py-3 text-left font-body text-sm font-medium text-apex-text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    className="mt-2 flex items-center gap-3 rounded-lg px-4 py-3 text-left font-body text-sm font-medium text-premium-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
                     onClick={() => {
                       setMenuOpen(false);
                       logout();
@@ -577,23 +564,23 @@ export default function Header() {
               ) : (
                 <>
                   <div className="mb-2 flex items-center gap-3 rounded-lg px-3 py-2">
-                    <div className="flex size-10 items-center justify-center overflow-hidden rounded-lg ring-2 ring-apex-accent/30 ring-offset-2 ring-offset-apex-bg">
-                      <div className="flex size-full items-center justify-center bg-apex-surface/50">
-                        <User className="size-5 text-apex-text-muted" aria-hidden />
+                    <div className="flex size-10 items-center justify-center overflow-hidden rounded-lg ring-2 ring-premium-border ring-offset-2 ring-offset-premium-bg">
+                      <div className="flex size-full items-center justify-center bg-premium-bg">
+                        <User className="size-5 text-premium-muted" aria-hidden />
                       </div>
                     </div>
-                    <span className="font-body font-medium text-apex-text-muted">Entrar ou cadastrar</span>
+                    <span className="font-body font-medium text-premium-muted">Entrar ou cadastrar</span>
                   </div>
                   <button
                     type="button"
-                    className="flex w-full items-center px-4 py-3 text-left font-body text-sm font-medium text-apex-text-muted transition-colors hover:bg-white/[0.04] hover:text-apex-accent"
+                    className="flex w-full items-center px-4 py-3 text-left font-body text-sm font-medium text-premium-muted transition-colors hover:bg-white/[0.04] hover:text-premium-accent"
                     onClick={() => openAuth("login")}
                   >
                     LOG IN
                   </button>
                   <button
                     type="button"
-                    className="flex w-full items-center px-4 py-3 text-left font-body text-sm font-medium text-apex-accent transition-colors hover:bg-white/[0.04]"
+                    className="flex w-full items-center px-4 py-3 text-left font-body text-sm font-medium text-premium-accent transition-colors hover:bg-white/[0.04]"
                     onClick={() => openAuth("signup")}
                   >
                     CADASTRAR
@@ -605,12 +592,17 @@ export default function Header() {
         </>
       ) : null}
 
-      <WalletDrawer isOpen={isWalletOpen} onClose={() => setIsWalletOpen(false)} />
+    </header>
+      <WalletDrawer
+        isOpen={isWalletOpen}
+        onClose={() => setIsWalletOpen(false)}
+        onRequestLogin={() => openAuth("login")}
+      />
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         initialMode={authInitialMode}
       />
-    </header>
+    </>
   );
 }

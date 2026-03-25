@@ -7,11 +7,6 @@ import { Eye, EyeOff, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-const inputClass =
-  "w-full rounded-lg border border-apex-surface bg-apex-bg px-3 py-2.5 text-apex-text placeholder:text-gray-500 focus:border-apex-accent focus:outline-none";
-
-const passwordInputClass = `${inputClass} pr-10`;
-
 type AuthModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -118,6 +113,13 @@ export default function AuthModal({
 
   if (!mounted || !isOpen) return null;
 
+  const inputClass =
+    "w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2.5 text-premium-text placeholder:text-premium-muted/60 focus:border-premium-accent focus:outline-none";
+  const passwordInputClass = `${inputClass} pr-10`;
+  const labelClass = "mb-1.5 block text-sm font-medium text-premium-text";
+  const iconBtnClass =
+    "absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-premium-muted transition-colors hover:text-premium-text disabled:pointer-events-none disabled:opacity-40";
+
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
@@ -128,13 +130,13 @@ export default function AuthModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="auth-modal-title"
-        className="relative w-full max-w-md rounded-2xl border border-apex-primary/20 bg-apex-surface p-8 shadow-2xl"
+        className="relative w-full max-w-md rounded-2xl border border-premium-border bg-premium-surface p-8 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-2 text-gray-400 transition-colors hover:text-apex-text"
+          className="absolute right-4 top-4 rounded-lg p-2 text-premium-muted transition-colors hover:text-premium-text"
           aria-label="Fechar"
         >
           <X className="size-5" aria-hidden />
@@ -142,7 +144,7 @@ export default function AuthModal({
 
         <h2
           id="auth-modal-title"
-          className="text-center text-2xl font-bold text-apex-text"
+          className="text-center text-2xl font-bold text-premium-text"
         >
           {isLogin ? "Entrar" : "Criar conta"}
         </h2>
@@ -154,7 +156,7 @@ export default function AuthModal({
           {isLogin ? (
             <>
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-apex-text/90">
+                <span className={labelClass}>
                   E-mail
                 </span>
                 <input
@@ -170,7 +172,7 @@ export default function AuthModal({
                 />
               </label>
               <label className="mt-4 block">
-                <span className="mb-1.5 block text-sm font-medium text-apex-text/90">
+                <span className={labelClass}>
                   Senha
                 </span>
                 <div className="relative">
@@ -189,7 +191,7 @@ export default function AuthModal({
                     type="button"
                     disabled={isLoading}
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-gray-400 transition-colors hover:text-apex-text disabled:pointer-events-none disabled:opacity-40"
+                    className={iconBtnClass}
                     aria-label={
                       showPassword ? "Ocultar senha" : "Mostrar senha"
                     }
@@ -207,7 +209,7 @@ export default function AuthModal({
           ) : (
             <>
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-apex-text/90">
+                <span className={labelClass}>
                   Nome Completo
                 </span>
                 <input
@@ -223,7 +225,7 @@ export default function AuthModal({
                 />
               </label>
               <label className="mt-4 block">
-                <span className="mb-1.5 block text-sm font-medium text-apex-text/90">
+                <span className={labelClass}>
                   WhatsApp (Essencial para premiação)
                 </span>
                 <input
@@ -239,7 +241,7 @@ export default function AuthModal({
                 />
               </label>
               <label className="mt-4 block">
-                <span className="mb-1.5 block text-sm font-medium text-apex-text/90">
+                <span className={labelClass}>
                   Chave PIX
                 </span>
                 <input
@@ -252,12 +254,12 @@ export default function AuthModal({
                   placeholder="CPF, e-mail, telefone ou chave aleatória"
                   disabled={isLoading}
                 />
-                <p className="mt-1 text-xs text-apex-text-muted/60">
+                <p className="mt-1 text-xs text-premium-muted/75">
                   Para receber reembolsos e prêmios
                 </p>
               </label>
               <label className="mt-4 block">
-                <span className="mb-1.5 block text-sm font-medium text-apex-text/90">
+                <span className={labelClass}>
                   E-mail
                 </span>
                 <input
@@ -273,7 +275,7 @@ export default function AuthModal({
                 />
               </label>
               <label className="mt-4 block">
-                <span className="mb-1.5 block text-sm font-medium text-apex-text/90">
+                <span className={labelClass}>
                   Senha
                 </span>
                 <div className="relative">
@@ -292,7 +294,7 @@ export default function AuthModal({
                     type="button"
                     disabled={isLoading}
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-gray-400 transition-colors hover:text-apex-text disabled:pointer-events-none disabled:opacity-40"
+                    className={iconBtnClass}
                     aria-label={
                       showPassword ? "Ocultar senha" : "Mostrar senha"
                     }
@@ -310,7 +312,10 @@ export default function AuthModal({
           )}
 
           {error ? (
-            <p className="mt-4 text-center text-sm text-red-400/90" role="alert">
+            <p
+              className="mt-4 rounded-lg border border-red-900/50 bg-red-950/30 px-3 py-2 text-center text-sm text-red-300/90"
+              role="alert"
+            >
               {error}
             </p>
           ) : null}
@@ -318,7 +323,7 @@ export default function AuthModal({
           <button
             type="submit"
             disabled={isLoading}
-            className="mt-6 w-full rounded-lg bg-apex-primary py-3 font-bold text-white transition-colors hover:bg-apex-accent disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-6 w-full rounded-lg bg-premium-accent py-3 font-bold text-black transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLoading
               ? "A processar…"
@@ -328,7 +333,7 @@ export default function AuthModal({
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-400">
+        <p className="mt-6 text-center text-sm text-premium-muted">
           {isLogin ? (
             <>
               Não tem conta?{" "}
@@ -340,7 +345,7 @@ export default function AuthModal({
                   setError(null);
                   setShowPassword(false);
                 }}
-                className="cursor-pointer font-medium text-apex-accent hover:underline disabled:opacity-50"
+                className="cursor-pointer font-medium text-premium-text underline-offset-2 hover:underline disabled:opacity-50"
               >
                 Criar agora
               </button>
@@ -356,7 +361,7 @@ export default function AuthModal({
                   setError(null);
                   setShowPassword(false);
                 }}
-                className="cursor-pointer font-medium text-apex-accent hover:underline disabled:opacity-50"
+                className="cursor-pointer font-medium text-premium-text underline-offset-2 hover:underline disabled:opacity-50"
               >
                 Fazer login
               </button>
