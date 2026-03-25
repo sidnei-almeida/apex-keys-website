@@ -111,7 +111,7 @@ const MOCK_HALL_BASE_FOR_RANK: readonly MockHallBase[] = [
     id: "mock-hall-rank-2",
     fullName: "Ricardo Almeida",
     initials: "RA",
-    avatarUrl: "https://i.pravatar.cc/320?img=45",
+    avatarUrl: "https://i.pravatar.cc/320?img=51",
     gameTitle: "God of War Ragnarök",
     gameCoverUrl:
       "https://images7.alphacoders.com/138/thumb-1920-1387216.jpg",
@@ -133,7 +133,7 @@ const MOCK_HALL_BASE_FOR_RANK: readonly MockHallBase[] = [
     id: "mock-hall-rank-4",
     fullName: "Mariana Costa",
     initials: "MC",
-    avatarUrl: "https://i.pravatar.cc/320?img=51",
+    avatarUrl: "https://i.pravatar.cc/320?img=45",
     gameTitle: "Hogwarts Legacy",
     gameCoverUrl:
       "https://images3.alphacoders.com/139/thumb-1920-1396444.jpg",

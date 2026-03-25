@@ -23,6 +23,7 @@ import {
   getUnreadNotificationsCount,
   markNotificationRead,
 } from "@/lib/api/services";
+import { resolveUserAvatarUrl } from "@/lib/resolve-user-avatar-url";
 import { getAccessToken } from "@/lib/auth/token-storage";
 import type { NotificationOut } from "@/types/api";
 
@@ -158,6 +159,8 @@ export default function Header() {
   const walletLabel = user
     ? formatBalanceDisplay(user.balance)
     : MOCK_BALANCE;
+
+  const userAvatarSrc = resolveUserAvatarUrl(user?.avatar_url);
 
   const openWallet = () => {
     setMenuOpen(false);
@@ -330,9 +333,9 @@ export default function Header() {
               >
                 <div className="relative shrink-0">
                   <div className="flex size-11 items-center justify-center overflow-hidden rounded-lg ring-2 ring-apex-accent/40 ring-offset-2 ring-offset-apex-bg lg:size-12">
-                    {user?.avatar_url ? (
+                    {userAvatarSrc ? (
                       <img
-                        src={user.avatar_url}
+                        src={userAvatarSrc}
                         alt=""
                         className="size-full object-cover"
                       />
@@ -524,8 +527,12 @@ export default function Header() {
                   <div className="mb-2 flex items-center gap-3 rounded-lg px-3 py-2">
                     <div className="relative shrink-0">
                       <div className="flex size-10 items-center justify-center overflow-hidden rounded-lg ring-2 ring-apex-accent/30 ring-offset-2 ring-offset-apex-bg">
-                        {user?.avatar_url ? (
-                          <img src={user.avatar_url} alt="" className="size-full object-cover" />
+                        {userAvatarSrc ? (
+                          <img
+                            src={userAvatarSrc}
+                            alt=""
+                            className="size-full object-cover"
+                          />
                         ) : (
                           <div className="flex size-full items-center justify-center bg-apex-surface/80">
                             <User className="size-5 text-apex-text-muted" aria-hidden />

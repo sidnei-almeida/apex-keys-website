@@ -21,10 +21,12 @@ const QUICK_LINKS = [
   { href: "/faq", label: "FAQ" },
 ] as const;
 
-const SUPPORT_LINKS = [
-  { href: "#", label: "Contato" },
-  { href: "#", label: "Termos de Uso" },
-  { href: "#", label: "Política de Privacidade" },
+const SUPPORT_LINKS = [{ href: "#", label: "Contato" }] as const;
+
+/** Coluna própria — separado de Suporte; cada documento com o seu link. */
+const LEGAL_LINKS = [
+  { href: "/termos", label: "Termos de Serviço" },
+  { href: "/privacidade", label: "Política de Privacidade" },
 ] as const;
 
 const SOCIAL_LINKS = [
@@ -101,7 +103,7 @@ export default function Footer() {
       <div className={`${FOOTER_CONTAINER} py-10 md:py-12`}>
         <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-12 md:gap-x-8 md:gap-y-8 lg:gap-x-10">
           {/* 1. Marca + Segurança */}
-          <div className="flex flex-col items-start gap-y-5 md:col-span-5">
+          <div className="flex flex-col items-start gap-y-5 md:col-span-4">
             <Link href="/" className="inline-block max-w-[9.5rem] sm:max-w-[10.5rem]">
               <img
                 src={FOOTER_LOGO}
@@ -126,16 +128,21 @@ export default function Footer() {
           </div>
 
           {/* 2. Links Úteis */}
-          <div className="flex flex-col items-stretch md:col-span-3">
+          <div className="flex flex-col items-stretch md:col-span-2">
             <FooterColumn title="Links Úteis" links={QUICK_LINKS} />
           </div>
 
-          {/* 3. Suporte */}
+          {/* 3. Suporte (só contacto) */}
           <div className="flex flex-col items-stretch md:col-span-2">
             <FooterColumn title="Suporte" links={SUPPORT_LINKS} />
           </div>
 
-          {/* 4. Redes Sociais */}
+          {/* 4. Legal — Termos e Privacidade fora de Suporte */}
+          <div className="flex flex-col items-stretch md:col-span-2">
+            <FooterColumn title="Legal" links={LEGAL_LINKS} />
+          </div>
+
+          {/* 5. Redes Sociais */}
           <div className="flex flex-col items-start md:col-span-2">
             <p className="mb-0 w-full border-b border-white/5 pb-2 font-body text-xs font-bold uppercase tracking-[0.14em] text-apex-text/90">
               Redes Sociais
@@ -164,20 +171,6 @@ export default function Footer() {
           <p className="font-body text-xs text-apex-text-muted">
             © 2026 Apex Keys. Todos os direitos reservados.
           </p>
-          <div className="flex flex-wrap gap-6">
-            <Link
-              href="#"
-              className="font-body text-xs text-apex-text-muted transition-colors duration-200 hover:text-white"
-            >
-              Termos de Serviço
-            </Link>
-            <Link
-              href="#"
-              className="font-body text-xs text-apex-text-muted transition-colors duration-200 hover:text-white"
-            >
-              Política de Privacidade
-            </Link>
-          </div>
         </div>
       </div>
     </footer>

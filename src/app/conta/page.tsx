@@ -1,14 +1,17 @@
 "use client";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { getApiBaseUrl } from "@/lib/api/config";
-import { updateProfile } from "@/lib/api/services";
 import { ApiError } from "@/lib/api/http";
+import { updateProfile, uploadAvatar } from "@/lib/api/services";
+import { resolveUserAvatarUrl } from "@/lib/resolve-user-avatar-url";
 import { getAccessToken } from "@/lib/auth/token-storage";
 import { Camera, Loader2, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+const AVATAR_ACCEPT = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
 
 const inputClass =
   "w-full rounded-lg border border-white/[0.08] bg-apex-bg px-3 py-2.5 text-apex-text placeholder:text-gray-500 focus:border-apex-accent focus:outline-none focus:ring-1 focus:ring-apex-accent/50";
@@ -20,8 +23,10 @@ export default function ContaPage() {
   const [whatsapp, setWhatsapp] = useState("");
   const [pixKey, setPixKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isReady) return;
@@ -36,10 +41,40 @@ export default function ContaPage() {
     }
   }, [isReady, isAuthenticated, user, router]);
 
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(null);
+    setSuccessMessage(null);
+    const token = getAccessToken();
+    if (!token) return;
+    if (file.size > AVATAR_MAX_BYTES) {
+      setError("A imagem deve ter no máximo 2 MB.");
+      return;
+    }
+    setAvatarUploading(true);
+    try {
+      await uploadAvatar(token, file);
+      await refreshUser();
+      setSuccessMessage("Foto de perfil atualizada.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.detail ?? "Não foi possível enviar a foto.");
+      } else {
+        setError(
+          err instanceof Error ? err.message : "Erro ao enviar a foto.",
+        );
+      }
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setSuccess(false);
+    setSuccessMessage(null);
     const token = getAccessToken();
     if (!token) return;
     setIsLoading(true);
@@ -50,7 +85,7 @@ export default function ContaPage() {
         pix_key: pixKey.trim() || undefined,
       });
       await refreshUser();
-      setSuccess(true);
+      setSuccessMessage("Perfil atualizado com sucesso.");
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.detail ?? "Não foi possível salvar.");
@@ -72,6 +107,8 @@ export default function ContaPage() {
     );
   }
 
+  const avatarSrc = resolveUserAvatarUrl(user?.avatar_url);
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8">
       <h1 className="text-2xl font-bold tracking-tight text-apex-text/95 sm:text-3xl">
@@ -82,17 +119,21 @@ export default function ContaPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-        {/* Avatar — placeholder para upload futuro */}
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept={AVATAR_ACCEPT}
+            className="sr-only"
+            aria-hidden
+            tabIndex={-1}
+            onChange={handleAvatarChange}
+          />
           <div className="relative shrink-0">
             <div className="flex size-24 items-center justify-center overflow-hidden rounded-xl ring-2 ring-apex-accent/30 ring-offset-2 ring-offset-apex-bg sm:size-28">
-              {user?.avatar_url ? (
+              {avatarSrc ? (
                 <img
-                  src={
-                    user.avatar_url.startsWith("http")
-                      ? user.avatar_url
-                      : `${getApiBaseUrl()}${user.avatar_url.startsWith("/") ? "" : "/"}${user.avatar_url}`
-                  }
+                  src={avatarSrc}
                   alt=""
                   className="size-full object-cover"
                 />
@@ -104,18 +145,24 @@ export default function ContaPage() {
             </div>
             <button
               type="button"
-              disabled
-              className="absolute bottom-0 right-0 flex size-9 items-center justify-center rounded-lg border border-white/[0.08] bg-apex-surface/90 text-apex-text-muted/70 transition-colors hover:bg-apex-surface disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label="Alterar foto (em breve)"
-              title="Upload de foto em breve"
+              disabled={avatarUploading || isLoading}
+              onClick={() => avatarInputRef.current?.click()}
+              className="absolute bottom-0 right-0 flex size-9 items-center justify-center rounded-lg border border-white/[0.08] bg-apex-surface/90 text-apex-text transition-colors hover:bg-apex-surface hover:text-apex-accent disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Alterar foto de perfil"
+              title="JPG, PNG ou WebP — máx. 2 MB"
             >
-              <Camera className="size-4" aria-hidden />
+              {avatarUploading ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Camera className="size-4" aria-hidden />
+              )}
             </button>
           </div>
           <div className="text-sm text-apex-text-muted/70">
-            <p>Alteração de foto de perfil</p>
-            <p className="mt-0.5 text-xs text-apex-text-muted/50">
-              Disponível em breve
+            <p className="font-medium text-apex-text/85">Foto de perfil</p>
+            <p className="mt-0.5 text-xs text-apex-text-muted/55">
+              Toque no ícone da câmara. Formatos: JPG, PNG ou WebP (máx. 2 MB).
+              Podes alterar quando quiseres após criar a conta.
             </p>
           </div>
         </div>
@@ -199,11 +246,14 @@ export default function ContaPage() {
           </p>
         )}
 
-        {success && (
-          <p className="rounded-lg border border-apex-success/30 bg-apex-success/10 px-4 py-3 text-sm text-apex-success" role="status">
-            Perfil atualizado com sucesso.
+        {successMessage ? (
+          <p
+            className="rounded-lg border border-apex-success/30 bg-apex-success/10 px-4 py-3 text-sm text-apex-success"
+            role="status"
+          >
+            {successMessage}
           </p>
-        )}
+        ) : null}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button

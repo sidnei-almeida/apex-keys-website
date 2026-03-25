@@ -32,7 +32,15 @@ import type {
   WalletBalanceResponse,
 } from "@/types/api";
 import { logWalletPixIntentError, logWalletPixIntentOk } from "@/lib/client-log";
-import { ApiError, deleteRequest, getJson, patchJson, postJson, putJson } from "./http";
+import {
+  ApiError,
+  apiRequest,
+  deleteRequest,
+  getJson,
+  patchJson,
+  postJson,
+  putJson,
+} from "./http";
 
 export async function getHealth(): Promise<{ status: string }> {
   return getJson("/health");
@@ -61,6 +69,20 @@ export async function updateProfile(
   body: UserProfileUpdate,
 ): Promise<UserPublic> {
   return patchJson<UserPublic, UserProfileUpdate>("/users/me", body, token);
+}
+
+/** Multipart — campo `file` como na API (jpg, jpeg, png, webp; máx. 2MB no servidor). */
+export async function uploadAvatar(
+  token: string,
+  file: File,
+): Promise<UserPublic> {
+  const body = new FormData();
+  body.append("file", file);
+  return apiRequest<UserPublic>("/users/me/avatar", {
+    method: "POST",
+    body,
+    token,
+  });
 }
 
 export async function getWalletBalance(token: string): Promise<WalletBalanceResponse> {
