@@ -434,12 +434,10 @@ export function LastWinnersHall() {
                       </div>
                       {isChamp ? (
                         <p
-                          className="mt-auto border-t border-amber-500/20 pt-4 text-center font-body text-xs leading-relaxed text-amber-100/85 sm:text-[13px]"
+                          className="mx-auto mt-auto max-w-[15.5rem] border-t border-amber-500/15 px-1 pt-2.5 text-center font-body text-[10px] font-medium leading-snug tracking-wide text-amber-200/70 sm:max-w-[17rem] sm:text-[11px]"
                           role="note"
                         >
-                          Um obrigado especial: a tua confiança e entusiasmo fazem
-                          parte do que a Apex Keys é. Parabéns por esta conquista —
-                          és inspiração para toda a comunidade.
+                          Obrigado pela confiança. Parabéns por esta conquista.
                         </p>
                       ) : null}
                     </div>

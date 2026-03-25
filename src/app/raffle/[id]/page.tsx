@@ -42,6 +42,8 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+const TOAST_MS = 3000;
+
 function formatBRL(value: string | number) {
   const n = typeof value === "string" ? parseFloat(value) : value;
   return isNaN(n)
@@ -318,6 +320,8 @@ export default function RafflePage() {
       try {
         await releaseReservation(token, holdId);
         toast.success("Reserva cancelada", {
+          id: "raffle-reserva-cancelada",
+          duration: TOAST_MS,
           description: "Os números voltaram a ficar disponíveis.",
         });
       } catch (e) {
@@ -328,6 +332,8 @@ export default function RafflePage() {
               ? e.message
               : "";
         toast.error("Não foi possível libertar os números", {
+          id: "raffle-release-erro",
+          duration: TOAST_MS,
           description: d || "Atualize a página ou tente de novo.",
         });
       }
@@ -360,6 +366,8 @@ export default function RafflePage() {
 
     if (!isReady) {
       toast.message("A carregar o seu perfil…", {
+        id: "raffle-perfil-loading",
+        duration: TOAST_MS,
         description: "Tente novamente dentro de um instante.",
       });
       return;
@@ -381,6 +389,8 @@ export default function RafflePage() {
         "Saldo insuficiente para pagar só com a carteira. Escolha Pix ou recarregue a carteira em Minha conta.",
       );
       toast.error("Saldo insuficiente", {
+        id: "raffle-saldo-insuficiente",
+        duration: TOAST_MS,
         description:
           "Marque Pix para pagar o total da reserva ou adicione saldo antes.",
       });
@@ -402,6 +412,8 @@ export default function RafflePage() {
         setRaffle(updated);
         setSelectedNumbers([]);
         toast.success("Compra concluída", {
+          id: `raffle-checkout-${reserve.payment_hold_id}`,
+          duration: TOAST_MS,
           description: `${reserve.ticket_numbers.length} cota(s) garantida(s) na carteira.`,
         });
         return;
@@ -437,6 +449,8 @@ export default function RafflePage() {
             /* ignore */
           }
           toast.error("Pagamento não confirmado a tempo", {
+            id: "raffle-pix-timeout",
+            duration: TOAST_MS,
             description:
               "Os números foram libertados. Pode selecionar de novo ou tentar outro pagamento.",
           });
@@ -457,6 +471,8 @@ export default function RafflePage() {
       setRaffle(updated);
       setSelectedNumbers([]);
       toast.success("Pagamento confirmado", {
+        id: `raffle-checkout-${reserve.payment_hold_id}`,
+        duration: TOAST_MS,
         description: `${reserve.ticket_numbers.length} cota(s) garantida(s).`,
       });
     } catch (err) {
@@ -473,7 +489,11 @@ export default function RafflePage() {
         const msg =
           err.detail ?? "Número já foi reservado ou vendido por outro jogador.";
         setPayError(msg);
-        toast.error("Número indisponível", { description: msg });
+        toast.error("Número indisponível", {
+          id: "raffle-numero-409",
+          duration: TOAST_MS,
+          description: msg,
+        });
         try {
           const updated = await getRaffleById(raffle.id);
           setRaffle(updated);
@@ -488,7 +508,11 @@ export default function RafflePage() {
           ? (err.detail ?? "Erro ao processar")
           : "Erro ao processar";
       setPayError(msg);
-      toast.error("Erro no pagamento", { description: msg });
+      toast.error("Erro no pagamento", {
+        id: "raffle-pagamento-erro",
+        duration: TOAST_MS,
+        description: msg,
+      });
       setPixModalOpen(false);
       setPixIntent(null);
       setPixPolling(false);

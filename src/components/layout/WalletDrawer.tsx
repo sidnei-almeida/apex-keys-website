@@ -16,6 +16,8 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+const TOAST_MS = 3000;
+
 const PRESET_AMOUNTS = [10, 20, 50] as const;
 const POLL_MS = 2500;
 const POLL_MAX = 120;
@@ -328,6 +330,8 @@ export default function WalletDrawer({
             await refreshUser();
             await loadTransactions();
             toast.success("Saldo creditado", {
+              id: `wallet-deposit-${gatewayRef}`,
+              duration: TOAST_MS,
               description: "O Mercado Pago confirmou o Pix na sua carteira.",
             });
             setPixOpen(false);
@@ -341,6 +345,8 @@ export default function WalletDrawer({
       }
       if (!signal.aborted) {
         toast.message("Ainda à espera do Pix", {
+          id: "wallet-deposit-timeout",
+          duration: TOAST_MS,
           description:
             "Se já pagou, o saldo pode demorar um pouco. Atualize a página ou consulte Minhas transações.",
         });
@@ -355,6 +361,8 @@ export default function WalletDrawer({
     if (!isAuthenticated || !user) {
       onRequestLogin?.();
       toast.message("Inicie sessão", {
+        id: "wallet-login-required",
+        duration: TOAST_MS,
         description: "É preciso estar autenticado para depositar na carteira.",
       });
       return;
@@ -397,7 +405,11 @@ export default function WalletDrawer({
             ? e.message
             : "Não foi possível criar o Pix.";
       setDepositError(msg);
-      toast.error("Erro ao gerar Pix", { description: msg });
+      toast.error("Erro ao gerar Pix", {
+        id: "wallet-pix-erro",
+        duration: TOAST_MS,
+        description: msg,
+      });
     } finally {
       setDepositLoading(false);
     }
@@ -420,6 +432,8 @@ export default function WalletDrawer({
         await loadTransactions();
         await refreshUser();
         toast.success("Depósito cancelado", {
+          id: `wallet-abandon-${ref}`,
+          duration: TOAST_MS,
           description:
             "Este Pix deixou de estar pendente. Se ainda pagares o QR, o saldo não será creditado automaticamente neste registo.",
         });
@@ -431,6 +445,8 @@ export default function WalletDrawer({
               ? e.message
               : "";
         toast.error("Não foi possível atualizar o estado", {
+          id: "wallet-abandon-erro",
+          duration: TOAST_MS,
           description:
             d || "O aguardo foi interrompido no ecrã; verifica o histórico ou tenta de novo.",
         });
@@ -439,6 +455,8 @@ export default function WalletDrawer({
     }
 
     toast.message("Aguardo interrompido", {
+      id: "wallet-await-cancelled",
+      duration: TOAST_MS,
       description:
         "Se já gerou o QR, pode pagar mesmo assim — o saldo atualiza quando o Mercado Pago confirmar.",
     });

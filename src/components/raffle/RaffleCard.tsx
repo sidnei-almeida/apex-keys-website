@@ -21,9 +21,17 @@ function raffleImageUrl(url: string | null) {
   return `${getApiBaseUrl()}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
-function ProgressTrack({ children }: { children: React.ReactNode }) {
+function ProgressTrack({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="overflow-hidden rounded-full border border-premium-border bg-premium-bg shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
+    <div
+      className={`w-full overflow-hidden rounded-full border border-premium-border bg-premium-bg shadow-[inset_0_1px_2px_rgba(0,0,0,0.45)] ${className ?? ""}`}
+    >
       {children}
     </div>
   );
@@ -93,10 +101,10 @@ export function RaffleGridCard({ raffle }: { raffle: RaffleListOut }) {
           <p className="mt-2 font-mono text-sm font-semibold text-premium-text">
             {formatBRL(raffle.ticket_price)} / número
           </p>
-          <ProgressTrack>
+          <ProgressTrack className="mt-3 h-2">
             <ProgressFill pct={pct} />
           </ProgressTrack>
-          <p className="mt-2 font-mono text-sm tabular-nums text-premium-muted">
+          <p className="mt-2 font-mono text-xs font-medium tabular-nums text-premium-muted sm:text-sm">
             {raffle.sold}/{raffle.total_tickets} vendidos
           </p>
           <span className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-premium-accent bg-transparent py-2.5 font-body text-sm font-semibold text-premium-accent transition-colors group-hover:bg-premium-accent group-hover:text-black">

@@ -44,16 +44,16 @@ function FooterColumn({
   links: readonly { href: string; label: string }[];
 }) {
   return (
-    <div className="flex min-h-0 flex-col items-start gap-3">
-      <p className="mb-0 w-full border-b border-premium-border/30 pb-2 font-body text-xs font-bold uppercase tracking-[0.14em] text-premium-text">
+    <div className="flex min-h-0 w-full flex-col items-center gap-2 text-center md:items-start md:text-left">
+      <p className="mb-0 w-full border-b border-zinc-800 pb-2 font-body text-xs font-semibold uppercase tracking-[0.14em] text-zinc-100">
         {title}
       </p>
-      <ul className="flex w-full flex-col gap-2">
+      <ul className="flex w-full flex-col gap-1.5">
         {links.map(({ href, label }) => (
           <li key={label} className="w-full">
             <Link
               href={href}
-              className="font-body text-sm text-premium-muted transition-colors duration-300 ease-in-out hover:text-premium-text"
+              className="font-body text-sm text-zinc-400 transition-colors duration-200 ease-out hover:text-zinc-100"
             >
               {label}
             </Link>
@@ -68,60 +68,66 @@ const FOOTER_CONTAINER = "mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8";
 
 export default function Footer() {
   return (
-    <footer className="relative z-10 mt-auto border-t border-premium-border/20 bg-premium-bg">
+    <footer className="relative z-10 mt-auto border-t border-zinc-800 bg-zinc-950">
       {/* Pagamento seguro — credibilidade */}
-      <div className="border-b border-premium-border/20 bg-premium-bg">
+      <div className="border-b border-zinc-800">
         <div
-          className={`${FOOTER_CONTAINER} flex flex-col gap-5 py-5 md:flex-row md:items-center md:justify-between md:py-6`}
+          className={`${FOOTER_CONTAINER} flex flex-col gap-4 py-6 sm:gap-5 md:flex-row md:items-center md:justify-between md:py-7`}
         >
-          <div>
+          <div className="text-center md:max-w-md md:text-left">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-premium-accent">
               Pagamento seguro
             </p>
-            <p className="mt-2 max-w-md text-sm leading-relaxed text-premium-muted">
+            <p className="mt-1.5 text-sm leading-snug text-zinc-400">
               Transações com criptografia e parceiros reconhecidos. O site utiliza
               conexão HTTPS (SSL) para proteger os seus dados.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-4 md:gap-5">
-            <div className="flex items-center gap-2 rounded-lg border border-premium-border bg-premium-surface px-3 py-2">
-              <Lock className="size-4 shrink-0 text-premium-muted" aria-hidden />
-              <span className="text-xs font-semibold text-premium-text">
+          <div className="flex flex-wrap items-center justify-center gap-3 md:justify-end md:gap-4">
+            <div className="flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2">
+              <Lock
+                className="size-4 shrink-0 text-zinc-300"
+                aria-hidden
+              />
+              <span className="text-xs font-semibold text-zinc-100">
                 SSL / HTTPS
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <VisaMark className="h-8 w-12 opacity-90" />
-              <MastercardMark className="h-8 w-12 opacity-90" />
-              <PixMark className="h-8 w-12 opacity-90" />
+              <VisaMark className="h-7 w-11 opacity-95 brightness-105 transition-[opacity,filter] duration-200 hover:opacity-100 hover:brightness-110" />
+              <MastercardMark className="h-7 w-11 opacity-95 brightness-105 transition-[opacity,filter] duration-200 hover:opacity-100 hover:brightness-110" />
+              <PixMark className="h-7 w-11 opacity-95 brightness-105 transition-[opacity,filter] duration-200 hover:opacity-100 hover:brightness-110" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Footer — grid limpo, espaçamento tipo SaaS */}
-      <div className={`${FOOTER_CONTAINER} py-10 md:py-12`}>
-        <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-12 md:gap-x-8 md:gap-y-8 lg:gap-x-10">
+      <div className={`${FOOTER_CONTAINER} py-7 md:py-8`}>
+        <div className="grid grid-cols-1 items-start gap-6 text-center md:grid-cols-12 md:gap-x-6 md:gap-y-5 md:text-left lg:gap-x-8">
           {/* 1. Marca + Segurança */}
-          <div className="flex flex-col items-start gap-y-5 md:col-span-4">
-            <Link href="/" className="inline-block max-w-[9.5rem] sm:max-w-[10.5rem]">
+          <div className="flex flex-col items-center gap-y-3 md:col-span-4 md:items-start">
+            <Link
+              href="/"
+              className="inline-block max-w-[9.5rem] sm:max-w-[10.5rem]"
+            >
               <img
                 src={FOOTER_LOGO}
                 alt="Apex Keys"
-                className="h-9 w-auto max-w-full object-contain object-left opacity-90 sm:h-10 lg:h-11"
+                className="h-8 w-auto max-w-full object-contain object-center opacity-95 brightness-105 sm:h-9 md:object-left lg:h-10"
               />
             </Link>
-            <div className="flex flex-col items-start gap-1.5">
+            <div className="flex flex-col items-center gap-1.5 md:items-start">
               <div className="flex items-center gap-2">
                 <ShieldCheck
                   className="size-5 shrink-0 text-premium-accent"
                   aria-hidden
                 />
-                <span className="text-sm font-semibold text-premium-text">
+                <span className="text-sm font-semibold text-zinc-100">
                   Transação Segura
                 </span>
               </div>
-              <p className="text-xs text-premium-muted">
+              <p className="text-xs text-zinc-400">
                 Pagamentos seguros e rastreáveis
               </p>
             </div>
@@ -143,19 +149,19 @@ export default function Footer() {
           </div>
 
           {/* 5. Redes Sociais */}
-          <div className="flex flex-col items-start md:col-span-2">
-            <p className="mb-0 w-full border-b border-premium-border/30 pb-2 font-body text-xs font-bold uppercase tracking-[0.14em] text-premium-text">
+          <div className="flex flex-col items-center md:col-span-2 md:items-start">
+            <p className="mb-0 w-full border-b border-zinc-800 pb-2 text-center font-body text-xs font-semibold uppercase tracking-[0.14em] text-zinc-100 md:text-left">
               Redes Sociais
             </p>
-            <div className="mt-3 flex flex-row flex-wrap gap-4">
+            <div className="mt-2.5 flex flex-row flex-wrap justify-center gap-3.5 md:justify-start md:gap-3">
               {SOCIAL_LINKS.map(({ href, label, icon: Icon }) => (
                 <Link
                   key={label}
                   href={href}
                   aria-label={label}
-                  className="text-premium-muted transition-all duration-200 hover:-translate-y-0.5 hover:text-premium-text"
+                  className="text-zinc-400 opacity-90 transition-all duration-200 hover:-translate-y-0.5 hover:text-zinc-100 hover:opacity-100"
                 >
-                  <Icon className="size-6" aria-hidden />
+                  <Icon className="size-5" aria-hidden />
                 </Link>
               ))}
             </div>
@@ -163,12 +169,12 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Sub-footer — mesmo container para alinhamento vertical com a logo */}
-      <div className="border-t border-premium-border/20 bg-premium-bg">
+      {/* Sub-footer — copyright */}
+      <div className="border-t border-zinc-800">
         <div
-          className={`${FOOTER_CONTAINER} flex flex-col items-start justify-between gap-3 pt-6 pb-4 sm:flex-row sm:items-center`}
+          className={`${FOOTER_CONTAINER} flex flex-col items-center justify-between gap-2 py-4 text-center sm:flex-row sm:items-center sm:text-left md:py-5`}
         >
-          <p className="font-body text-xs text-premium-muted">
+          <p className="font-body text-xs text-zinc-500">
             © 2026 Apex Keys. Todos os direitos reservados.
           </p>
         </div>

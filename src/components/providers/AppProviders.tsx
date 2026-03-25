@@ -9,6 +9,11 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       {children}
       <Toaster
         position="bottom-center"
+        theme="dark"
+        expand={false}
+        duration={3000}
+        visibleToasts={3}
+        gap={10}
         toastOptions={{
           duration: 3000,
           style: {
