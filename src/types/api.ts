@@ -82,6 +82,9 @@ export type RafflePublic = {
   created_at: string;
   /** featured = hero, carousel = carrossel, none = só em /rifas */
   featured_tier?: FeaturedTier | null;
+  /** Bilhete vencedor (rifas já sorteadas) */
+  winning_ticket_number?: number | null;
+  drawn_at?: string | null;
   /** Metadados IGDB / copy — opcionais até o backend expor no OpenAPI */
   summary?: string | null;
   genres?: string[];
@@ -111,6 +114,24 @@ export type TicketPurchaseResponse = {
   ticket_number: number;
   amount_charged: string;
   new_balance: string;
+};
+
+/** GET /raffles/hall-of-fame — rifa em destaque no cartão */
+export type HallOfFameSpotlightRaffle = {
+  raffle_id: string;
+  title: string;
+  image_url: string | null;
+  winning_ticket_number: number;
+};
+
+/** GET /raffles/hall-of-fame — uma posição no pódio (rank 1 = campeão) */
+export type HallOfFameEntryOut = {
+  rank: number;
+  user_id: string;
+  full_name: string;
+  avatar_url?: string | null;
+  wins: number;
+  spotlight: HallOfFameSpotlightRaffle;
 };
 
 export type NotificationOut = {

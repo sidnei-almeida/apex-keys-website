@@ -9,6 +9,7 @@ import type {
   AdminReservationsListOut,
   AdminWalletAdjust,
   AdminWalletAdjustResponse,
+  HallOfFameEntryOut,
   IgdbGameInfoResponse,
   IgdbGameUrlRequest,
   MyTicketOut,
@@ -182,6 +183,10 @@ export async function getRaffles(params?: {
 
 export async function getRaffleById(id: string): Promise<RaffleDetailOut> {
   return getJson<RaffleDetailOut>(`/raffles/${encodeURIComponent(id)}`);
+}
+
+export async function getHallOfFame(): Promise<HallOfFameEntryOut[]> {
+  return getJson<HallOfFameEntryOut[]>("/raffles/hall-of-fame");
 }
 
 export async function buyTicket(
