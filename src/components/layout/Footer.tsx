@@ -13,7 +13,9 @@ import {
   VisaMark,
 } from "@/components/layout/FooterPaymentTrust";
 
-const FOOTER_LOGO = "/logos/title no bakcground.png";
+import GoldenLionLogo from "@/app/Adobe Express - file.png";
+
+const FOOTER_LOGO = GoldenLionLogo.src;
 
 const QUICK_LINKS = [
   { href: "/", label: "Home" },
@@ -107,29 +109,35 @@ export default function Footer() {
         <div className="grid grid-cols-1 items-start gap-6 text-center md:grid-cols-12 md:gap-x-6 md:gap-y-5 md:text-left lg:gap-x-8">
           {/* 1. Marca + Segurança */}
           <div className="flex flex-col items-center gap-y-3 md:col-span-4 md:items-start">
-            <Link
-              href="/"
-              className="inline-block max-w-[9.5rem] sm:max-w-[10.5rem]"
-            >
-              <img
-                src={FOOTER_LOGO}
-                alt="Apex Keys"
-                className="h-8 w-auto max-w-full object-contain object-center opacity-95 brightness-105 sm:h-9 md:object-left lg:h-10"
-              />
-            </Link>
-            <div className="flex flex-col items-center gap-1.5 md:items-start">
-              <div className="flex items-center gap-2">
-                <ShieldCheck
-                  className="size-5 shrink-0 text-premium-accent"
-                  aria-hidden
-                />
-                <span className="text-sm font-semibold text-zinc-100">
-                  Transação Segura
-                </span>
+            <div className="flex items-start gap-3">
+              <Link
+                href="/"
+                aria-label="Apex Keys - Início"
+                className="shrink-0 opacity-95 transition-opacity hover:opacity-100"
+              >
+                <div className="size-[42px] overflow-hidden">
+                  <img
+                    src={FOOTER_LOGO}
+                    alt="Apex Keys"
+                    className="size-full object-cover object-[50%_20%] [transform:scale(1.9)]"
+                  />
+                </div>
+              </Link>
+
+              <div className="flex min-h-[42px] flex-col justify-center gap-1">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck
+                    className="size-5 shrink-0 text-premium-accent"
+                    aria-hidden
+                  />
+                  <span className="text-sm font-semibold text-zinc-100">
+                    Transação Segura
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400">
+                  Pagamentos seguros e rastreáveis
+                </p>
               </div>
-              <p className="text-xs text-zinc-400">
-                Pagamentos seguros e rastreáveis
-              </p>
             </div>
           </div>
 

@@ -26,6 +26,7 @@ import {
 import UserAvatar from "@/components/user/UserAvatar";
 import { getAccessToken } from "@/lib/auth/token-storage";
 import type { NotificationOut } from "@/types/api";
+import GoldenLionLogo from "@/app/Adobe Express - file.png";
 
 const PROFILE_DROPDOWN_LINKS = [
   { href: "/conta", label: "Configuração", icon: Settings },
@@ -35,8 +36,8 @@ const PROFILE_DROPDOWN_LINKS = [
   { href: "/historico-rifas", label: "Histórico de Rifas", icon: History },
 ] as const;
 
-/** Logo Apex Keys (lobo) — manter intacta, efeito bleeding */
-const LOGO_BLEEDING = "/logos/apex logo no bakground.png";
+/** Logo Apex Keys (leão dourado) — efeito bleeding */
+const LOGO_BLEEDING = GoldenLionLogo.src;
 
 function formatHeaderWalletBalance(balance: string | undefined | null): string {
   if (balance == null || !String(balance).trim()) return "R$ 0,00";
