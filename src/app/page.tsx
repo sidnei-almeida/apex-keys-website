@@ -1,7 +1,8 @@
 "use client";
 
+import { HomeImagePreloads } from "@/components/home/HomeImagePreloads";
 import { getRaffles } from "@/lib/api/services";
-import { getApiBaseUrl } from "@/lib/api/config";
+import { raffleImageUrl } from "@/lib/raffle-image-url";
 import type { RaffleListOut } from "@/types/api";
 import {
   ChevronRight,
@@ -43,12 +44,6 @@ function formatBRL(value: string | number) {
   return isNaN(n)
     ? "R$ 0,00"
     : n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function raffleImageUrl(url: string | null) {
-  if (!url) return null;
-  if (url.startsWith("http")) return url;
-  return `${getApiBaseUrl()}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
 function ProgressTrack({
@@ -420,6 +415,29 @@ export default function Home() {
     return buildCarouselItems(others, MIN_CAROUSEL_SLIDES);
   }, [onHome]);
 
+  /** Preload: até 4 slides do hero + 1ª capa do carrossel “Mais sorteios”. */
+  const imagePreloadUrls = useMemo(() => {
+    if (loading) return [];
+    const seen = new Set<string>();
+    const list: string[] = [];
+    const add = (raw: string | null | undefined) => {
+      const u = raffleImageUrl(raw);
+      if (u && !seen.has(u)) {
+        seen.add(u);
+        list.push(u);
+      }
+    };
+    for (const r of heroSlides.slice(0, 4)) {
+      add(r.image_url);
+    }
+    const lead = carouselItems.find(
+      (item): item is { kind: "raffle"; raffle: RaffleListOut } =>
+        item.kind === "raffle",
+    );
+    if (lead) add(lead.raffle.image_url);
+    return list;
+  }, [loading, heroSlides, carouselItems]);
+
   useEffect(() => {
     getRaffles()
       .then((all) =>
@@ -434,6 +452,8 @@ export default function Home() {
 
   return (
     <div className="overflow-x-clip font-body">
+      <HomeImagePreloads urls={imagePreloadUrls} />
+
       {loading && <HeroSkeleton />}
 
       {!loading && heroSlides.length > 0 && (

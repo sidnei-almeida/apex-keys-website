@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
+import { ApiOriginPreconnect } from "@/components/layout/ApiOriginPreconnect";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AppProviders } from "@/components/providers/AppProviders";
@@ -48,6 +49,9 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${spaceGrotesk.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
+      <head>
+        <ApiOriginPreconnect />
+      </head>
       <body
         className={`relative min-h-screen bg-apex-bg text-apex-text ${plusJakartaSans.className}`}
       >
