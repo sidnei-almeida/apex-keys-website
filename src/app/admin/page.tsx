@@ -321,7 +321,7 @@ function StatCard({
   accentClass?: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-apex-surface p-5 shadow-[0_4px_20px_rgb(0,0,0,0.25)]">
+    <div className="rounded-xl border border-white/5 bg-apex-surface/60 p-5 shadow-[0_4px_24px_rgb(0,0,0,0.2)] backdrop-blur-md">
       <div className="flex items-start justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-apex-text-muted">
           {title}
@@ -1097,11 +1097,22 @@ function AdminPanel() {
         : "Pagamentos concluídos ficam no histórico; eliminar só após 14 dias (retenção).";
 
   return (
-    // Full-bleed: escapa o padding do <main> do layout
-    <div className="-mx-4 -mb-8 -mt-6 flex min-h-[calc(100vh-4rem)] sm:-mx-6 lg:-mx-8">
+    <div className="relative isolate -mb-8 flex min-h-[calc(100vh-4rem)]">
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_90%_55%_at_12%_-5%,rgba(0,77,230,0.1)_0%,transparent_58%)]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_75%_50%_at_88%_25%,rgba(99,102,241,0.09)_0%,transparent_52%)]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_65%_42%_at_50%_95%,rgba(0,229,255,0.05)_0%,transparent_48%)]"
+        aria-hidden
+      />
 
       {/* ── SIDEBAR ────────────────────────────────────────────── */}
-      <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 flex-col overflow-y-auto border-r border-white/5 bg-apex-surface lg:flex">
+      <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 flex-col overflow-y-auto border-r border-white/5 bg-apex-surface/60 backdrop-blur-lg lg:flex">
         {/* Brand */}
         <div className="flex items-center gap-3 border-b border-white/5 px-5 py-5">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-apex-accent/10 text-apex-accent">
@@ -1156,11 +1167,11 @@ function AdminPanel() {
       </aside>
 
       {/* ── MAIN WORKSPACE ─────────────────────────────────────── */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative z-0 flex min-w-0 flex-1 flex-col">
 
         {/* Mobile tab bar (< lg) */}
         <nav
-          className="flex flex-wrap gap-1 border-b border-apex-primary/15 px-4 py-2 lg:hidden"
+          className="flex flex-wrap gap-1 border-b border-white/5 bg-apex-bg/50 px-4 py-2 backdrop-blur-md lg:hidden"
           aria-label="Secções do painel"
         >
           {TAB_DEF.map(({ id, label, icon: Icon }) => {
@@ -1184,7 +1195,7 @@ function AdminPanel() {
         </nav>
 
         {/* Inner header (desktop) */}
-        <header className="sticky top-16 z-10 hidden items-center justify-between border-b border-white/[0.06] bg-apex-bg/95 px-6 py-4 backdrop-blur-sm lg:flex">
+        <header className="sticky top-16 z-10 hidden items-center justify-between border-b border-white/5 bg-apex-bg/70 px-6 py-4 backdrop-blur-md lg:flex">
           <div>
             <h1 className="text-base font-bold text-apex-text lg:text-lg">
               {innerTitle}
@@ -1221,7 +1232,7 @@ function AdminPanel() {
               className="grid min-h-0 grid-cols-1 gap-4 lg:max-h-[calc(100vh-8rem)] lg:grid-cols-2 lg:items-stretch"
             >
               {/* Left — formulário compacto, scroll interno */}
-              <div className="flex min-h-0 flex-col gap-3 overflow-y-auto rounded-xl border border-apex-primary/20 bg-apex-surface p-4 shadow-[0_8px_30px_rgb(0,0,0,0.3)] sm:p-5">
+              <div className="flex min-h-0 flex-col gap-3 overflow-y-auto rounded-xl border border-white/5 bg-apex-surface/60 p-4 shadow-[0_8px_32px_rgb(0,0,0,0.25)] backdrop-blur-lg sm:p-5">
                 <div className="grid gap-3 sm:grid-cols-2">
                   {/* IGDB URL */}
                   <div className="sm:col-span-2">
@@ -1593,7 +1604,7 @@ function AdminPanel() {
               {/* Right — previews fixos, sempre visíveis (sticky) */}
               <div className="flex min-h-0 flex-col gap-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
                 {/* Preview da capa */}
-                <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-apex-accent/10 bg-apex-surface p-3 shadow-[0_8px_30px_rgb(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.02)]">
+                <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/5 bg-apex-surface/60 p-3 shadow-[0_8px_32px_rgb(0,0,0,0.22)] backdrop-blur-lg">
                   <p className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-apex-text-muted">
                     Preview da capa
                   </p>
@@ -1637,7 +1648,7 @@ function AdminPanel() {
                 </section>
 
                 {/* Preview do vídeo YouTube */}
-                <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-apex-accent/10 bg-apex-surface p-3 shadow-[0_8px_30px_rgb(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.02)]">
+                <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/5 bg-apex-surface/60 p-3 shadow-[0_8px_32px_rgb(0,0,0,0.22)] backdrop-blur-lg">
                   <label className="shrink-0">
                     <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-apex-text-muted">
                       Link do vídeo no YouTube (opcional)
@@ -1717,7 +1728,7 @@ function AdminPanel() {
               </div>
 
               {/* Table */}
-              <section className="rounded-xl border border-apex-primary/20 bg-apex-surface shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+              <section className="rounded-xl border border-white/5 bg-apex-surface/60 shadow-[0_8px_32px_rgb(0,0,0,0.25)] backdrop-blur-lg">
                 {rafflesDeleteError ? (
                   <p
                     role="alert"
@@ -1729,7 +1740,7 @@ function AdminPanel() {
                 <div className="overflow-x-auto rounded-xl">
                   <table className="w-full min-w-[920px] border-collapse text-left">
                     <thead>
-                      <tr className="bg-apex-bg/50">
+                      <tr className="border-b border-white/[0.06] bg-white/[0.04] backdrop-blur-sm">
                         <th className={thClass}>Jogo / Título</th>
                         <th className={`${thClass} min-w-[140px]`}>
                           Progresso
@@ -1973,11 +1984,11 @@ function AdminPanel() {
               </div>
 
               {/* Table */}
-              <section className="rounded-xl border border-apex-primary/20 bg-apex-surface shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
+              <section className="rounded-xl border border-white/5 bg-apex-surface/60 shadow-[0_8px_32px_rgb(0,0,0,0.25)] backdrop-blur-lg">
                 <div className="overflow-x-auto rounded-xl">
                   <table className="w-full min-w-[960px] border-collapse text-left">
                     <thead>
-                      <tr className="bg-apex-bg/50">
+                      <tr className="border-b border-white/[0.06] bg-white/[0.04] backdrop-blur-sm">
                         <th className={thClass}>Cliente</th>
                         <th className={thClass}>Rifa</th>
                         <th className={thClass}>Números</th>
@@ -2185,7 +2196,7 @@ export default function AdminPage() {
   return (
     <Suspense
       fallback={
-        <div className="-mx-4 -mb-8 -mt-6 flex min-h-[calc(100vh-4rem)] items-center justify-center sm:-mx-6 lg:-mx-8">
+        <div className="-mb-8 flex min-h-[calc(100vh-4rem)] items-center justify-center">
           <p className="flex items-center gap-2 text-sm text-apex-text-muted">
             <Loader2 className="size-4 animate-spin text-apex-accent" aria-hidden />
             A carregar painel…

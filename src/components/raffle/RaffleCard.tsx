@@ -61,7 +61,7 @@ export function RaffleGridCard({ raffle }: { raffle: RaffleListOut }) {
     >
       <Link href={`/raffle/${raffle.id}`}>
         <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden border-b border-white/[0.05] bg-apex-bg">
-          <span className="absolute right-2 top-2 z-10 rounded-md bg-apex-bg/90 px-2 py-0.5 text-xs font-medium text-apex-text/90 backdrop-blur-sm">
+          <span className="absolute right-2 top-2 z-10 rounded-md bg-apex-bg/90 px-2 py-0.5 font-body text-xs font-medium text-apex-text/90 backdrop-blur-sm">
             {statusLabel}
           </span>
           {imgUrl ? (
@@ -87,19 +87,19 @@ export function RaffleGridCard({ raffle }: { raffle: RaffleListOut }) {
           )}
         </div>
         <div className="p-5">
-          <h3 className="truncate text-lg font-bold text-apex-text/95">
+          <h3 className="truncate font-heading text-lg font-bold text-apex-text/95">
             {raffle.title}
           </h3>
-          <p className="mt-2 text-sm font-semibold text-apex-success/90">
+          <p className="mt-2 font-mono text-sm font-semibold text-apex-success/90">
             {formatBRL(raffle.ticket_price)} / número
           </p>
           <ProgressTrack>
             <ProgressFill pct={pct} />
           </ProgressTrack>
-          <p className="mt-2 text-sm text-apex-text/50">
+          <p className="mt-2 font-mono text-sm tabular-nums text-apex-text/50">
             {raffle.sold}/{raffle.total_tickets} vendidos
           </p>
-          <span className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-apex-accent/20 bg-apex-surface py-2.5 text-sm font-semibold text-apex-text-muted transition-all group-hover:border-apex-accent/50 group-hover:bg-apex-accent/10 group-hover:text-apex-accent">
+          <span className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-apex-accent/20 bg-apex-surface py-2.5 font-body text-sm font-semibold text-apex-text-muted transition-all group-hover:border-apex-accent/50 group-hover:bg-apex-accent/10 group-hover:text-apex-accent">
             <Ticket className="size-4" aria-hidden />
             {buttonText}
           </span>

@@ -11,18 +11,31 @@
   }
 }
 
+/* LiveSalesPulse — entrada suave (slide up + fade) */
+@keyframes apex-fomo-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @theme inline {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* ~16% menor que 16px: escala tipografia (e rem do Tailwind) de forma uniforme */
+    font-size: 84%;
   }
 
   body {
-    @apply bg-apex-bg text-apex-text min-h-full font-sans antialiased;
+    @apply min-h-full bg-apex-bg text-apex-text antialiased;
   }
 
   /* Cursor pointer em elementos clicáveis (Preflight remove em alguns casos) */
@@ -70,6 +83,42 @@
 }
 
 @layer utilities {
+  .apex-fomo-enter {
+    animation: apex-fomo-in 0.5s ease-out forwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .apex-fomo-enter {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Hall da Fama — entrada escalonada no pódio */
+  @keyframes apex-podium-in {
+    from {
+      opacity: 0;
+      transform: translateY(1.75rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .apex-podium-enter {
+    animation: apex-podium-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .apex-podium-enter {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   .apex-marquee-track {
     display: flex;
     width: max-content;

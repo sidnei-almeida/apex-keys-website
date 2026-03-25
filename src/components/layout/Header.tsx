@@ -173,8 +173,8 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 overflow-visible border-b border-white/[0.06] bg-[#060b14]/55 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150">
-      <div className="relative mx-auto flex min-h-24 max-w-[1440px] items-center justify-between gap-0 px-4 py-3 sm:px-6 lg:min-h-28 lg:px-8">
+    <header className="sticky top-0 z-50 overflow-visible border-b border-white/5 bg-apex-bg/70 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-md backdrop-saturate-150">
+      <div className="relative mx-auto flex min-h-24 w-full max-w-none items-center justify-between gap-0 px-4 py-3 sm:px-6 lg:min-h-28 lg:px-8 xl:px-10 2xl:px-12">
         {/* 1. LOGO (esquerda) — bleeding */}
         <div className="flex min-w-0 shrink-0 items-center sm:w-36 lg:w-40">
           <Link
@@ -190,13 +190,13 @@ export default function Header() {
                 onError={() => setLogoError(true)}
               />
             ) : (
-              <span className="flex h-24 items-center font-bold italic tracking-tight text-apex-text">
+              <span className="flex h-24 items-center font-heading text-lg font-bold italic tracking-tight text-apex-text">
                 APEX KEYS
               </span>
             )}
           </Link>
           <Link href="/" className="md:hidden">
-            <span className="font-bold italic tracking-tight text-apex-text">
+            <span className="font-heading text-base font-bold italic tracking-tight text-apex-text">
               APEX KEYS
             </span>
           </Link>
@@ -210,7 +210,7 @@ export default function Header() {
               <Link
                 key={href}
                 href={href}
-                className="relative px-4 py-2.5 text-sm font-medium tracking-wide text-apex-text-muted/80 transition-colors duration-200 hover:text-apex-text after:absolute after:bottom-1.5 after:left-1/2 after:h-0.5 after:w-0 after:-translate-x-1/2 after:rounded-full after:bg-apex-accent after:transition-all after:duration-200 hover:after:w-[calc(100%-2rem)]"
+                className="relative px-4 py-2.5 font-body text-sm font-medium tracking-wide text-apex-text-muted/80 transition-colors duration-200 hover:text-apex-text after:absolute after:bottom-1.5 after:left-1/2 after:h-0.5 after:w-0 after:-translate-x-1/2 after:rounded-full after:bg-apex-accent after:transition-all after:duration-200 hover:after:w-[calc(100%-2rem)]"
               >
                 {label}
               </Link>
@@ -229,11 +229,11 @@ export default function Header() {
           >
             <Wallet className="size-5 shrink-0 text-apex-accent/90" aria-hidden />
             <div className="flex flex-col items-end">
-              <span className="text-[11px] font-medium uppercase tracking-wider text-apex-text-muted/70">
+              <span className="font-body text-[11px] font-medium uppercase tracking-wider text-apex-text-muted/70">
                 Carteira
               </span>
               <span
-                className="text-base font-bold tabular-nums text-apex-accent"
+                className="font-mono text-base font-bold tabular-nums text-apex-accent"
                 style={{
                   textShadow: "0 0 20px rgba(0,229,255,0.25)",
                 }}
@@ -256,7 +256,7 @@ export default function Header() {
                 <Bell className="size-5" aria-hidden />
                 {unreadCount > 0 && (
                   <span
-                    className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-apex-accent text-[10px] font-bold text-apex-bg"
+                    className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-apex-accent font-mono text-[10px] font-bold text-apex-bg"
                     aria-hidden
                   >
                     {unreadCount > 9 ? "9+" : unreadCount}
@@ -269,10 +269,10 @@ export default function Header() {
                   role="menu"
                 >
                   <div className="px-4 py-2 border-b border-white/[0.06]">
-                    <h3 className="text-sm font-semibold text-apex-text">Notificações</h3>
+                    <h3 className="font-heading text-sm font-semibold text-apex-text">Notificações</h3>
                   </div>
                   {notifications.length === 0 ? (
-                    <p className="px-4 py-6 text-sm text-apex-text-muted/70">
+                    <p className="px-4 py-6 font-body text-sm text-apex-text-muted/70">
                       Nenhuma notificação
                     </p>
                   ) : (
@@ -286,13 +286,13 @@ export default function Header() {
                             }`}
                             onClick={() => handleNotificationClick(n)}
                           >
-                            <span className="text-sm font-medium text-apex-text">
+                            <span className="font-body text-sm font-medium text-apex-text">
                               {n.title}
                             </span>
-                            <span className="line-clamp-2 text-xs text-apex-text-muted/80">
+                            <span className="line-clamp-2 font-body text-xs text-apex-text-muted/80">
                               {n.body}
                             </span>
-                            <span className="mt-1 text-[10px] text-apex-text-muted/60">
+                            <span className="mt-1 font-mono text-[10px] text-apex-text-muted/60">
                               {formatNotificationDate(n.created_at)}
                             </span>
                           </button>
@@ -303,7 +303,7 @@ export default function Header() {
                   {notifications.length > 0 && (
                     <Link
                       href="/notificacoes"
-                      className="block border-t border-white/[0.06] px-4 py-2.5 text-center text-xs font-medium text-apex-accent hover:bg-white/[0.04]"
+                      className="block border-t border-white/[0.06] px-4 py-2.5 text-center font-body text-xs font-medium text-apex-accent hover:bg-white/[0.04]"
                       onClick={() => setNotificationsOpen(false)}
                     >
                       Ver todas
@@ -363,7 +363,7 @@ export default function Header() {
                       key={label}
                       href={href}
                       role="menuitem"
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-apex-text-muted/90 transition-colors hover:bg-white/[0.06] hover:text-apex-accent"
+                      className="flex items-center gap-3 px-4 py-2.5 font-body text-sm text-apex-text-muted/90 transition-colors hover:bg-white/[0.06] hover:text-apex-accent"
                       onClick={() => setProfileDropdownOpen(false)}
                     >
                       <Icon className="size-4 shrink-0" aria-hidden />
@@ -376,7 +376,7 @@ export default function Header() {
                       <Link
                         href="/admin"
                         role="menuitem"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-apex-accent transition-colors hover:bg-white/[0.06]"
+                        className="flex items-center gap-3 px-4 py-2.5 font-body text-sm font-medium text-apex-accent transition-colors hover:bg-white/[0.06]"
                         onClick={() => setProfileDropdownOpen(false)}
                       >
                         QG / Admin
@@ -387,7 +387,7 @@ export default function Header() {
                   <button
                     type="button"
                     role="menuitem"
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-apex-text-muted/90 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left font-body text-sm text-apex-text-muted/90 transition-colors hover:bg-red-500/10 hover:text-red-400"
                     onClick={() => {
                       setProfileDropdownOpen(false);
                       logout();
@@ -430,7 +430,7 @@ export default function Header() {
                   <button
                     type="button"
                     role="menuitem"
-                    className="flex w-full items-center px-4 py-2.5 text-left text-sm text-apex-text-muted/90 transition-colors hover:bg-white/[0.06] hover:text-apex-accent"
+                    className="flex w-full items-center px-4 py-2.5 text-left font-body text-sm text-apex-text-muted/90 transition-colors hover:bg-white/[0.06] hover:text-apex-accent"
                     onClick={() => {
                       setProfileDropdownOpen(false);
                       openAuth("login");
@@ -441,7 +441,7 @@ export default function Header() {
                   <button
                     type="button"
                     role="menuitem"
-                    className="flex w-full items-center px-4 py-2.5 text-left text-sm font-medium text-apex-accent transition-colors hover:bg-white/[0.06]"
+                    className="flex w-full items-center px-4 py-2.5 text-left font-body text-sm font-medium text-apex-accent transition-colors hover:bg-white/[0.06]"
                     onClick={() => {
                       setProfileDropdownOpen(false);
                       openAuth("signup");
@@ -463,11 +463,11 @@ export default function Header() {
             className="flex flex-col items-end border-none bg-transparent p-0 text-right outline-none"
             aria-label="Carteira"
           >
-            <span className="text-[10px] font-medium uppercase tracking-wider text-apex-text-muted/70">
+            <span className="font-body text-[10px] font-medium uppercase tracking-wider text-apex-text-muted/70">
               Carteira
             </span>
             <span
-              className="text-sm font-bold tabular-nums text-apex-accent"
+              className="font-mono text-sm font-bold tabular-nums text-apex-accent"
               style={{ textShadow: "0 0 12px rgba(0,229,255,0.2)" }}
             >
               {walletLabel}
@@ -496,7 +496,7 @@ export default function Header() {
           />
           <div className="fixed inset-y-0 right-0 z-50 flex w-[min(18rem,85vw)] flex-col border-l border-white/[0.06] bg-apex-bg/95 shadow-[-4px_0_40px_rgb(0,0,0,0.5)] backdrop-blur-xl md:hidden">
             <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-4">
-              <span className="text-sm font-semibold text-apex-text">Menu</span>
+              <span className="font-heading text-sm font-semibold text-apex-text">Menu</span>
               <button
                 type="button"
                 className="rounded-lg p-2 text-apex-text-muted transition hover:bg-white/[0.06] hover:text-apex-text"
@@ -511,7 +511,7 @@ export default function Header() {
                 <Link
                   key={href}
                   href={href}
-                  className="rounded-lg px-4 py-3 text-sm font-medium text-apex-text-muted transition-colors hover:bg-white/[0.04] hover:text-apex-accent"
+                  className="rounded-lg px-4 py-3 font-body text-sm font-medium text-apex-text-muted transition-colors hover:bg-white/[0.04] hover:text-apex-accent"
                   onClick={() => setMenuOpen(false)}
                 >
                   {label}
@@ -534,13 +534,13 @@ export default function Header() {
                       </div>
                       <span className="absolute bottom-0 right-0 size-2 rounded-full border-2 border-apex-bg bg-apex-accent" aria-hidden />
                     </div>
-                    <span className="font-medium text-apex-text">Perfil</span>
+                    <span className="font-body font-medium text-apex-text">Perfil</span>
                   </div>
                   {PROFILE_DROPDOWN_LINKS.map(({ href, label, icon: Icon }) => (
                     <Link
                       key={label}
                       href={href}
-                      className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-apex-text-muted transition-colors hover:bg-white/[0.04] hover:text-apex-accent"
+                      className="flex items-center gap-3 rounded-lg px-4 py-3 font-body text-sm font-medium text-apex-text-muted transition-colors hover:bg-white/[0.04] hover:text-apex-accent"
                       onClick={() => setMenuOpen(false)}
                     >
                       <Icon className="size-4 shrink-0" aria-hidden />
@@ -550,7 +550,7 @@ export default function Header() {
                   {user?.is_admin && (
                     <Link
                       href="/admin"
-                      className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-apex-accent transition-colors hover:bg-white/[0.04]"
+                      className="flex items-center gap-3 rounded-lg px-4 py-3 font-body text-sm font-medium text-apex-accent transition-colors hover:bg-white/[0.04]"
                       onClick={() => setMenuOpen(false)}
                     >
                       QG / Admin
@@ -558,7 +558,7 @@ export default function Header() {
                   )}
                   <button
                     type="button"
-                    className="mt-2 flex items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium text-apex-text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    className="mt-2 flex items-center gap-3 rounded-lg px-4 py-3 text-left font-body text-sm font-medium text-apex-text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
                     onClick={() => {
                       setMenuOpen(false);
                       logout();
@@ -575,18 +575,18 @@ export default function Header() {
                         <User className="size-5 text-apex-text-muted" aria-hidden />
                       </div>
                     </div>
-                    <span className="font-medium text-apex-text-muted">Entrar ou cadastrar</span>
+                    <span className="font-body font-medium text-apex-text-muted">Entrar ou cadastrar</span>
                   </div>
                   <button
                     type="button"
-                    className="flex w-full items-center px-4 py-3 text-left text-sm font-medium text-apex-text-muted transition-colors hover:bg-white/[0.04] hover:text-apex-accent"
+                    className="flex w-full items-center px-4 py-3 text-left font-body text-sm font-medium text-apex-text-muted transition-colors hover:bg-white/[0.04] hover:text-apex-accent"
                     onClick={() => openAuth("login")}
                   >
                     LOG IN
                   </button>
                   <button
                     type="button"
-                    className="flex w-full items-center px-4 py-3 text-left text-sm font-medium text-apex-accent transition-colors hover:bg-white/[0.04]"
+                    className="flex w-full items-center px-4 py-3 text-left font-body text-sm font-medium text-apex-accent transition-colors hover:bg-white/[0.04]"
                     onClick={() => openAuth("signup")}
                   >
                     CADASTRAR

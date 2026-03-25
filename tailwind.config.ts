@@ -10,11 +10,21 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["var(--font-body)", "ui-sans-serif", "system-ui", "sans-serif"],
+        heading: [
+          "var(--font-heading)",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
+        body: ["var(--font-body)", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       colors: {
         /** Base – Deep Space Navy */
         "apex-bg": "#0A111F",
+        /** Alias semântico (fundo plataforma / máscaras) */
+        "apex-base": "#0A111F",
         /** Superfície – Strategic Slate */
         "apex-surface": "#111A2E",
         /** Azul cobalto (bordas estruturais, hover estados) */

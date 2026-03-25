@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    /** Home Hero usa `<img>` direto em `page.tsx` — não passa por /_next/image nem Sharp. */
     remotePatterns: [
       {
         protocol: "https",

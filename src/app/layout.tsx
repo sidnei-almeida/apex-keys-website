@@ -1,19 +1,29 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Inter } from "next/font/google";
+import { JetBrains_Mono, Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { AppProviders } from "@/components/providers/AppProviders";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-heading",
   subsets: ["latin"],
+  weight: ["500", "600", "700"],
   display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-body",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -36,34 +46,33 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${spaceGrotesk.variable} ${plusJakartaSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="relative flex min-h-screen flex-col bg-apex-bg text-apex-text overflow-x-hidden">
-        {/* Spotlight 1 — ciano tático, canto superior esquerdo */}
+      <body
+        className={`relative min-h-screen bg-apex-bg text-apex-text ${plusJakartaSans.className}`}
+      >
+        {/*
+          Acentos fixos à viewport (não acompanham o scroll).
+          overflow-x fica no wrapper interior — overflow no body quebrava position:fixed nalguns browsers.
+        */}
         <div
+          className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
           aria-hidden
-          className="pointer-events-none fixed left-0 top-0 z-0 h-[700px] w-[700px] -translate-x-1/3 -translate-y-1/3"
-          style={{
-            background:
-              "radial-gradient(ellipse at center, rgba(0,229,255,0.07) 0%, rgba(0,229,255,0.02) 40%, transparent 70%)",
-          }}
-        />
-        {/* Spotlight 2 — âmbar tático, canto inferior direito */}
-        <div
-          aria-hidden
-          className="pointer-events-none fixed bottom-0 right-0 z-0 h-[600px] w-[600px] translate-x-1/3 translate-y-1/3"
-          style={{
-            background:
-              "radial-gradient(ellipse at center, rgba(255,179,0,0.055) 0%, rgba(255,179,0,0.015) 45%, transparent 70%)",
-          }}
-        />
-        <AppProviders>
-          <Header />
-          <main className="relative z-10 flex-1 w-full px-4 pb-8 pt-6 sm:px-6 lg:px-8">
-            {children}
-          </main>
-          <Footer />
-        </AppProviders>
+        >
+          {/* Sem spotlight cobalto: elipses grandes ainda “lavavam” o canto superior esquerdo (texto do Hero). */}
+          {/* Âmbar — canto inferior direito, muito suave */}
+          <div className="absolute -bottom-[8%] -right-[6%] h-[22rem] w-[22rem] sm:h-[26rem] sm:w-[26rem] bg-[radial-gradient(ellipse_at_center,theme(colors.apex-secondary/0.035)_0%,transparent_65%)]" />
+        </div>
+
+        <div className="relative z-0 flex min-h-screen flex-col overflow-x-clip">
+          <AppProviders>
+            <Header />
+            <main className="relative z-10 flex-1 w-full px-0 pb-12 pt-0 md:pb-16">
+              {children}
+            </main>
+            <Footer />
+          </AppProviders>
+        </div>
       </body>
     </html>
   );

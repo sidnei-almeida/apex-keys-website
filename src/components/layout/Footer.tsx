@@ -42,16 +42,16 @@ function FooterColumn({
   links: readonly { href: string; label: string }[];
 }) {
   return (
-    <div className="flex flex-col items-start gap-4">
-      <p className="mb-1 border-b border-white/[0.08] pb-3 text-xs font-bold uppercase tracking-[0.12em] text-apex-text/95">
+    <div className="flex min-h-0 flex-col items-start gap-3">
+      <p className="mb-0 w-full border-b border-white/5 pb-2 font-body text-xs font-bold uppercase tracking-[0.14em] text-apex-text/90">
         {title}
       </p>
-      <ul className="flex flex-col gap-3">
+      <ul className="flex w-full flex-col gap-2">
         {links.map(({ href, label }) => (
-          <li key={label}>
+          <li key={label} className="w-full">
             <Link
               href={href}
-              className="text-sm text-apex-text-muted/80 transition-colors duration-200 hover:text-apex-accent"
+              className="font-body text-sm text-apex-text-muted transition-colors duration-300 ease-in-out hover:text-white"
             >
               {label}
             </Link>
@@ -66,11 +66,11 @@ const FOOTER_CONTAINER = "mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8";
 
 export default function Footer() {
   return (
-    <footer className="relative z-10 mt-auto border-t border-white/[0.08] bg-[#060b14]/92 backdrop-blur-xl backdrop-saturate-150">
+    <footer className="relative z-10 mt-auto border-t border-white/5 bg-apex-base/50">
       {/* Pagamento seguro — credibilidade */}
-      <div className="border-b border-white/[0.06] bg-black/25">
+      <div className="border-b border-white/5 bg-black/20">
         <div
-          className={`${FOOTER_CONTAINER} flex flex-col gap-6 py-8 md:flex-row md:items-center md:justify-between`}
+          className={`${FOOTER_CONTAINER} flex flex-col gap-5 py-5 md:flex-row md:items-center md:justify-between md:py-6`}
         >
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-apex-accent/90">
@@ -97,16 +97,16 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Main Footer — Grid 4 colunas: [Logo+Segurança] | Links | Suporte | Redes */}
-      <div className={`${FOOTER_CONTAINER} py-12`}>
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-12 md:gap-6 lg:gap-8">
-          {/* 1. Marca + Segurança (fusão) */}
-          <div className="flex flex-col items-start gap-y-6 md:col-span-5">
-            <Link href="/" className="inline-block">
+      {/* Main Footer — grid limpo, espaçamento tipo SaaS */}
+      <div className={`${FOOTER_CONTAINER} py-10 md:py-12`}>
+        <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-12 md:gap-x-8 md:gap-y-8 lg:gap-x-10">
+          {/* 1. Marca + Segurança */}
+          <div className="flex flex-col items-start gap-y-5 md:col-span-5">
+            <Link href="/" className="inline-block max-w-[9.5rem] sm:max-w-[10.5rem]">
               <img
                 src={FOOTER_LOGO}
                 alt="Apex Keys"
-                className="h-16 w-auto object-contain object-left opacity-90 lg:h-20"
+                className="h-9 w-auto max-w-full object-contain object-left opacity-90 sm:h-10 lg:h-11"
               />
             </Link>
             <div className="flex flex-col items-start gap-1.5">
@@ -126,27 +126,27 @@ export default function Footer() {
           </div>
 
           {/* 2. Links Úteis */}
-          <div className="flex flex-col items-start md:col-span-3">
+          <div className="flex flex-col items-stretch md:col-span-3">
             <FooterColumn title="Links Úteis" links={QUICK_LINKS} />
           </div>
 
           {/* 3. Suporte */}
-          <div className="flex flex-col items-start md:col-span-2">
+          <div className="flex flex-col items-stretch md:col-span-2">
             <FooterColumn title="Suporte" links={SUPPORT_LINKS} />
           </div>
 
           {/* 4. Redes Sociais */}
           <div className="flex flex-col items-start md:col-span-2">
-            <p className="mb-1 border-b border-white/[0.08] pb-3 text-xs font-bold uppercase tracking-[0.12em] text-apex-text/95">
+            <p className="mb-0 w-full border-b border-white/5 pb-2 font-body text-xs font-bold uppercase tracking-[0.14em] text-apex-text/90">
               Redes Sociais
             </p>
-            <div className="mt-4 flex flex-row flex-wrap gap-4">
+            <div className="mt-3 flex flex-row flex-wrap gap-4">
               {SOCIAL_LINKS.map(({ href, label, icon: Icon }) => (
                 <Link
                   key={label}
                   href={href}
                   aria-label={label}
-                  className="text-apex-text-muted/60 transition-all duration-300 hover:-translate-y-0.5 hover:text-apex-accent"
+                  className="text-apex-text-muted transition-all duration-200 hover:-translate-y-0.5 hover:text-white"
                 >
                   <Icon className="size-6" aria-hidden />
                 </Link>
@@ -157,23 +157,23 @@ export default function Footer() {
       </div>
 
       {/* Sub-footer — mesmo container para alinhamento vertical com a logo */}
-      <div className="border-t border-white/[0.05]">
+      <div className="border-t border-white/5 bg-black/15">
         <div
-          className={`${FOOTER_CONTAINER} flex flex-col items-start justify-between gap-4 py-4 sm:flex-row sm:items-center`}
+          className={`${FOOTER_CONTAINER} flex flex-col items-start justify-between gap-3 pt-6 pb-4 sm:flex-row sm:items-center`}
         >
-          <p className="text-xs text-apex-text-muted/60">
+          <p className="font-body text-xs text-apex-text-muted">
             © 2026 Apex Keys. Todos os direitos reservados.
           </p>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap gap-6">
             <Link
               href="#"
-              className="text-xs text-apex-text-muted/60 transition-colors hover:text-apex-accent"
+              className="font-body text-xs text-apex-text-muted transition-colors duration-200 hover:text-white"
             >
               Termos de Serviço
             </Link>
             <Link
               href="#"
-              className="text-xs text-apex-text-muted/60 transition-colors hover:text-apex-accent"
+              className="font-body text-xs text-apex-text-muted transition-colors duration-200 hover:text-white"
             >
               Política de Privacidade
             </Link>
