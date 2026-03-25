@@ -10,6 +10,7 @@ import type {
   AdminWalletAdjust,
   AdminWalletAdjustResponse,
   HallOfFameEntryOut,
+  RecentPurchasePulseOut,
   IgdbGameInfoResponse,
   IgdbGameUrlRequest,
   MyTicketOut,
@@ -209,6 +210,12 @@ export async function getRaffleById(id: string): Promise<RaffleDetailOut> {
 
 export async function getHallOfFame(): Promise<HallOfFameEntryOut[]> {
   return getJson<HallOfFameEntryOut[]>("/raffles/hall-of-fame");
+}
+
+export async function getRecentPurchasePulses(): Promise<
+  RecentPurchasePulseOut[]
+> {
+  return getJson<RecentPurchasePulseOut[]>("/recent-purchase-pulses");
 }
 
 export async function buyTicket(

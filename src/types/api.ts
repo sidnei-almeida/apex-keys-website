@@ -134,6 +134,15 @@ export type HallOfFameEntryOut = {
   spotlight: HallOfFameSpotlightRaffle;
 };
 
+/** GET /recent-purchase-pulses — prova social (compras reais agregadas por minuto) */
+export type RecentPurchasePulseOut = {
+  id: string;
+  display_name: string;
+  quantity: number;
+  raffle_title: string;
+  purchased_at: string;
+};
+
 export type NotificationOut = {
   id: string;
   type: string;
