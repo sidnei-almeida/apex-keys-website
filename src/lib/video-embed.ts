@@ -25,7 +25,21 @@ export function videoIdForApi(stored: string): string | null {
 }
 
 export function dailymotionEmbedSrc(videoId: string): string {
-  return `https://www.dailymotion.com/embed/video/${encodeURIComponent(videoId)}`;
+  // Evita "tocar o próximo vídeo" ao terminar e, se possível, repete o trailer.
+  // Para loop suave em vídeo único, a config deve ter:
+  // loop=true + enable_automatic_recommendations=false + enable_autonext=false
+  // @see https://dailymotion.readme.io/docs/loop
+  const base = `https://www.dailymotion.com/embed/video/${encodeURIComponent(videoId)}`;
+  const params = new URLSearchParams({
+    // Não iniciar automaticamente (o utilizador clica play).
+    autoplay: "0",
+    // Não avançar para recomendações / próximo vídeo.
+    enable_automatic_recommendations: "false",
+    enable_autonext: "false",
+    // Repetir o trailer quando acabar (se o player permitir com a config).
+    loop: "true",
+  });
+  return `${base}?${params.toString()}`;
 }
 
 export function dailymotionWatchUrl(videoId: string): string {
