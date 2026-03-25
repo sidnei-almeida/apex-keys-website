@@ -72,7 +72,7 @@ export async function updateProfile(
   return patchJson<UserPublic, UserProfileUpdate>("/users/me", body, token);
 }
 
-/** Multipart — campo `file` como na API (jpg, jpeg, png, webp; máx. 2MB no servidor). */
+/** Multipart — campo `file` (jpg, png, webp; até ~20MB; API devolve WebP otimizado). */
 export async function uploadAvatar(
   token: string,
   file: File,

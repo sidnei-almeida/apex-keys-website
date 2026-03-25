@@ -10,7 +10,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+/** Limite do ficheiro enviado; o servidor reduz e grava WebP (~384px). */
+const AVATAR_MAX_BYTES = 20 * 1024 * 1024;
 const AVATAR_ACCEPT = "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
 
 const inputClass =
@@ -50,7 +51,7 @@ export default function ContaPage() {
     const token = getAccessToken();
     if (!token) return;
     if (file.size > AVATAR_MAX_BYTES) {
-      setError("A imagem deve ter no máximo 2 MB.");
+      setError("A imagem deve ter no máximo 20 MB (o servidor otimiza para WebP).");
       return;
     }
     setAvatarUploading(true);
@@ -149,7 +150,7 @@ export default function ContaPage() {
               onClick={() => avatarInputRef.current?.click()}
               className="absolute bottom-0 right-0 flex size-9 items-center justify-center rounded-lg border border-white/[0.08] bg-apex-surface/90 text-apex-text transition-colors hover:bg-apex-surface hover:text-apex-accent disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Alterar foto de perfil"
-              title="JPG, PNG ou WebP — máx. 2 MB"
+              title="JPG, PNG ou WebP — até 20 MB; guardamos em WebP otimizado"
             >
               {avatarUploading ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -161,8 +162,8 @@ export default function ContaPage() {
           <div className="text-sm text-apex-text-muted/70">
             <p className="font-medium text-apex-text/85">Foto de perfil</p>
             <p className="mt-0.5 text-xs text-apex-text-muted/55">
-              Toque no ícone da câmara. Formatos: JPG, PNG ou WebP (máx. 2 MB).
-              Podes alterar quando quiseres após criar a conta.
+              Toque no ícone da câmara. JPG, PNG ou WebP até 20 MB — a imagem é
+              redimensionada e guardada em WebP para carregar rápido.
             </p>
           </div>
         </div>
