@@ -14,8 +14,17 @@ import {
   reserveRaffleTickets,
 } from "@/lib/api/services";
 import { getAccessToken } from "@/lib/auth/token-storage";
+import { dailymotionEmbedSrc } from "@/lib/video-embed";
 import type { PixIntentResponse, RaffleDetailOut } from "@/types/api";
-import { ArrowLeft, Gamepad2, Loader2, Wallet } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Gamepad2,
+  Loader2,
+  Wallet,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -34,6 +43,37 @@ function raffleImageUrl(url: string | null) {
   if (url.startsWith("http")) return url;
   return `${getApiBaseUrl()}${url.startsWith("/") ? "" : "/"}${url}`;
 }
+
+function isIgdbPublicUrl(url: string | null | undefined): url is string {
+  if (!url || !url.trim()) return false;
+  try {
+    const u = new URL(url.trim());
+    const h = u.hostname.toLowerCase();
+    return (
+      (h === "www.igdb.com" || h === "igdb.com") &&
+      u.pathname.startsWith("/games/")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function raffleStatusLabelPt(status: string): string {
+  switch (status) {
+    case "active":
+      return "Ativa";
+    case "sold_out":
+      return "Esgotada";
+    case "finished":
+      return "Encerrada";
+    case "canceled":
+      return "Cancelada";
+    default:
+      return status;
+  }
+}
+
+const SYNOPSIS_COLLAPSE_CHARS = 520;
 
 const RES_POLL_INTERVAL_MS = 2500;
 const RES_POLL_MAX_ATTEMPTS = 120;
@@ -74,6 +114,7 @@ export default function RafflePage() {
   const [pixModalOpen, setPixModalOpen] = useState(false);
   const [pixIntent, setPixIntent] = useState<PixIntentResponse | null>(null);
   const [pixPolling, setPixPolling] = useState(false);
+  const [synopsisExpanded, setSynopsisExpanded] = useState(false);
   const pixAbortRef = useRef<AbortController | null>(null);
   /** Hold ativo durante fluxo Pix da rifa (para libertar ao cancelar). */
   const activePaymentHoldIdRef = useRef<string | null>(null);
@@ -91,6 +132,12 @@ export default function RafflePage() {
       )
       .finally(() => setLoading(false));
   }, [raffleId]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setSelectedNumbers([]);
+    }
+  }, [isAuthenticated]);
 
   const soldSet = useMemo(
     () => new Set(raffle?.sold_numbers ?? []),
@@ -116,21 +163,15 @@ export default function RafflePage() {
 
   const toggleNumber = useCallback(
     (num: number) => {
-      if (!raffle || unavailableSet.has(num)) return;
-      const isAdding = !selectedSet.has(num);
+      if (!raffle || unavailableSet.has(num) || !isAuthenticated) return;
       setSelectedNumbers((prev) => {
         if (prev.includes(num)) {
           return prev.filter((n) => n !== num);
         }
         return [...prev, num].sort((a, b) => a - b);
       });
-      if (isAdding && !isAuthenticated) {
-        toast("Faça login para participar", {
-          description: "Você precisará entrar para finalizar a compra.",
-        });
-      }
     },
-    [raffle, unavailableSet, selectedSet, isAuthenticated],
+    [raffle, unavailableSet, isAuthenticated],
   );
 
   const ticketPrice = raffle ? parseFloat(raffle.ticket_price) : 0;
@@ -356,10 +397,18 @@ export default function RafflePage() {
 
   const imageUrl = raffle ? raffleImageUrl(raffle.image_url) : null;
   const videoId = raffle?.video_id ?? null;
-  const hasIgdbData =
-    raffle &&
-    ((raffle.summary && raffle.summary.trim()) ||
-      (raffle.genres && raffle.genres.length > 0));
+  const summaryPlain = raffle?.summary?.trim() ?? "";
+  const synopsisNeedsToggle = summaryPlain.length > SYNOPSIS_COLLAPSE_CHARS;
+  const synopsisDisplay =
+    !synopsisNeedsToggle || synopsisExpanded
+      ? summaryPlain
+      : `${summaryPlain.slice(0, SYNOPSIS_COLLAPSE_CHARS).trim()}…`;
+
+  const heldCount = raffle?.held ?? 0;
+  const availableApprox =
+    raffle != null
+      ? Math.max(0, raffle.total_tickets - raffle.sold - heldCount)
+      : 0;
 
   if (loading) {
     return (
@@ -391,6 +440,17 @@ export default function RafflePage() {
     );
   }
 
+  const showTechSheet =
+    (raffle.series?.length ?? 0) > 0 ||
+    (raffle.game_modes?.length ?? 0) > 0 ||
+    (raffle.player_perspectives?.length ?? 0) > 0 ||
+    Boolean(raffle.igdb_game_id?.trim());
+
+  const showStoryBlock =
+    Boolean(summaryPlain) ||
+    showTechSheet ||
+    isIgdbPublicUrl(raffle.igdb_url);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-12">
       <Link
@@ -401,218 +461,252 @@ export default function RafflePage() {
         Voltar
       </Link>
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_2fr]">
-        <div className="flex flex-col gap-6">
-          <div className="mx-auto w-full max-w-4xl lg:max-w-none">
-            <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-apex-surface shadow-[0_0_30px_rgba(0,212,255,0.15)]">
-              {imageUrl ? (
-                <Image
-                  src={imageUrl}
-                  alt={raffle.title}
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 33vw"
-                  className="object-cover object-center"
-                  unoptimized
-                />
-              ) : (
-                <Gamepad2
-                  className="size-20 text-apex-accent/35 sm:size-24"
-                  strokeWidth={1.15}
-                  aria-hidden
-                />
-              )}
-            </div>
+      <section className="relative mt-6 min-h-[240px] overflow-hidden rounded-2xl border border-apex-primary/25 shadow-[inset_0_1px_0_rgba(0,212,255,0.08)] sm:min-h-[280px]">
+        {imageUrl ? (
+          <div className="absolute inset-0">
+            <Image
+              src={imageUrl}
+              alt=""
+              fill
+              sizes="(max-width: 1280px) 100vw, min(100vw, 80rem)"
+              className="object-cover object-center"
+              aria-hidden
+              unoptimized
+            />
           </div>
-
-          {videoId && (
-            <div className="mx-auto w-full max-w-4xl lg:max-w-none">
-              <h3 className="mb-2 text-sm font-semibold text-apex-text/80">
-                Trailer
-              </h3>
-              <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-apex-bg">
-                <iframe
-                  src={`https://www.youtube.com/embed/${videoId}`}
-                  title="Trailer do jogo"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="absolute inset-0 h-full w-full"
-                />
-              </div>
-            </div>
-          )}
-
-          {hasIgdbData && (
-            <div className="rounded-xl border border-apex-primary/20 bg-apex-surface/60 p-4">
-              <h3 className="mb-2 text-sm font-semibold text-apex-accent">
-                Sobre o jogo
-              </h3>
-              {raffle.summary?.trim() && (
-                <p className="text-sm leading-relaxed text-apex-text/85">
-                  {raffle.summary}
-                </p>
-              )}
-              {raffle.genres && raffle.genres.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {raffle.genres.map((g) => (
-                    <span
-                      key={g}
-                      className="rounded-md bg-apex-accent/15 px-2 py-0.5 text-xs text-apex-accent"
-                    >
-                      {g}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-apex-text sm:text-3xl">
-              {raffle.title}
-            </h1>
-            <p className="mt-2 text-apex-success">
-              {formatBRL(raffle.ticket_price)} / cota
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-apex-primary/30 bg-apex-surface p-6">
-            <p className="text-apex-text">
-              Você selecionou:{" "}
-              <span className="font-bold text-apex-accent">
-                {selectedNumbers.length}{" "}
-                {selectedNumbers.length === 1 ? "número" : "números"}
-              </span>
-            </p>
-            <p className="mt-2 text-lg font-semibold text-apex-text">
-              Total:{" "}
-              <span className="text-apex-accent">{formatBRL(totalPay)}</span>
-            </p>
-
-            {isAuthenticated && (
-              <p className="mt-1 text-sm text-apex-text/70">
-                Seu saldo: {formatBRL(balanceNum)}
-              </p>
-            )}
-
-            {user?.is_admin ? (
-              <p className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200/90">
-                <strong>Conta admin:</strong> com saldo suficiente e &quot;Utilizar
-                saldo&quot;, os números são reservados e debitados na hora. Com{" "}
-                <strong>Pix</strong>, a reserva bloqueia os números até o MP
-                confirmar.
-              </p>
-            ) : null}
-
-            <p className="mt-3 text-xs text-apex-text/55">
-              Ao pagar, os números ficam <strong>reservados</strong> para você. Se
-              outro jogador tentar o mesmo, vê que já não está disponível.
-            </p>
-
-            <p className="mt-2 text-xs text-apex-text/55">
-              <strong>Pix</strong>: cobrança Mercado Pago pelo total selecionado.{" "}
-              <strong>Carteira</strong>: apenas se o saldo cobrir o total.
-            </p>
-
-            <label className="mt-3 flex cursor-pointer items-center gap-2 text-apex-text">
-              <input
-                type="radio"
-                name="payment-method"
-                checked={!useBalance}
-                onChange={() => {
-                  setUseBalance(false);
-                  setPayError(null);
-                }}
-                className="size-4 accent-apex-accent"
-              />
-              Pix (Mercado Pago — QR ou link; teste com conta comprador MP)
-            </label>
-            <label className="mt-2 flex cursor-pointer items-center gap-2 text-apex-text">
-              <input
-                type="radio"
-                name="payment-method"
-                checked={useBalance}
-                onChange={() => {
-                  setUseBalance(true);
-                  setPayError(null);
-                }}
-                className="size-4 accent-apex-accent"
-              />
-              <Wallet className="size-4 text-apex-accent/80" aria-hidden />
-              Utilizar saldo da carteira
-            </label>
-
-            {useBalance && canPayWithBalanceOnly && totalPay > 0 && (
-              <p className="mt-2 text-sm text-apex-accent/90">
-                Saldo cobre o total ({formatBRL(totalPay)}) — débito direto após
-                reservar.
-              </p>
-            )}
-
-            {payError && (
-              <p className="mt-2 text-sm text-red-400">{payError}</p>
-            )}
-
-            <button
-              type="button"
-              disabled={!canPay || paying || !isReady}
-              onClick={handlePay}
-              className="mt-4 w-full rounded-xl bg-apex-accent py-3 text-center font-bold text-apex-bg transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+        ) : (
+          <>
+            <div
+              className="absolute inset-0 bg-gradient-to-br from-apex-surface/95 via-apex-bg to-apex-surface/80"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute inset-0 flex items-center justify-center"
+              aria-hidden
             >
-              {paying ? (
-                <span className="inline-flex items-center justify-center gap-2">
-                  <Loader2 className="size-5 animate-spin" aria-hidden />
-                  Processando…
-                </span>
-              ) : !isReady ? (
-                "A carregar…"
-              ) : (
-                "Pagar"
-              )}
-            </button>
+              <Gamepad2
+                className="size-28 text-apex-accent/20 sm:size-36"
+                strokeWidth={1.1}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Scrim: com foto usa overlay forte à esquerda; sem foto só suaviza para o texto */}
+        <div
+          className={
+            imageUrl
+              ? "pointer-events-none absolute inset-0 bg-gradient-to-r from-apex-bg/[0.96] via-apex-bg/78 to-apex-bg/35"
+              : "pointer-events-none absolute inset-0 bg-gradient-to-r from-apex-bg/80 via-apex-bg/35 to-transparent"
+          }
+          aria-hidden
+        />
+        {imageUrl ? (
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-apex-bg/70 via-transparent to-apex-bg/40 md:hidden"
+            aria-hidden
+          />
+        ) : null}
+
+        <div className="relative z-10 max-w-3xl space-y-4 p-6 sm:p-8">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <span className="rounded-md bg-apex-accent/25 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-apex-accent">
+              {raffleStatusLabelPt(raffle.status)}
+            </span>
+            <span className="text-xs text-apex-text/75 [text-shadow:0_1px_2px_rgba(0,0,0,0.45)]">
+              {raffle.sold} de {raffle.total_tickets} cotas vendidas
+              {heldCount > 0 ? ` · ${heldCount} reservada(s)` : ""}
+              {raffle.status === "active" || raffle.status === "sold_out"
+                ? ` · ~${availableApprox} disponíveis`
+                : null}
+            </span>
           </div>
-
-          <AuthModal
-            isOpen={authModalOpen}
-            onClose={() => setAuthModalOpen(false)}
-          />
-
-          <PixDepositModal
-            open={pixModalOpen}
-            onClose={() => setPixModalOpen(false)}
-            onCancelAwait={cancelPixAwait}
-            intent={pixIntent}
-            polling={pixPolling}
-            amountLabel={formatBRL(totalPay)}
-            raffleCheckout
-          />
+          <h1 className="text-3xl font-bold tracking-tight text-apex-text [text-shadow:0_2px_12px_rgba(0,0,0,0.55)] sm:text-4xl">
+            {raffle.title}
+          </h1>
+          <p className="text-xl font-semibold text-apex-success [text-shadow:0_1px_8px_rgba(0,0,0,0.45)]">
+            {formatBRL(raffle.ticket_price)}{" "}
+            <span className="text-base font-normal text-apex-text/80">
+              / cota
+            </span>
+          </p>
+          {raffle.genres && raffle.genres.length > 0 ? (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {raffle.genres.map((g) => (
+                <span
+                  key={g}
+                  className="rounded-full border border-apex-accent/25 bg-apex-bg/40 px-3 py-1 text-xs font-medium text-apex-accent backdrop-blur-[2px]"
+                >
+                  {g}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
+      </section>
 
-        <div className="rounded-xl bg-apex-surface p-6">
-          <h2 className="text-xl font-bold text-apex-text">
+      {videoId ? (
+        <div className="mt-8">
+          <div className="overflow-hidden rounded-2xl bg-black ring-1 ring-apex-primary/30 shadow-[0_24px_56px_rgba(0,0,0,0.45)]">
+            <div className="relative aspect-video w-full overflow-hidden">
+              <iframe
+                src={dailymotionEmbedSrc(videoId)}
+                title={`Trailer — ${raffle.title}`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
+                className="absolute inset-0 h-full w-full border-0"
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showStoryBlock ? (
+        <div
+          className={`min-w-0 space-y-6 ${videoId ? "mt-10" : "mt-8"}`}
+        >
+          {summaryPlain ? (
+            <div className="rounded-xl border border-apex-primary/20 bg-apex-surface/50 p-5 sm:p-6">
+              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-apex-accent/90">
+                Sinopse
+              </h2>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-apex-text/88">
+                {synopsisDisplay}
+              </p>
+              {synopsisNeedsToggle ? (
+                <button
+                  type="button"
+                  onClick={() => setSynopsisExpanded((v) => !v)}
+                  className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-apex-accent transition-colors hover:text-apex-accent/80"
+                >
+                  {synopsisExpanded ? (
+                    <>
+                      <ChevronUp className="size-4 shrink-0" aria-hidden />
+                      Mostrar menos
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="size-4 shrink-0" aria-hidden />
+                      Ler mais
+                    </>
+                  )}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {showTechSheet ? (
+            <div className="rounded-xl border border-apex-primary/20 bg-apex-surface/40 p-5 sm:p-6">
+              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-apex-accent/90">
+                Ficha técnica
+              </h2>
+              <dl className="mt-4 space-y-4 text-sm">
+                {(raffle.series?.length ?? 0) > 0 ? (
+                  <div className="grid gap-1 border-b border-apex-primary/10 pb-4 sm:grid-cols-[minmax(0,140px)_1fr] sm:gap-6">
+                    <dt className="font-medium text-apex-text/50">
+                      Série / franchise
+                    </dt>
+                    <dd className="text-apex-text/90">
+                      {raffle.series!.join(" · ")}
+                    </dd>
+                  </div>
+                ) : null}
+                {(raffle.game_modes?.length ?? 0) > 0 ? (
+                  <div className="grid gap-1 border-b border-apex-primary/10 pb-4 sm:grid-cols-[minmax(0,140px)_1fr] sm:gap-6">
+                    <dt className="font-medium text-apex-text/50">
+                      Modos de jogo
+                    </dt>
+                    <dd className="flex flex-wrap gap-2">
+                      {raffle.game_modes!.map((m) => (
+                        <span
+                          key={m}
+                          className="rounded-md bg-apex-bg px-2.5 py-1 text-xs text-apex-text/85 ring-1 ring-apex-primary/15"
+                        >
+                          {m}
+                        </span>
+                      ))}
+                    </dd>
+                  </div>
+                ) : null}
+                {(raffle.player_perspectives?.length ?? 0) > 0 ? (
+                  <div className="grid gap-1 border-b border-apex-primary/10 pb-4 sm:grid-cols-[minmax(0,140px)_1fr] sm:gap-6">
+                    <dt className="font-medium text-apex-text/50">
+                      Perspectiva
+                    </dt>
+                    <dd className="flex flex-wrap gap-2">
+                      {raffle.player_perspectives!.map((p) => (
+                        <span
+                          key={p}
+                          className="rounded-md bg-apex-bg px-2.5 py-1 text-xs text-apex-text/85 ring-1 ring-apex-primary/15"
+                        >
+                          {p}
+                        </span>
+                      ))}
+                    </dd>
+                  </div>
+                ) : null}
+                {raffle.igdb_game_id?.trim() ? (
+                  <div className="grid gap-1 sm:grid-cols-[minmax(0,140px)_1fr] sm:gap-6">
+                    <dt className="font-medium text-apex-text/50">
+                      ID no IGDB
+                    </dt>
+                    <dd className="font-mono text-xs text-apex-text/80">
+                      {raffle.igdb_game_id.trim()}
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
+            </div>
+          ) : null}
+
+          {isIgdbPublicUrl(raffle.igdb_url) ? (
+            <a
+              href={raffle.igdb_url!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-apex-accent/35 bg-apex-accent/10 px-4 py-2.5 text-sm font-semibold text-apex-accent transition-colors hover:border-apex-accent/60 hover:bg-apex-accent/15"
+            >
+              <ExternalLink className="size-4 shrink-0" aria-hidden />
+              Ver ficha completa no IGDB
+            </a>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Números à esquerda (mais largo) + pagamento à direita (mais estreito) */}
+      <div
+        className={`grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] lg:items-stretch ${
+          videoId || showStoryBlock ? "mt-10" : "mt-8"
+        }`}
+      >
+        <div className="min-w-0 rounded-xl border border-apex-primary/25 bg-apex-surface/90 p-5 shadow-sm sm:p-6">
+          <h2 className="text-lg font-bold text-apex-text">
             Escolha seus números
           </h2>
 
-          <div className="mt-4 flex flex-wrap gap-4 text-xs text-gray-400 sm:text-sm">
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-gray-400 sm:text-sm">
             <span className="inline-flex items-center gap-2">
               <span
                 className="size-3 shrink-0 rounded-full bg-apex-bg ring-1 ring-apex-primary/30"
                 aria-hidden
               />
-              Disponível (Cinza)
+              Disponível
             </span>
             <span className="inline-flex items-center gap-2">
               <span
                 className="size-3 shrink-0 rounded-full bg-apex-accent"
                 aria-hidden
               />
-              Selecionado (Ciano)
+              Selecionado
             </span>
             <span className="inline-flex items-center gap-2">
               <span
                 className="size-3 shrink-0 rounded-full bg-amber-900/80 ring-1 ring-amber-600/50"
                 aria-hidden
               />
-              Reservado (aguard. pagamento)
+              Reservado
             </span>
             <span className="inline-flex items-center gap-2">
               <span
@@ -623,55 +717,206 @@ export default function RafflePage() {
             </span>
           </div>
 
-          <div className="mt-6 grid grid-cols-5 gap-2 sm:grid-cols-10">
-            {numbers.map((num) => {
-              const sold = soldSet.has(num);
-              const held = heldSet.has(num);
-              const blocked = unavailableSet.has(num);
-              const selected = selectedSet.has(num);
+          <div
+            className="mt-4 max-h-[min(36rem,60vh)] overflow-y-auto overscroll-y-contain rounded-lg border border-apex-primary/15 bg-apex-bg/35 p-3 [-webkit-overflow-scrolling:touch] sm:p-4"
+            role="region"
+            aria-label="Grelha de números da rifa"
+          >
+            <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12">
+              {numbers.map((num) => {
+                const sold = soldSet.has(num);
+                const held = heldSet.has(num);
+                const blocked = unavailableSet.has(num);
+                const selected = selectedSet.has(num);
 
-              let className =
-                "flex aspect-square min-h-[2.25rem] items-center justify-center rounded-lg border text-sm font-medium transition-all sm:min-h-0 sm:aspect-auto sm:py-2";
+                let className =
+                  "flex aspect-square min-h-[2.25rem] items-center justify-center rounded-lg border text-sm font-medium transition-all sm:min-h-0 sm:aspect-auto sm:py-2";
 
-              if (sold) {
-                className +=
-                  " cursor-not-allowed border-apex-bg/50 bg-apex-bg opacity-50 line-through text-apex-text/40";
-              } else if (held) {
-                className +=
-                  " cursor-not-allowed border-amber-600/35 bg-amber-950/50 text-amber-200/70 line-through";
-              } else if (selected) {
-                className +=
-                  " scale-105 cursor-pointer border-apex-accent bg-apex-accent font-bold text-apex-bg shadow-md";
-              } else {
-                className +=
-                  " cursor-pointer border-apex-primary/20 bg-apex-bg text-apex-text hover:border-apex-accent hover:bg-apex-primary/50";
-              }
+                const needsLogin = !isAuthenticated && !sold && !held;
 
-              return (
-                <button
-                  key={num}
-                  type="button"
-                  disabled={blocked}
-                  onClick={() => toggleNumber(num)}
-                  className={className}
-                  aria-pressed={selected}
-                  aria-label={
-                    sold
-                      ? `Número ${num}, vendido`
-                      : held
-                        ? `Número ${num}, reservado`
-                        : selected
-                          ? `Número ${num}, selecionado`
-                          : `Número ${num}, disponível`
-                  }
-                >
-                  {num}
-                </button>
-              );
-            })}
+                if (sold) {
+                  className +=
+                    " cursor-not-allowed border-apex-bg/50 bg-apex-bg opacity-50 line-through text-apex-text/40";
+                } else if (held) {
+                  className +=
+                    " cursor-not-allowed border-amber-600/35 bg-amber-950/50 text-amber-200/70 line-through";
+                } else if (needsLogin) {
+                  className +=
+                    " cursor-not-allowed border-apex-primary/15 bg-apex-bg/50 text-apex-text/45 opacity-70";
+                } else if (selected) {
+                  className +=
+                    " scale-105 cursor-pointer border-apex-accent bg-apex-accent font-bold text-apex-bg shadow-md";
+                } else {
+                  className +=
+                    " cursor-pointer border-apex-primary/20 bg-apex-bg text-apex-text hover:border-apex-accent hover:bg-apex-primary/50";
+                }
+
+                return (
+                  <button
+                    key={num}
+                    type="button"
+                    disabled={blocked || needsLogin}
+                    onClick={() => toggleNumber(num)}
+                    className={className}
+                    aria-pressed={needsLogin ? false : selected}
+                    aria-label={
+                      sold
+                        ? `Número ${num}, vendido`
+                        : held
+                          ? `Número ${num}, reservado`
+                          : needsLogin
+                            ? `Número ${num}, faça login para selecionar`
+                            : selected
+                              ? `Número ${num}, selecionado`
+                              : `Número ${num}, disponível`
+                    }
+                  >
+                    {num}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex min-h-0 flex-col lg:h-full">
+          <div className="flex min-h-0 w-full flex-1 flex-col rounded-xl border border-apex-primary/30 bg-apex-surface p-5 sm:p-6 lg:min-h-full">
+            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b border-apex-primary/15 pb-3">
+              <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-apex-text/55">
+                  Seleção
+                </p>
+                <p className="mt-0.5 text-apex-text">
+                  <span className="font-bold text-apex-accent">
+                    {selectedNumbers.length}{" "}
+                    {selectedNumbers.length === 1 ? "número" : "números"}
+                  </span>
+                  <span className="text-apex-text/70"> selecionado(s)</span>
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-medium uppercase tracking-wide text-apex-text/55">
+                  Total a pagar
+                </p>
+                <p className="mt-0.5 text-xl font-semibold text-apex-accent">
+                  {formatBRL(totalPay)}
+                </p>
+              </div>
+            </div>
+
+            {isAuthenticated && (
+              <p className="mt-3 text-sm text-apex-text/75">
+                Seu saldo:{" "}
+                <span className="font-medium text-apex-text">{formatBRL(balanceNum)}</span>
+              </p>
+            )}
+
+            {user?.is_admin ? (
+              <p className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs leading-snug text-amber-200/90">
+                <strong>Conta admin:</strong> com saldo suficiente e &quot;Utilizar
+                saldo&quot;, os números são reservados e debitados na hora. Com{" "}
+                <strong>Pix</strong>, a reserva bloqueia os números até o MP
+                confirmar.
+              </p>
+            ) : null}
+
+            {/* Ocupa a altura disponível na coluna: texto completo, quebra na largura do card */}
+            <div className="mt-4 min-h-0 flex-1 flex flex-col justify-start gap-4 border-t border-apex-primary/10 pt-4">
+              <p className="text-sm leading-relaxed text-apex-text/80">
+                Ao pagar, os números ficam <strong className="text-apex-text">reservados</strong>{" "}
+                para você. Se outro jogador tentar o mesmo, vê que já não está
+                disponível.
+              </p>
+              <p className="text-sm leading-relaxed text-apex-text/75">
+                <strong className="text-apex-text/90">Pix</strong>: cobrança Mercado Pago
+                pelo total selecionado (QR ou link).{" "}
+                <strong className="text-apex-text/90">Carteira</strong>: apenas se o
+                saldo cobrir o valor total.
+              </p>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <label className="flex cursor-pointer gap-3 text-sm leading-snug text-apex-text">
+                <input
+                  type="radio"
+                  name="payment-method"
+                  checked={!useBalance}
+                  onChange={() => {
+                    setUseBalance(false);
+                    setPayError(null);
+                  }}
+                  className="mt-0.5 size-4 shrink-0 accent-apex-accent"
+                />
+                <span>
+                  Pix (Mercado Pago — QR ou link; em testes, use conta comprador MP)
+                </span>
+              </label>
+              <label className="flex cursor-pointer gap-3 text-sm leading-snug text-apex-text">
+                <input
+                  type="radio"
+                  name="payment-method"
+                  checked={useBalance}
+                  onChange={() => {
+                    setUseBalance(true);
+                    setPayError(null);
+                  }}
+                  className="mt-0.5 size-4 shrink-0 accent-apex-accent"
+                />
+                <span className="inline-flex items-start gap-2">
+                  <Wallet className="mt-0.5 size-4 shrink-0 text-apex-accent/80" aria-hidden />
+                  Utilizar saldo da carteira
+                </span>
+              </label>
+            </div>
+
+            {useBalance && canPayWithBalanceOnly && totalPay > 0 && (
+              <p className="mt-3 text-sm text-apex-accent/90">
+                Saldo cobre o total ({formatBRL(totalPay)}) — débito direto após
+                reservar.
+              </p>
+            )}
+
+            {payError && (
+              <p className="mt-2 text-sm text-red-400">{payError}</p>
+            )}
+
+            <div className="mt-auto shrink-0 pt-4">
+              <button
+                type="button"
+                disabled={!canPay || paying || !isReady}
+                onClick={handlePay}
+                className="w-full rounded-xl bg-apex-accent py-3 text-center font-bold text-apex-bg transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {paying ? (
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <Loader2 className="size-5 animate-spin" aria-hidden />
+                    Processando…
+                  </span>
+                ) : !isReady ? (
+                  "A carregar…"
+                ) : (
+                  "Pagar"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+      />
+
+      <PixDepositModal
+        open={pixModalOpen}
+        onClose={() => setPixModalOpen(false)}
+        onCancelAwait={cancelPixAwait}
+        intent={pixIntent}
+        polling={pixPolling}
+        amountLabel={formatBRL(totalPay)}
+        raffleCheckout
+      />
     </div>
   );
 }

@@ -37,6 +37,11 @@ import {
 import { apiUrl, getApiBaseUrl } from "@/lib/api/config";
 import { translateLabelList, translateToPtBr } from "@/lib/translate/client";
 import { getAccessToken } from "@/lib/auth/token-storage";
+import {
+  dailymotionEmbedSrc,
+  extractDailymotionVideoId,
+  videoIdForApi,
+} from "@/lib/video-embed";
 import { fetchIgdbGame } from "@/services/api";
 import type {
   AdminReservationRowOut,
@@ -104,27 +109,6 @@ const thClass =
 const tdClass = "px-3 py-3 align-middle text-sm text-apex-text/90";
 const rowClass =
   "border-t border-white/[0.06] transition-colors hover:bg-white/5";
-
-/** Extrai o ID de vídeo (11 caracteres) de URLs YouTube comuns. */
-const YOUTUBE_VIDEO_ID_RE =
-  /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i;
-
-function extractYoutubeVideoId(input: string): string | null {
-  const m = input.trim().match(YOUTUBE_VIDEO_ID_RE);
-  return m?.[1] ?? null;
-}
-
-const YOUTUBE_STANDALONE_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
-
-/** Valor a enviar em `video_id`: só ID de 11 caracteres ou null. */
-function videoIdForApi(stored: string): string | null {
-  const t = stored.trim();
-  if (!t) return null;
-  const fromUrl = extractYoutubeVideoId(t);
-  if (fromUrl) return fromUrl;
-  if (YOUTUBE_STANDALONE_ID_RE.test(t)) return t;
-  return null;
-}
 
 type AdminTab = "launch" | "raffles" | "transactions";
 
@@ -954,6 +938,10 @@ function AdminPanel() {
       if (gameModesPt.length) bodyPayload.game_modes = gameModesPt;
       if (perspectivesPt.length)
         bodyPayload.player_perspectives = perspectivesPt;
+      const igdbRef = igdbMeta?.igdb_url?.trim();
+      if (igdbRef) bodyPayload.igdb_url = igdbRef;
+      const igdbId = igdbMeta?.igdb_game_id?.trim();
+      if (igdbId) bodyPayload.igdb_game_id = igdbId;
       bodyPayload.featured_tier = featuredTier;
 
       const url = editingRaffleId
@@ -1647,27 +1635,27 @@ function AdminPanel() {
                   </div>
                 </section>
 
-                {/* Preview do vídeo YouTube */}
+                {/* Preview do vídeo Dailymotion */}
                 <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-white/5 bg-apex-surface/60 p-3 shadow-[0_8px_32px_rgb(0,0,0,0.22)] backdrop-blur-lg">
                   <label className="shrink-0">
                     <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-apex-text-muted">
-                      Link do vídeo no YouTube (opcional)
+                      Link do trailer no Dailymotion (opcional)
                     </span>
                     <input
                       type="text"
                       value={videoId}
                       onChange={(e) => {
                         const v = e.target.value;
-                        const extracted = extractYoutubeVideoId(v);
+                        const extracted = extractDailymotionVideoId(v);
                         setVideoId(extracted ?? v);
                       }}
                       onBlur={(e) => {
                         const v = e.target.value;
-                        const extracted = extractYoutubeVideoId(v);
+                        const extracted = extractDailymotionVideoId(v);
                         if (extracted) setVideoId(extracted);
                       }}
                       className={`${inputClass} py-2 text-sm`}
-                      placeholder="URL ou ID do vídeo"
+                      placeholder="URL ou ID (ex.: x8abcd ou dailymotion.com/video/…)"
                     />
                   </label>
 
@@ -1675,10 +1663,10 @@ function AdminPanel() {
                     {videoIdForApi(videoId) ? (
                       <div className="absolute inset-0 overflow-hidden rounded-lg border border-apex-primary/15 bg-apex-bg">
                         <iframe
-                          title="Preview do vídeo do YouTube"
-                          src={`https://www.youtube.com/embed/${videoIdForApi(videoId)}?rel=0`}
+                          title="Preview do vídeo no Dailymotion"
+                          src={dailymotionEmbedSrc(videoIdForApi(videoId)!)}
                           className="size-full"
-                          allow="fullscreen; picture-in-picture"
+                          allow="fullscreen; picture-in-picture; web-share"
                           allowFullScreen
                           loading="lazy"
                         />
@@ -1686,7 +1674,7 @@ function AdminPanel() {
                     ) : (
                       <div className="flex size-full min-h-[100px] items-center justify-center rounded-lg border border-dashed border-apex-primary/20 bg-apex-bg/50">
                         <p className="text-center text-xs text-apex-text/40">
-                          Cole a URL do YouTube para ver o preview
+                          Cole a URL do Dailymotion para ver o preview
                         </p>
                       </div>
                     )}

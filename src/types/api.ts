@@ -85,12 +85,14 @@ export type RafflePublic = {
   /** Bilhete vencedor (rifas já sorteadas) */
   winning_ticket_number?: number | null;
   drawn_at?: string | null;
-  /** Metadados IGDB / copy — opcionais até o backend expor no OpenAPI */
+  /** Metadados IGDB / copy */
   summary?: string | null;
   genres?: string[];
   series?: string[];
   game_modes?: string[];
   player_perspectives?: string[];
+  igdb_url?: string | null;
+  igdb_game_id?: string | null;
 };
 
 /** RafflePublic + sold (quantidade vendida) — retorno de GET /raffles */
@@ -233,6 +235,8 @@ export type AdminRaffleCreate = {
   series?: string[];
   game_modes?: string[];
   player_perspectives?: string[];
+  igdb_url?: string | null;
+  igdb_game_id?: string | null;
 };
 
 export type RaffleCancelResponse = {
