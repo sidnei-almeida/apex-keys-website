@@ -58,9 +58,9 @@ function initialsFromName(name: string): string {
   return `${p[0]![0]!}${p[p.length - 1]![0]!}`.toUpperCase();
 }
 
-function formatTicketHash(n: number): string {
-  if (n < 100) return `#${String(n).padStart(2, "0")}`;
-  return `#${n}`;
+/** Número na fatia live: sem "#", sempre pelo menos 2 caracteres (01, 07, 10, 123). */
+function formatSliceTicketNumber(n: number): string {
+  return String(n).padStart(2, "0");
 }
 
 function WheelPointerAdmin() {
@@ -156,18 +156,19 @@ function LiveSliceDecorations({
         const mid = (i + 0.5) / n;
         const ang = mid * 2 * Math.PI;
         const rotDeg = (mid * 360 + 180) % 360;
-        const fillIsA = i % 2 === 0;
-        const textFill = fillIsA ? "#F3F4F6" : "#D4AF37";
-
         if (lowDensity) {
-          const rNum = R * 0.44;
-          const rAv = R * 0.62;
+          const fillIsA = i % 2 === 0;
+          const labelFill = fillIsA ? "rgba(255,255,255,0.78)" : "rgba(212,175,55,0.82)";
+          /** Número mais ao centro; avatar mais à borda; mesmo eixo radial. */
+          const rNum = R * 0.38;
+          const rAv = R * 0.71;
           const nx = rNum * Math.sin(ang);
           const ny = -rNum * Math.cos(ang);
           const ax = rAv * Math.sin(ang);
           const ay = -rAv * Math.cos(ang);
           const href = resolveAvatarUrl(seg.avatar_url);
           const initials = initialsFromName(seg.full_name);
+          const fsLow = n <= 8 ? 7.2 : n <= 14 ? 6.4 : 5.6;
 
           return (
             <g key={`live-low-${seg.ticket_number}-${i}`}>
@@ -175,13 +176,13 @@ function LiveSliceDecorations({
                 <text
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  fill="#D4AF37"
-                  fontSize={n <= 8 ? 9 : n <= 14 ? 8 : 7}
-                  fontWeight={700}
+                  fill={labelFill}
+                  fontSize={fsLow}
+                  fontWeight={500}
                   fontFamily="var(--font-body), system-ui, sans-serif"
-                  style={{ textShadow: "0 1px 2px rgba(0,0,0,0.9)" }}
+                  style={{ textShadow: "0 1px 2px rgba(0,0,0,0.75)" }}
                 >
-                  {formatTicketHash(seg.ticket_number)}
+                  {formatSliceTicketNumber(seg.ticket_number)}
                 </text>
               </g>
               <g transform={`translate(${ax},${ay}) rotate(${rotDeg})`}>
@@ -214,9 +215,9 @@ function LiveSliceDecorations({
                     <text
                       textAnchor="middle"
                       dominantBaseline="central"
-                      fill="#D4AF37"
-                      fontSize={n <= 10 ? 5 : 4.5}
-                      fontWeight={700}
+                      fill="rgba(212,175,55,0.82)"
+                      fontSize={n <= 10 ? 4 : 3.6}
+                      fontWeight={500}
                       fontFamily="var(--font-body), system-ui, sans-serif"
                     >
                       {initials}
@@ -228,11 +229,13 @@ function LiveSliceDecorations({
           );
         }
 
+        const fillIsA = i % 2 === 0;
+        const textFill = fillIsA ? "rgba(255,255,255,0.78)" : "rgba(212,175,55,0.82)";
         const rOut = R * 0.87;
         const tx = rOut * Math.sin(ang);
         const ty = -rOut * Math.cos(ang);
         const fs =
-          n > 160 ? 3.8 : n > 120 ? 4.2 : n > 80 ? 5 : n > 50 ? 5.8 : 6.5;
+          n > 160 ? 3.04 : n > 120 ? 3.36 : n > 80 ? 4 : n > 50 ? 4.64 : 5.2;
 
         return (
           <g key={`live-hi-${seg.ticket_number}-${i}`}>
@@ -242,11 +245,11 @@ function LiveSliceDecorations({
                 dominantBaseline="middle"
                 fill={textFill}
                 fontSize={fs}
-                fontWeight={600}
+                fontWeight={500}
                 fontFamily="var(--font-mono), ui-monospace, monospace"
                 style={{ textShadow: "0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.85)" }}
               >
-                {seg.ticket_number}
+                {formatSliceTicketNumber(seg.ticket_number)}
               </text>
             </g>
           </g>
@@ -361,16 +364,16 @@ export function RaffleWheelSvg({
                   <text
                     textAnchor="middle"
                     dominantBaseline="middle"
-                    y={-42}
-                    fill="#D4AF37"
-                    fontSize={11}
-                    fontWeight={700}
+                    y={-38}
+                    fill="rgba(212,175,55,0.82)"
+                    fontSize={8.8}
+                    fontWeight={500}
                     fontFamily="var(--font-body), system-ui, sans-serif"
-                    style={{ textShadow: "0 1px 2px rgba(0,0,0,0.9)" }}
+                    style={{ textShadow: "0 1px 2px rgba(0,0,0,0.75)" }}
                   >
-                    {formatTicketHash(seg.ticket_number)}
+                    {formatSliceTicketNumber(seg.ticket_number)}
                   </text>
-                  <g transform="translate(0,-58)">
+                  <g transform="translate(0,-62)">
                     {href ? (
                       <>
                         <image
@@ -395,9 +398,9 @@ export function RaffleWheelSvg({
                         <text
                           textAnchor="middle"
                           dominantBaseline="central"
-                          fill="#D4AF37"
-                          fontSize={6}
-                          fontWeight={700}
+                          fill="rgba(212,175,55,0.82)"
+                          fontSize={5}
+                          fontWeight={500}
                           fontFamily="var(--font-body), system-ui, sans-serif"
                         >
                           {initialsFromName(seg.full_name)}
