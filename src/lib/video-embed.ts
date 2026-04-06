@@ -31,7 +31,7 @@ export function dailymotionEmbedSrc(videoId: string): string {
   // @see https://dailymotion.readme.io/docs/loop
   const base = `https://www.dailymotion.com/embed/video/${encodeURIComponent(videoId)}`;
   const params = new URLSearchParams({
-    // Não iniciar automaticamente (o utilizador clica play).
+    // Não iniciar automaticamente (o usuário clica play).
     autoplay: "0",
     // Não avançar para recomendações / próximo vídeo.
     enable_automatic_recommendations: "false",

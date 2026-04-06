@@ -13,9 +13,9 @@ import {
   VisaMark,
 } from "@/components/layout/FooterPaymentTrust";
 
-import GoldenLionLogo from "@/app/Adobe Express - file.png";
+import { APEX_BRAND_LOGO_SRC } from "@/lib/apex-brand-logo";
 
-const FOOTER_LOGO = GoldenLionLogo.src;
+const FOOTER_LOGO = APEX_BRAND_LOGO_SRC;
 
 const QUICK_LINKS = [
   { href: "/", label: "Home" },

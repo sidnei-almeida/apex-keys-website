@@ -23,7 +23,7 @@ export default function PrivacidadePage() {
       </p>
       <p>
         Esta Política explica quais dados coletamos, para quê, com quem podemos
-        partilhar, como protegemos e quais são os seus direitos enquanto titular.
+        compartilhar, como protegemos e quais são os seus direitos enquanto titular.
       </p>
 
       <LegalSectionTitle firstSection>1. Controlador e encarregado</LegalSectionTitle>
@@ -49,7 +49,7 @@ export default function PrivacidadePage() {
         </li>
         <li>
           <span className="text-premium-text">Dados técnicos e de utilização:</span>{" "}
-          endereço IP, tipo de navegador, dispositivo, registos de acesso, cookies e
+          endereço IP, tipo de navegador, dispositivo, registros de acesso, cookies e
           tecnologias similares (quando utilizados), para segurança e melhoria do
           serviço.
         </li>
@@ -63,7 +63,7 @@ export default function PrivacidadePage() {
       <p>Tratamos dados pessoais para finalidades como:</p>
       <ul className="list-disc space-y-2 pl-6 marker:text-premium-muted">
         <li>
-          Execução de contrato e gestão da conta: registo, autenticação, processamento
+          Execução de contrato e gestão da conta: registro, autenticação, processamento
           de pedidos e participação em sorteios (base: execução de contrato).
         </li>
         <li>
@@ -88,14 +88,14 @@ export default function PrivacidadePage() {
 
       <LegalSectionTitle>4. Compartilhamento de dados</LegalSectionTitle>
       <p>
-        Podemos partilhar dados com prestadores que nos auxiliam na operação (hospedagem,
+        Podemos compartilhar dados com prestadores que nos auxiliam na operação (hospedagem,
         processamento de pagamentos, envio de e-mail, analytics), sempre sob contratos
         que exigem proteção adequada e uso limitado às finalidades indicadas.
       </p>
       <p>
         Também poderemos divulgar informações quando exigido por lei, ordem judicial
         ou autoridade competente, ou para proteger direitos, segurança e integridade da
-        Plataforma e dos utilizadores.
+        Plataforma e dos usuários.
       </p>
       <p>
         Não vendemos os seus dados pessoais a terceiros no sentido comercial tradicional
@@ -112,7 +112,7 @@ export default function PrivacidadePage() {
       <LegalSectionTitle>6. Retenção</LegalSectionTitle>
       <p>
         Conservamos dados pelo tempo necessário para cumprir as finalidades descritas,
-        obrigações legais (por exemplo, fiscais e contabilísticas), resolução de litígios
+        obrigações legais (por exemplo, fiscais e contábeis), resolução de litígios
         e exercício regular de direitos. Após o prazo, os dados serão eliminados ou
         anonimizados, salvo exceção legal.
       </p>
@@ -121,7 +121,7 @@ export default function PrivacidadePage() {
       <p>
         Adotamos medidas técnicas e organizacionais razoáveis para proteger dados
         contra acessos não autorizados, perda ou alteração indevida, incluindo uso de
-        HTTPS, controlo de acessos e boas práticas de desenvolvimento. Nenhum sistema é
+        HTTPS, controle de acessos e boas práticas de desenvolvimento. Nenhum sistema é
         100% seguro; recomendamos credenciais fortes e cautela com phishing.
       </p>
 
@@ -177,7 +177,7 @@ export default function PrivacidadePage() {
 
       <LegalSectionTitle>12. Autoridade supervisora</LegalSectionTitle>
       <p>
-        Sem prejuízo de reclamação junto à Apex Keys, pode apresentar reclamação à
+        Sem prejuízo de reclamação na Apex Keys, pode apresentar reclamação à
         Autoridade Nacional de Proteção de Dados (ANPD), nos termos da legislação.
       </p>
 

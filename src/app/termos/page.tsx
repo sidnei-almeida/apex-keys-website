@@ -24,7 +24,7 @@ export default function TermosPage() {
         de funcionalidades associadas (por exemplo, carteira, reservas e pagamentos).
       </p>
       <p>
-        Ao criar conta, efetuar compras ou utilizar a Plataforma, declara que leu,
+        Ao criar conta, fazer compras ou utilizar a Plataforma, declara que leu,
         compreendeu e aceita integralmente estes Termos. Se não concordar, não deve
         utilizar os serviços.
       </p>
@@ -45,10 +45,10 @@ export default function TermosPage() {
         cotas sobre produtos digitais (por exemplo, chaves de ativação para
         plataformas como a Steam) e serviços conexos. Os sorteios seguem regras
         próprias de cada campanha (número de cotas, preço, datas e condições de
-        encerramento), sempre disponibilizadas na página do respetivo sorteio.
+        encerramento), sempre disponibilizadas na página do respectivo sorteio.
       </p>
       <p>
-        Os jogos e marcas citados pertencem aos respetivos titulares. A Apex Keys não
+        Os jogos e marcas citados pertencem aos respectivos titulares. A Apex Keys não
         é afiliada oficialmente a Valve, Steam ou outros detentores de IP, salvo
         menção expressa em contrário.
       </p>
@@ -58,10 +58,10 @@ export default function TermosPage() {
         <li>
           Deve ter capacidade legal para celebrar contratos no seu país de residência
           e, quando aplicável, idade mínima legal para participar em atividades de
-          comércio eletrónico.
+          comércio eletrônico.
         </li>
         <li>
-          É responsável pela veracidade dos dados de registo (nome, e-mail, contato,
+          É responsável pela veracidade dos dados de registro (nome, e-mail, contato,
           chave PIX quando solicitada) e pela confidencialidade das credenciais da
           conta.
         </li>
@@ -100,7 +100,7 @@ export default function TermosPage() {
       <ul className="list-disc space-y-2 pl-6 marker:text-premium-muted">
         <li>
           Transações PIX estão sujeitas aos prazos e confirmações da rede e dos
-          parceiros de pagamento; até à confirmação, a reserva de cotas pode estar
+          parceiros de pagamento; até a confirmação, a reserva de cotas pode estar
           sujeita a expiração conforme as regras exibidas no fluxo de compra.
         </li>
         <li>
@@ -113,7 +113,7 @@ export default function TermosPage() {
       <p>
         Após confirmação do pagamento e conclusão do sorteio (quando aplicável), a
         entrega de chaves ou códigos digitais será feita pelos meios indicados na
-        Plataforma (por exemplo, área do utilizador, e-mail registado ou instruções
+        Plataforma (por exemplo, área do usuário, e-mail cadastrado ou instruções
         na página do prémio).
       </p>
       <ul className="list-disc space-y-2 pl-6 marker:text-premium-muted">
@@ -124,7 +124,7 @@ export default function TermosPage() {
         </li>
         <li>
           Chaves reveladas ou entregues são consideradas consumíveis digitais; guarde
-          cópias seguras e não partilhe códigos com terceiros.
+          cópias seguras e não compartilhe códigos com terceiros.
         </li>
       </ul>
 

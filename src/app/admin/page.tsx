@@ -172,7 +172,7 @@ type PendingTxnRow = {
     | "pix_mp_wallet";
   gatewayRef: string | null;
   expiresAtIso: string | null;
-  /** ISO — retenção mínima 14 dias antes de eliminar registo (alinhado à API). */
+  /** ISO — retenção mínima 14 dias antes de eliminar registro (alinhado à API). */
   createdAtIso: string;
 };
 
@@ -965,7 +965,7 @@ function AdminPanel() {
         await adminCancelReservation(token, holdId);
         setMessage({
           type: "success",
-          text: "Reserva cancelada: números libertados; registo Pix mantido como cancelado (auditoria).",
+          text: "Reserva cancelada: números liberados; registro Pix mantido como cancelado (auditoria).",
         });
         await reloadReservationRows({ silent: true });
         void getRaffles().then((list) =>
@@ -1001,7 +1001,7 @@ function AdminPanel() {
         await adminDeleteRaffleTransactionRecord(token, transactionId);
         setMessage({
           type: "success",
-          text: "Registo eliminado após o período de retenção de 14 dias.",
+          text: "Registro eliminado após o período de retenção de 14 dias.",
         });
         await reloadReservationRows({ silent: true });
       } catch (err) {
@@ -1010,7 +1010,7 @@ function AdminPanel() {
             ? (err.detail ?? err.message)
             : err instanceof Error
               ? err.message
-              : "Falha ao eliminar registo.";
+              : "Falha ao eliminar registro.";
         setMessage({ type: "error", text: msg });
       } finally {
         setTxnActionId(null);
@@ -1269,7 +1269,7 @@ function AdminPanel() {
         ? "Atualize os dados da operação selecionada"
         : "Cadastre um novo sorteio na vitrine pública"
       : activeTab === "raffles"
-        ? `${raffles.length} operação(ões) registada(s)`
+        ? `${raffles.length} operação(ões) registrada(s)`
         : activeTab === "transactions"
           ? "Pagamentos concluídos ficam no histórico; eliminar só após 14 dias (retenção)."
           : activeTab === "users"
@@ -2241,7 +2241,7 @@ function AdminPanel() {
                           return (
                             <tr>
                               <td colSpan={7} className={`${tdClass} py-10 text-center text-premium-muted`}>
-                                {q ? "Nenhum usuário encontrado." : "Sem usuários registados."}
+                                {q ? "Nenhum usuário encontrado." : "Sem usuários registrados."}
                               </td>
                             </tr>
                           );
@@ -2596,7 +2596,7 @@ function AdminPanel() {
                                     className={`${tdClass} py-2.5 text-xs font-semibold uppercase tracking-wide text-premium-muted`}
                                   >
                                     Histórico (auditoria) — pago, cancelado ou falha.
-                                    Eliminar registo: só após 14 dias (retenção).
+                                    Eliminar registro: só após 14 dias (retenção).
                                   </td>
                                 </tr>
                               ) : null;
@@ -2714,7 +2714,7 @@ function AdminPanel() {
                                         title={
                                           !isTxnDeletionEligible(t.createdAtIso)
                                             ? "Retenção 14 dias"
-                                            : "Eliminar registo"
+                                            : "Eliminar registro"
                                         }
                                         onClick={() =>
                                           t.transactionId &&
@@ -2728,7 +2728,7 @@ function AdminPanel() {
                                           className="size-3.5 shrink-0"
                                           aria-hidden
                                         />
-                                        Eliminar registo
+                                        Eliminar registro
                                       </button>
                                     )}
                                   </div>

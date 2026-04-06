@@ -140,7 +140,8 @@ function iconForGameMode(mode: string): { Icon: LucideIcon; label: string } {
     n.includes("split") ||
     n.includes("tela dividida") ||
     n.includes("ecra dividido") ||
-    n.includes("partilha")
+    n.includes("partilha") ||
+    n.includes("compartilhamento")
   ) {
     return { Icon: Columns, label };
   }
@@ -255,7 +256,7 @@ export default function RafflePage() {
   const pixAbortRef = useRef<AbortController | null>(null);
   /** Hold ativo durante fluxo Pix da rifa (para libertar ao cancelar). */
   const activePaymentHoldIdRef = useRef<string | null>(null);
-  /** Bilhetes do utilizador nesta rifa (para overlay de avatar na grelha). */
+  /** Bilhetes do usuário nesta rifa (para overlay de avatar na grelha). */
   const [myRaffleTickets, setMyRaffleTickets] = useState<MyTicketOut[]>([]);
   /** Tooltip do número próprio — posição viewport para contornar overflow-clip. */
   const [mineTooltip, setMineTooltip] = useState<{
@@ -314,7 +315,7 @@ export default function RafflePage() {
     [selectedNumbers],
   );
 
-  /** Números que o utilizador actual comprou nesta rifa. */
+  /** Números que o usuário atual comprou nesta rifa. */
   const myNumbersSet = useMemo(
     () => new Set(myRaffleTickets.map((t) => t.ticket_number)),
     [myRaffleTickets],
@@ -493,7 +494,7 @@ export default function RafflePage() {
             id: "raffle-pix-timeout",
             duration: TOAST_MS,
             description:
-              "Os números foram libertados. Pode selecionar de novo ou tentar outro pagamento.",
+              "Os números foram liberados. Pode selecionar de novo ou tentar outro pagamento.",
           });
         }
         /* Se aborted, cancelPixAwait já libertou e mostrou toast. */

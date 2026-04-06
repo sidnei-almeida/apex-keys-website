@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 /**
- * Layout partilhado para páginas legais (legibilidade, contenção estreita).
+ * Layout compartilhado para páginas legais (legibilidade, contenção estreita).
  */
 export function LegalDocShell({
   title,

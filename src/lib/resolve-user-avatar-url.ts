@@ -6,7 +6,7 @@ import { getApiBaseUrl } from "@/lib/api/config";
  */
 export function resolveUserAvatarUrl(
   raw: string | null | undefined,
-  /** Força novo pedido HTTP quando a URL do ficheiro é a mesma (ex.: overwrite no servidor). */
+  /** Força novo pedido HTTP quando a URL do arquivo é a mesma (ex.: overwrite no servidor). */
   cacheBust?: number,
 ): string | undefined {
   const u = raw?.trim();

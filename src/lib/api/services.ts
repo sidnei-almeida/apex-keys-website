@@ -185,7 +185,7 @@ export type AbandonPixDepositBody = {
   gateway_reference: string;
 };
 
-/** Marca depósito Pix pendente como cancelado (ex.: utilizador clicou «Parar de aguardar»). */
+/** Marca depósito Pix pendente como cancelado (ex.: usuário clicou «Parar de aguardar»). */
 export async function postAbandonWalletPixDeposit(
   token: string,
   body: AbandonPixDepositBody,

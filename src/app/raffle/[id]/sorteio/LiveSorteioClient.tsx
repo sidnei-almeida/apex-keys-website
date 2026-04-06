@@ -4,9 +4,9 @@ import { RaffleWheelSvg } from "@/components/admin/RaffleWheelSvg";
 import { useWheelSound } from "@/components/admin/useWheelSound";
 import { getPublicLiveDraw } from "@/lib/api/services";
 import type { PublicLiveDrawOut, PublicWheelSegmentOut } from "@/types/api";
-import { Loader2, Radio, Trophy } from "lucide-react";
+import { ArrowLeft, Loader2, Radio } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const SPIN_MS_DEFAULT = 9000;
 const SPIN_MS_REDUCED = 450;
@@ -23,6 +23,25 @@ function useReducedSpinMs() {
   return ms;
 }
 
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => setReduced(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  return reduced;
+}
+
+function winnerInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return `${parts[0]![0]!}${parts[parts.length - 1]![0]!}`.toUpperCase();
+}
+
 export function LiveSorteioClient({ raffleId }: { raffleId: string }) {
   const [data, setData] = useState<PublicLiveDrawOut | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +49,7 @@ export function LiveSorteioClient({ raffleId }: { raffleId: string }) {
 
   const [countdown, setCountdown] = useState<number | null>(null);
   const spinMs = useReducedSpinMs();
+  const prefersReducedMotion = usePrefersReducedMotion();
   const [rotationDeg, setRotationDeg] = useState(0);
   const [transitionEnabled, setTransitionEnabled] = useState(false);
   const [phase, setPhase] = useState<"idle" | "spinning" | "done">("idle");
@@ -38,7 +58,10 @@ export function LiveSorteioClient({ raffleId }: { raffleId: string }) {
   const hadWinnerOnFirstPollRef = useRef(false);
 
   const tickIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const rotationRef = useRef(0);
   const { resume, playTick, playWin } = useWheelSound();
+
+  rotationRef.current = rotationDeg;
 
   const stopTicks = useCallback(() => {
     if (tickIntervalRef.current) {
@@ -126,16 +149,16 @@ export function LiveSorteioClient({ raffleId }: { raffleId: string }) {
       if (spunForWinnerRef.current === winnerTicket) return;
       spunForWinnerRef.current = winnerTicket;
       await resume();
-      const totalRotation = computeRotation(segments, winnerTicket, 7);
+      const delta = computeRotation(segments, winnerTicket, 7);
+      const from = rotationRef.current;
 
       setPhase("spinning");
       setTransitionEnabled(false);
-      setRotationDeg(0);
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           startTicks(spinMs);
           setTransitionEnabled(true);
-          setRotationDeg(totalRotation);
+          setRotationDeg(from + delta);
         });
       });
       window.setTimeout(() => {
@@ -166,28 +189,62 @@ export function LiveSorteioClient({ raffleId }: { raffleId: string }) {
     void runSpinToWinner(data.segments, w);
   }, [data, runSpinToWinner, computeRotation]);
 
+  const idleSpin = useMemo(() => {
+    if (!data) return false;
+    const segments = data.segments;
+    const isCanceled = data.status === "canceled";
+    const showWheel = segments.length > 0 && !isCanceled;
+    return (
+      showWheel &&
+      phase === "idle" &&
+      data.winner_ticket_number == null &&
+      !prefersReducedMotion
+    );
+  }, [data, phase, prefersReducedMotion]);
+
+  useEffect(() => {
+    if (idleSpin) setTransitionEnabled(false);
+  }, [idleSpin]);
+
+  useEffect(() => {
+    if (!idleSpin) return;
+    const id = window.setInterval(() => {
+      setRotationDeg((d) => d - 0.9);
+    }, 50);
+    return () => clearInterval(id);
+  }, [idleSpin]);
+
   const formatHms = (sec: number) => {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
     return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   };
 
+  const backHref = `/raffle/${raffleId}`;
+  const backLinkClass =
+    "inline-flex items-center gap-2 text-sm text-premium-muted transition-colors hover:text-premium-text";
+
   if (loading && !data) {
     return (
-      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-premium-muted">
-        <Loader2 className="size-10 animate-spin text-premium-accent" aria-hidden />
-        <p className="text-sm">A carregar sorteio ao vivo…</p>
+      <div className="mx-auto flex min-h-[50vh] max-w-7xl items-center justify-center px-4">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="size-10 animate-spin text-premium-border" aria-hidden />
+          <p className="text-xs text-premium-muted">Carregando…</p>
+        </div>
       </div>
     );
   }
 
   if (error && !data) {
     return (
-      <div className="rounded-xl border border-red-900/40 bg-red-950/25 p-6 text-center text-red-200/90">
-        <p>{error}</p>
-        <Link href={`/raffle/${raffleId}`} className="mt-4 inline-block text-sm text-premium-accent hover:underline">
+      <div className="mx-auto max-w-7xl px-4 py-12">
+        <Link href={backHref} className={backLinkClass}>
+          <ArrowLeft className="size-4 shrink-0" aria-hidden />
           Voltar à rifa
         </Link>
+        <div className="mt-8 rounded-xl border border-red-900/40 bg-red-950/20 p-6 text-center">
+          <p className="text-sm text-red-200/90">{error}</p>
+        </div>
       </div>
     );
   }
@@ -203,89 +260,117 @@ export function LiveSorteioClient({ raffleId }: { raffleId: string }) {
     data.winner_ticket_number == null &&
     (countdown ?? 0) <= 0;
 
+  const showCountdown =
+    data.status === "sold_out" && data.winner_ticket_number == null && countdown != null && countdown > 0;
+
+  const winnerReady =
+    phase === "done" && data.winner_ticket_number != null && data.winner_full_name;
+
   return (
-    <div className="mx-auto max-w-4xl space-y-10 px-4 py-8 sm:px-6">
-      <div className="text-center">
-        <p className="font-body text-xs font-semibold uppercase tracking-[0.2em] text-premium-muted">
-          Apex Keys — ao vivo
-        </p>
-        <h1 className="mt-3 font-heading text-2xl font-bold tracking-tight text-premium-text sm:text-3xl">
-          {data.raffle_title}
-        </h1>
-        <p className="mx-auto mt-2 max-w-lg text-sm text-premium-muted">
-          Transparência total: todos os números pagos entram na roleta. O sorteio é aleatório no servidor.
-        </p>
-      </div>
-
-      {isCanceled && (
-        <p className="rounded-lg border border-premium-border/50 bg-premium-surface/50 p-4 text-center text-sm text-premium-muted">
-          Esta rifa foi cancelada.
-        </p>
-      )}
-
-      {isActiveOnly && (
-        <p className="rounded-lg border border-premium-border/50 bg-premium-surface/50 p-4 text-center text-sm text-premium-muted">
-          A roleta ao vivo fica disponível quando todos os números estiverem{" "}
-          <span className="text-premium-text">pagos</span> (não só reservados).
-        </p>
-      )}
-
-      {data.status === "sold_out" && data.winner_ticket_number == null && countdown != null && countdown > 0 && (
-        <div className="rounded-2xl border border-premium-accent/30 bg-gradient-to-b from-premium-accent/10 to-transparent px-6 py-10 text-center">
-          <Radio className="mx-auto size-10 text-premium-accent animate-pulse" aria-hidden />
-          <p className="mt-4 font-heading text-lg font-semibold text-premium-text">Sorteio em</p>
-          <p className="mt-2 font-mono text-5xl font-bold tabular-nums tracking-tight text-premium-accent sm:text-6xl">
-            {formatHms(countdown)}
-          </p>
-          <p className="mt-4 text-sm text-premium-muted">
-            Quando o tempo chegar a zero, o site pede o resultado ao servidor e a roleta gira automaticamente.
-          </p>
-        </div>
-      )}
-
-      {waitingAfterZero && (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-premium-border/60 bg-premium-surface/40 py-8">
-          <Loader2 className="size-8 animate-spin text-premium-accent" aria-hidden />
-          <p className="text-sm font-medium text-premium-text">A iniciar o sorteio…</p>
-          <p className="max-w-sm text-center text-xs text-premium-muted">Aguarda um momento — o primeiro pedido após o horário regista o vencedor.</p>
-        </div>
-      )}
-
-      {showWheel && (
-        <div className="relative rounded-2xl border border-premium-border/50 bg-gradient-to-b from-premium-surface/60 to-premium-bg/90 px-4 py-10 sm:px-8">
-          <RaffleWheelSvg
-            segments={segments}
-            rotationDeg={rotationDeg}
-            transitionMs={spinMs}
-            transitionEnabled={transitionEnabled}
-          />
-
-          {phase === "done" && data.winner_ticket_number != null && data.winner_full_name && (
-            <div
-              className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-black/50 backdrop-blur-[2px]"
-              aria-live="polite"
-            >
-              <div className="apex-wheel-burst mx-4 max-w-md rounded-2xl border border-premium-accent/40 bg-premium-surface/95 p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
-                <Trophy className="mx-auto size-14 text-premium-accent drop-shadow-[0_0_24px_rgba(212,175,55,0.45)]" aria-hidden />
-                <p className="mt-4 font-heading text-lg font-bold text-premium-text">Vencedor</p>
-                <p className="mt-2 font-mono text-3xl font-bold tabular-nums text-premium-accent">
-                  Nº {data.winner_ticket_number}
-                </p>
-                <p className="mt-3 text-lg font-semibold text-premium-text">{data.winner_full_name}</p>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="flex flex-wrap justify-center gap-4 text-sm">
-        <Link
-          href={`/raffle/${raffleId}`}
-          className="rounded-lg border border-premium-border/50 px-4 py-2 text-premium-muted transition-colors hover:border-premium-accent/40 hover:text-premium-accent"
-        >
+    <div className="w-full px-3 pb-16 pt-8 sm:px-5 sm:pt-10">
+      <div className="mx-auto max-w-[min(100%,88rem)]">
+        <Link href={backHref} className={backLinkClass}>
+          <ArrowLeft className="size-4 shrink-0" aria-hidden />
           Voltar à rifa
         </Link>
+
+        <header className="mt-8 max-w-2xl">
+          <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-premium-muted">
+            Ao vivo
+          </p>
+          <h1 className="mt-1 font-heading text-xl font-semibold tracking-tight text-premium-text sm:text-2xl">
+            {data.raffle_title}
+          </h1>
+        </header>
+
+        {showCountdown && (
+          <div
+            className="mt-8 flex max-w-md flex-col gap-3 border-l border-premium-accent/35 pl-5 sm:pl-6"
+            aria-live="polite"
+          >
+            <div className="flex items-center gap-2 text-premium-muted">
+              <Radio className="size-3.5 shrink-0 opacity-80" aria-hidden />
+              <span className="text-xs font-medium tracking-wide">Até o sorteio</span>
+            </div>
+            <p className="font-mono text-4xl font-semibold tabular-nums tracking-tight text-premium-text sm:text-5xl">
+              {formatHms(countdown)}
+            </p>
+            <p className="text-xs leading-relaxed text-premium-muted">
+              A roleta gira automaticamente quando o tempo zerar.
+            </p>
+          </div>
+        )}
+
+        {isCanceled && (
+          <p className="mt-10 max-w-md text-sm text-premium-muted">Esta rifa foi cancelada.</p>
+        )}
+
+        {isActiveOnly && (
+          <p className="mt-10 max-w-md text-sm text-premium-muted">
+            A roleta aparece quando todos os números estiverem{" "}
+            <span className="text-premium-text">pagos</span>.
+          </p>
+        )}
+
+        {waitingAfterZero && (
+          <div className="mt-10 flex max-w-md flex-col gap-2">
+            <Loader2 className="size-6 animate-spin text-premium-border" aria-hidden />
+            <p className="text-sm text-premium-text">Preparando o sorteio…</p>
+            <p className="text-xs text-premium-muted">Aguarde um instante.</p>
+          </div>
+        )}
+
+        {showWheel && (
+          <div className="relative mx-auto mt-12 w-full sm:mt-14">
+            {phase === "spinning" ? (
+              <p className="mb-4 text-center text-[10px] font-medium uppercase tracking-[0.22em] text-premium-muted">
+                Sorteando
+              </p>
+            ) : null}
+            <RaffleWheelSvg
+              variant="live"
+              segments={segments}
+              rotationDeg={rotationDeg}
+              transitionMs={spinMs}
+              transitionEnabled={transitionEnabled}
+            />
+          </div>
+        )}
+
+        <p className="mt-14 text-center">
+          <Link href={backHref} className={`${backLinkClass} text-xs`}>
+            <ArrowLeft className="size-3.5 shrink-0" aria-hidden />
+            Voltar à rifa
+          </Link>
+        </p>
       </div>
+
+      {winnerReady ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-premium-bg/80 p-4 backdrop-blur-sm"
+          aria-live="polite"
+          role="dialog"
+          aria-label="Resultado do sorteio"
+        >
+          <div className="apex-wheel-burst w-full max-w-sm rounded-2xl border border-premium-border bg-premium-surface px-8 py-9 text-center shadow-[0_32px_64px_rgba(0,0,0,0.5)] sm:max-w-md">
+            <div
+              className="mx-auto flex size-20 items-center justify-center rounded-full border border-premium-border bg-premium-cell text-lg font-semibold tracking-tight text-premium-text sm:size-24 sm:text-xl"
+              aria-hidden
+            >
+              {winnerInitials(data.winner_full_name!)}
+            </div>
+            <h2 className="mt-6 font-heading text-xs font-semibold uppercase tracking-[0.22em] text-premium-accent">
+              Vencedor da rifa
+            </h2>
+            <p className="mt-3 break-words font-heading text-lg font-semibold text-premium-text sm:text-xl">
+              {data.winner_full_name}
+            </p>
+            <p className="mt-5 font-mono text-base font-medium tabular-nums text-premium-accent sm:text-lg">
+              Nº {data.winner_ticket_number}
+            </p>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

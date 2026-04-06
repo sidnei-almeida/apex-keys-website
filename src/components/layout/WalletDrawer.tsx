@@ -435,7 +435,7 @@ export default function WalletDrawer({
           id: `wallet-abandon-${ref}`,
           duration: TOAST_MS,
           description:
-            "Este Pix deixou de estar pendente. Se ainda pagares o QR, o saldo não será creditado automaticamente neste registo.",
+            "Este Pix não está mais pendente. Se ainda pagar o QR, o saldo não será creditado automaticamente neste registro.",
         });
       } catch (e) {
         const d =

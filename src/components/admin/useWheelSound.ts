@@ -4,7 +4,7 @@ import { useCallback, useRef } from "react";
 
 /**
  * Sons discretos durante o giro (tick) e um toque final na vitória.
- * Usa Web Audio API — requer interação do utilizador antes (ex.: clique em Girar).
+ * Usa Web Audio API — requer interação do usuário antes (ex.: clique em Girar).
  */
 export function useWheelSound() {
   const ctxRef = useRef<AudioContext | null>(null);

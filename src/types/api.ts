@@ -310,6 +310,8 @@ export type AdminDrawRandomOut = {
 export type PublicWheelSegmentOut = {
   ticket_number: number;
   full_name: string;
+  /** URL do avatar (absoluta ou relativa à API) — opcional até o backend expor. */
+  avatar_url?: string | null;
 };
 
 export type PublicLiveDrawOut = {

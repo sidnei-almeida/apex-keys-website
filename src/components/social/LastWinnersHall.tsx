@@ -92,7 +92,7 @@ type MockHallBase = Omit<
 
 /**
  * Placeholder por posição no ranking (1 = campeão … 5 = elite).
- * Quando há utilizadores reais, o 1º ocupa o lugar 1, o 2º o lugar 2, etc.;
+ * Quando há usuários reais, o 1º ocupa o lugar 1, o 2º o lugar 2, etc.;
  * cada lugar vazio continua com o mock dessa posição (ex.: 1 real → Carlos passa ao 2º lugar).
  */
 const MOCK_HALL_BASE_FOR_RANK: readonly MockHallBase[] = [
@@ -451,7 +451,7 @@ export function LastWinnersHall() {
             className="mx-auto mt-10 max-w-3xl px-2 text-center font-body text-sm leading-relaxed text-premium-muted md:mt-12 md:text-base"
             role="note"
           >
-            À comunidade que compra rifas, partilha, comenta ou se envolve com o
+            À comunidade que compra rifas, compartilha, comenta ou se envolve com o
             nosso projeto de qualquer forma:{" "}
             <span className="text-premium-text/90">
               o nosso muito obrigado.
