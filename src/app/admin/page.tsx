@@ -16,23 +16,33 @@ import {
   Plus,
   ReceiptText,
   Rocket,
+  Search,
   ShieldAlert,
+  ShieldCheck,
   Star,
   TableProperties,
   Trash2,
   TrendingUp,
+  UserCog,
+  Users,
+  Wallet,
   Wand2,
   XCircle,
+  Disc3,
 } from "lucide-react";
 import type React from "react";
 import { ApiError } from "@/lib/api/http";
 import {
+  adminAdjustBalance,
   adminCancelReservation,
   adminConfirmReservation,
   adminDeleteRaffle,
   adminDeleteRaffleTransactionRecord,
+  adminGetRaffle,
   adminListReservations,
+  adminListUsers,
   adminPatchFeaturedTier,
+  adminPatchUser,
   getRaffles,
 } from "@/lib/api/services";
 import { apiUrl, getApiBaseUrl } from "@/lib/api/config";
@@ -46,11 +56,15 @@ import {
 import { fetchIgdbGame } from "@/services/api";
 import type {
   AdminReservationRowOut,
+  AdminUserPatch,
+  AdminRaffleOut,
   FeaturedTier,
   IgdbGameInfoResponse,
   RaffleListOut,
   RafflePublic,
+  UserPublic,
 } from "@/types/api";
+import { AdminRoulettePanel } from "@/components/admin/AdminRoulettePanel";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -111,7 +125,7 @@ const tdClass = "px-3 py-3 align-middle text-sm text-premium-text";
 const rowClass =
   "border-t border-premium-border bg-premium-bg transition-colors hover:bg-[#111111]";
 
-type AdminTab = "launch" | "raffles" | "transactions";
+type AdminTab = "launch" | "raffles" | "transactions" | "users" | "wheel";
 
 type MockRaffle = {
   id: string;
@@ -133,6 +147,8 @@ type MockRaffle = {
   seriesPt?: string[];
   gameModesPt?: string[];
   perspectivesPt?: string[];
+  /** Só preenchido após GET admin ou PUT/POST; não vem da listagem pública. */
+  steamRedemptionCode?: string | null;
 };
 
 type PendingTxnRow = {
@@ -333,7 +349,7 @@ function StatCard({
 
 const DEFAULT_FEATURED_TIER: FeaturedTier = "none";
 
-function mapRafflePublicToRow(r: RafflePublic): MockRaffle {
+function mapRafflePublicToRow(r: RafflePublic | AdminRaffleOut): MockRaffle {
   const ticket = parseFloat(r.ticket_price);
   const priceLabel = Number.isFinite(ticket)
     ? `R$ ${ticket.toFixed(2).replace(".", ",")}`
@@ -343,6 +359,10 @@ function mapRafflePublicToRow(r: RafflePublic): MockRaffle {
     r.featured_tier === "featured" || r.featured_tier === "carousel"
       ? r.featured_tier
       : DEFAULT_FEATURED_TIER;
+  const steam =
+    "steam_redemption_code" in r && r.steam_redemption_code != null
+      ? String(r.steam_redemption_code).trim()
+      : "";
   return {
     id: r.id,
     title: r.title,
@@ -363,6 +383,7 @@ function mapRafflePublicToRow(r: RafflePublic): MockRaffle {
     seriesPt: r.series,
     gameModesPt: r.game_modes,
     perspectivesPt: r.player_perspectives,
+    steamRedemptionCode: steam || undefined,
   };
 }
 
@@ -388,12 +409,20 @@ const TAB_DEF: {
   { id: "launch", label: "Lançar Operação", icon: Rocket },
   { id: "raffles", label: "Gestão de Rifas", icon: TableProperties },
   { id: "transactions", label: "Transações & Controle", icon: ReceiptText },
+  { id: "users", label: "Gestão de Usuários", icon: Users },
+  { id: "wheel", label: "Roleta do sorteio", icon: Disc3 },
 ];
 
 const ADMIN_TAB_STORAGE_KEY = "apex-qg-active-tab";
 
 function isValidAdminTab(s: string | null): s is AdminTab {
-  return s === "launch" || s === "raffles" || s === "transactions";
+  return (
+    s === "launch" ||
+    s === "raffles" ||
+    s === "transactions" ||
+    s === "users" ||
+    s === "wheel"
+  );
 }
 
 function AdminPanel() {
@@ -447,6 +476,23 @@ function AdminPanel() {
   const [txnsLoading, setTxnsLoading] = useState(false);
   const [txnActionId, setTxnActionId] = useState<string | null>(null);
 
+  // ── Users tab state ───────────────────────────────────────────────────────
+  const [users, setUsers] = useState<UserPublic[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersLoadError, setUsersLoadError] = useState<string | null>(null);
+  const [userSearch, setUserSearch] = useState("");
+  // Balance adjustment modal
+  const [balanceModal, setBalanceModal] = useState<{ user: UserPublic } | null>(null);
+  const [balanceAmount, setBalanceAmount] = useState("");
+  const [balanceDesc, setBalanceDesc] = useState("");
+  const [balanceSaving, setBalanceSaving] = useState(false);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
+  // Edit user modal
+  const [editUserModal, setEditUserModal] = useState<{ user: UserPublic } | null>(null);
+  const [editUserForm, setEditUserForm] = useState<AdminUserPatch>({});
+  const [editUserSaving, setEditUserSaving] = useState(false);
+  const [editUserError, setEditUserError] = useState<string | null>(null);
+
   const reloadReservationRows = useCallback(async (opts?: { silent?: boolean }) => {
     const token = getAccessToken();
     if (!token) {
@@ -499,6 +545,7 @@ function AdminPanel() {
   const [seriesPt, setSeriesPt] = useState<string[]>([]);
   const [gameModesPt, setGameModesPt] = useState<string[]>([]);
   const [perspectivesPt, setPerspectivesPt] = useState<string[]>([]);
+  const [steamRedemptionCode, setSteamRedemptionCode] = useState("");
 
   const [deletingRaffleId, setDeletingRaffleId] = useState<string | null>(
     null,
@@ -550,6 +597,114 @@ function AdminPanel() {
     };
   }, [activeTab, reloadReservationRows]);
 
+  const reloadUsers = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) {
+      setUsers([]);
+      setUsersLoadError(
+        "Sem sessão válida. Inicie sessão como administrador e volte a abrir esta secção.",
+      );
+      return;
+    }
+    setUsersLoading(true);
+    setUsersLoadError(null);
+    try {
+      const list = await adminListUsers(token);
+      setUsers(list);
+    } catch (e) {
+      setUsers([]);
+      const msg =
+        e instanceof ApiError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : "Não foi possível carregar a lista de usuários.";
+      setUsersLoadError(msg);
+    } finally {
+      setUsersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "users") return;
+    void reloadUsers();
+  }, [activeTab, reloadUsers]);
+
+  const openBalanceModal = useCallback((user: UserPublic) => {
+    setBalanceModal({ user });
+    setBalanceAmount("");
+    setBalanceDesc("");
+    setBalanceError(null);
+  }, []);
+
+  const closeBalanceModal = useCallback(() => {
+    setBalanceModal(null);
+  }, []);
+
+  const submitBalanceAdjust = useCallback(async () => {
+    if (!balanceModal) return;
+    const token = getAccessToken();
+    if (!token) return;
+    const amount = parseFloat(balanceAmount.replace(",", "."));
+    if (isNaN(amount) || amount === 0) {
+      setBalanceError("Insira um valor diferente de zero.");
+      return;
+    }
+    setBalanceSaving(true);
+    setBalanceError(null);
+    try {
+      await adminAdjustBalance(token, balanceModal.user.id, {
+        amount,
+        description: balanceDesc || undefined,
+      });
+      await reloadUsers();
+      closeBalanceModal();
+    } catch (e) {
+      setBalanceError(e instanceof Error ? e.message : "Erro ao ajustar saldo.");
+    } finally {
+      setBalanceSaving(false);
+    }
+  }, [balanceModal, balanceAmount, balanceDesc, reloadUsers, closeBalanceModal]);
+
+  const openEditUserModal = useCallback((user: UserPublic) => {
+    setEditUserModal({ user });
+    setEditUserForm({
+      full_name: user.full_name,
+      email: user.email,
+      whatsapp: user.whatsapp,
+      pix_key: user.pix_key ?? "",
+      is_admin: user.is_admin,
+    });
+    setEditUserError(null);
+  }, []);
+
+  const closeEditUserModal = useCallback(() => {
+    setEditUserModal(null);
+  }, []);
+
+  const submitEditUser = useCallback(async () => {
+    if (!editUserModal) return;
+    const token = getAccessToken();
+    if (!token) return;
+    setEditUserSaving(true);
+    setEditUserError(null);
+    try {
+      const patch: AdminUserPatch = {};
+      if (editUserForm.full_name !== undefined) patch.full_name = editUserForm.full_name;
+      if (editUserForm.email !== undefined) patch.email = editUserForm.email;
+      if (editUserForm.whatsapp !== undefined) patch.whatsapp = editUserForm.whatsapp;
+      if (editUserForm.pix_key !== undefined) patch.pix_key = editUserForm.pix_key || null;
+      if (editUserForm.is_admin !== undefined) patch.is_admin = editUserForm.is_admin;
+      await adminPatchUser(token, editUserModal.user.id, patch);
+      await reloadUsers();
+      closeEditUserModal();
+    } catch (e) {
+      setEditUserError(e instanceof Error ? e.message : "Erro ao guardar.");
+    } finally {
+      setEditUserSaving(false);
+    }
+  }, [editUserModal, editUserForm, reloadUsers, closeEditUserModal]);
+
   const resetCreateForm = useCallback(() => {
     setTitle("");
     setIgdbInputUrl("");
@@ -567,6 +722,7 @@ function AdminPanel() {
     setTotalPrice(0);
     setTotalTickets(0);
     setEditingRaffleId(null);
+    setSteamRedemptionCode("");
   }, []);
 
   useEffect(() => {
@@ -683,27 +839,42 @@ function AdminPanel() {
     });
   }, []);
 
-  const loadRaffleIntoForm = useCallback((raffle: MockRaffle) => {
-    selectTab("launch");
-    setEditingRaffleId(raffle.id);
-    setTitle(raffle.title);
-    setImageUrl(
-      (raffle.imageUrlRaw?.trim() || raffle.coverUrl || "").trim(),
-    );
-    setVideoId((raffle.videoId ?? "").trim());
-    setFeaturedTier(raffle.featuredTier ?? DEFAULT_FEATURED_TIER);
-    setTotalPrice(raffle.totalPriceNum ?? 0);
-    setTotalTickets(raffle.total);
-    setMessage(null);
-    setIgdbInputUrl("");
-    setIgdbError(null);
-    setIgdbMeta(null);
-    setSummaryPt(raffle.summaryPt ?? "");
-    setGenresPt(raffle.genresPt ?? []);
-    setSeriesPt(raffle.seriesPt ?? []);
-    setGameModesPt(raffle.gameModesPt ?? []);
-    setPerspectivesPt(raffle.perspectivesPt ?? []);
-  }, [selectTab]);
+  const loadRaffleIntoForm = useCallback(
+    async (raffle: MockRaffle) => {
+      selectTab("launch");
+      setEditingRaffleId(raffle.id);
+      setTitle(raffle.title);
+      setImageUrl(
+        (raffle.imageUrlRaw?.trim() || raffle.coverUrl || "").trim(),
+      );
+      setVideoId((raffle.videoId ?? "").trim());
+      setFeaturedTier(raffle.featuredTier ?? DEFAULT_FEATURED_TIER);
+      setTotalPrice(raffle.totalPriceNum ?? 0);
+      setTotalTickets(raffle.total);
+      setMessage(null);
+      setIgdbInputUrl("");
+      setIgdbError(null);
+      setIgdbMeta(null);
+      setSummaryPt(raffle.summaryPt ?? "");
+      setGenresPt(raffle.genresPt ?? []);
+      setSeriesPt(raffle.seriesPt ?? []);
+      setGameModesPt(raffle.gameModesPt ?? []);
+      setPerspectivesPt(raffle.perspectivesPt ?? []);
+      setSteamRedemptionCode("");
+      const token = getAccessToken();
+      if (token) {
+        try {
+          const full = await adminGetRaffle(token, raffle.id);
+          setSteamRedemptionCode(full.steam_redemption_code?.trim() ?? "");
+        } catch {
+          setSteamRedemptionCode(raffle.steamRedemptionCode?.trim() ?? "");
+        }
+      } else {
+        setSteamRedemptionCode(raffle.steamRedemptionCode?.trim() ?? "");
+      }
+    },
+    [selectTab],
+  );
 
   const toggleRafflePause = useCallback((id: string) => {
     setRaffles((prev) =>
@@ -862,6 +1033,8 @@ function AdminPanel() {
     if (r.seriesPt?.length) payload.series = r.seriesPt;
     if (r.gameModesPt?.length) payload.game_modes = r.gameModesPt;
     if (r.perspectivesPt?.length) payload.player_perspectives = r.perspectivesPt;
+    const st = r.steamRedemptionCode?.trim();
+    if (st) payload.steam_redemption_code = st;
     return JSON.stringify(payload);
   }, []);
 
@@ -953,6 +1126,7 @@ function AdminPanel() {
       const igdbId = igdbMeta?.igdb_game_id?.trim();
       if (igdbId) bodyPayload.igdb_game_id = igdbId;
       bodyPayload.featured_tier = featuredTier;
+      bodyPayload.steam_redemption_code = steamRedemptionCode.trim() || null;
 
       const url = editingRaffleId
         ? apiUrl(`/api/v1/admin/raffles/${editingRaffleId}`)
@@ -988,7 +1162,7 @@ function AdminPanel() {
         return;
       }
 
-      const saved = data as RafflePublic;
+      const saved = data as AdminRaffleOut;
       const row = mapRafflePublicToRow(saved);
       if (editingRaffleId) {
         setRaffles((prev) =>
@@ -1083,7 +1257,11 @@ function AdminPanel() {
         : "Lançar Nova Operação"
       : activeTab === "raffles"
         ? "Gestão de Rifas"
-        : "Transações & Controle";
+        : activeTab === "transactions"
+          ? "Transações & Controle"
+          : activeTab === "users"
+            ? "Gestão de Usuários"
+            : "Roleta do sorteio";
 
   const innerSubtitle =
     activeTab === "launch"
@@ -1092,7 +1270,11 @@ function AdminPanel() {
         : "Cadastre um novo sorteio na vitrine pública"
       : activeTab === "raffles"
         ? `${raffles.length} operação(ões) registada(s)`
-        : "Pagamentos concluídos ficam no histórico; eliminar só após 14 dias (retenção).";
+        : activeTab === "transactions"
+          ? "Pagamentos concluídos ficam no histórico; eliminar só após 14 dias (retenção)."
+          : activeTab === "users"
+            ? "Visualize, edite e ajuste o saldo de todos os usuários da plataforma."
+            : "Sorteio aleatório no servidor; a roleta gira até parar no vencedor.";
 
   return (
     <div className="relative isolate -mb-8 flex min-h-[calc(100vh-4rem)] bg-premium-bg">
@@ -1510,6 +1692,24 @@ function AdminPanel() {
                       />
                     </label>
                   </div>
+                  <label className="mt-3 block">
+                    <span className="mb-1.5 block text-sm font-medium text-premium-text">
+                      Código Steam (resgate para o vencedor)
+                    </span>
+                    <textarea
+                      value={steamRedemptionCode}
+                      onChange={(e) => setSteamRedemptionCode(e.target.value)}
+                      className={`${inputClass} min-h-[2.75rem] resize-y font-mono text-sm`}
+                      rows={2}
+                      placeholder="XXXXX-XXXXX-XXXXX"
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                    <p className="mt-1 text-[11px] text-premium-muted/65">
+                      Não aparece no site público. Após o sorteio, o vencedor
+                      recebe uma notificação com este código.
+                    </p>
+                  </label>
                   <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-stretch">
                     <button
                       type="submit"
@@ -1876,7 +2076,7 @@ function AdminPanel() {
                               <div className="flex items-center justify-end gap-0.5">
                                 <button
                                   type="button"
-                                  onClick={() => loadRaffleIntoForm(raffle)}
+                                  onClick={() => void loadRaffleIntoForm(raffle)}
                                   className="rounded-md border border-premium-border/40 bg-transparent p-2 text-premium-muted/55 transition-colors hover:border-premium-border/70 hover:text-premium-accent"
                                   aria-label="Editar dados da rifa"
                                   title="Editar rifa"
@@ -1965,7 +2165,352 @@ function AdminPanel() {
             </div>
           ) : null}
 
-          {/* ── TAB: TRANSAÇÕES ──────────────────────────────── */}
+          {/* ── TAB: UTILIZADORES ────────────────────────────── */}
+          {activeTab === "users" ? (
+            <div className="space-y-6">
+              {/* Search + reload */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="relative max-w-sm flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-premium-muted/55" aria-hidden />
+                  <input
+                    type="search"
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    placeholder="Pesquisar por nome ou e-mail…"
+                    className="w-full rounded-lg border border-premium-border bg-premium-surface py-2 pl-9 pr-3 text-sm text-premium-text placeholder:text-premium-muted/50 focus:border-premium-border/80 focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void reloadUsers()}
+                  disabled={usersLoading}
+                  className="inline-flex items-center gap-2 rounded-lg border border-premium-border/40 px-3 py-2 text-xs font-medium text-premium-muted/65 transition-colors hover:border-premium-border/70 hover:text-premium-text disabled:opacity-40"
+                >
+                  {usersLoading ? (
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                  ) : (
+                    <Activity className="size-3.5" aria-hidden />
+                  )}
+                  Atualizar
+                </button>
+              </div>
+
+              {usersLoadError ? (
+                <div
+                  role="alert"
+                  className="rounded-lg border border-amber-900/45 bg-amber-950/30 px-4 py-3 text-sm text-amber-100/90"
+                >
+                  <p className="font-medium text-amber-200/95">Não foi possível carregar a lista</p>
+                  <p className="mt-1 text-amber-100/75">{usersLoadError}</p>
+                </div>
+              ) : null}
+
+              <section className="rounded-xl border border-premium-border bg-premium-surface">
+                <div className="overflow-x-auto rounded-xl">
+                  <table className="w-full min-w-[860px] border-collapse text-left">
+                    <thead>
+                      <tr className="border-b border-premium-border bg-premium-surface">
+                        <th className={thClass}>Usuário</th>
+                        <th className={thClass}>Contato</th>
+                        <th className={thClass}>Chave PIX</th>
+                        <th className={thClass}>Saldo</th>
+                        <th className={thClass}>Membro desde</th>
+                        <th className={thClass}>Papel</th>
+                        <th className={`${thClass} text-right`}>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usersLoading ? (
+                        <tr>
+                          <td colSpan={7} className={`${tdClass} py-10 text-center text-premium-muted`}>
+                            <Loader2 className="mx-auto size-8 animate-spin text-premium-accent" aria-hidden />
+                            <p className="mt-2 text-sm">A carregar usuários…</p>
+                          </td>
+                        </tr>
+                      ) : (() => {
+                        const q = userSearch.toLowerCase().trim();
+                        const filtered = q
+                          ? users.filter(
+                              (u) =>
+                                u.full_name.toLowerCase().includes(q) ||
+                                u.email.toLowerCase().includes(q) ||
+                                u.whatsapp.includes(q),
+                            )
+                          : users;
+                        if (filtered.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={7} className={`${tdClass} py-10 text-center text-premium-muted`}>
+                                {q ? "Nenhum usuário encontrado." : "Sem usuários registados."}
+                              </td>
+                            </tr>
+                          );
+                        }
+                        return filtered.map((u) => (
+                          <tr
+                            key={u.id}
+                            className="border-b border-premium-border/40 transition-colors last:border-0 hover:bg-premium-surface/60"
+                          >
+                            {/* Usuário */}
+                            <td className={tdClass}>
+                              <div className="flex items-center gap-2.5">
+                                {u.avatar_url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={u.avatar_url}
+                                    alt=""
+                                    className="size-8 shrink-0 rounded-full border border-premium-border object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full border border-premium-border bg-premium-bg text-xs font-bold text-premium-muted">
+                                    {u.full_name.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="text-sm font-medium text-premium-text">{u.full_name}</p>
+                                  <p className="font-mono text-[11px] text-premium-muted/60">{u.id.slice(0, 8)}…</p>
+                                </div>
+                              </div>
+                            </td>
+                            {/* Contato */}
+                            <td className={tdClass}>
+                              <p className="text-sm text-premium-text">{u.email}</p>
+                              <p className="text-xs text-premium-muted/65">{u.whatsapp}</p>
+                            </td>
+                            {/* Chave PIX */}
+                            <td className={`${tdClass} font-mono text-xs text-premium-muted`}>
+                              {u.pix_key ?? <span className="text-premium-muted/40">—</span>}
+                            </td>
+                            {/* Saldo */}
+                            <td className={tdClass}>
+                              <span className="font-mono text-sm tabular-nums text-premium-text/90">
+                                {parseFloat(u.balance).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                              </span>
+                            </td>
+                            {/* Membro desde */}
+                            <td className={`${tdClass} text-xs text-premium-muted`}>
+                              {new Date(u.created_at).toLocaleDateString("pt-BR")}
+                            </td>
+                            {/* Papel */}
+                            <td className={tdClass}>
+                              {u.is_admin ? (
+                                <span className="inline-flex items-center gap-1 rounded-md border border-premium-accent/25 bg-premium-accent/10 px-2 py-0.5 text-[11px] font-semibold text-premium-accent">
+                                  <ShieldCheck className="size-3 shrink-0" aria-hidden />
+                                  Admin
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-md border border-premium-border/40 px-2 py-0.5 text-[11px] text-premium-muted/65">
+                                  Usuário
+                                </span>
+                              )}
+                              {u.deactivated_at && (
+                                <span className="ml-1 rounded-md border border-red-900/40 px-1.5 py-0.5 text-[10px] text-red-400/75">
+                                  Desativado
+                                </span>
+                              )}
+                            </td>
+                            {/* Ações */}
+                            <td className={`${tdClass} text-right`}>
+                              <div className="flex flex-wrap items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => openBalanceModal(u)}
+                                  title="Ajustar saldo da carteira"
+                                  className="inline-flex items-center gap-1 rounded-lg border border-premium-border/40 px-2.5 py-1.5 text-xs font-medium text-premium-muted/65 transition-colors hover:border-emerald-900/55 hover:text-emerald-400/85"
+                                >
+                                  <Wallet className="size-3.5 shrink-0" aria-hidden />
+                                  Saldo
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openEditUserModal(u)}
+                                  title="Editar dados do usuário"
+                                  className="inline-flex items-center gap-1 rounded-lg border border-premium-border/40 px-2.5 py-1.5 text-xs font-medium text-premium-muted/65 transition-colors hover:border-premium-border/70 hover:text-premium-accent"
+                                >
+                                  <UserCog className="size-3.5 shrink-0" aria-hidden />
+                                  Editar
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          ) : null}
+
+          {activeTab === "wheel" ? <AdminRoulettePanel /> : null}
+
+          {/* ── MODAL: Ajuste de Saldo ────────────────────────── */}
+          {balanceModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+              <div className="w-full max-w-md rounded-2xl border border-premium-border/70 bg-premium-surface p-7 shadow-[0_28px_72px_-16px_rgba(0,0,0,0.55)]">
+                <h2 className="text-base font-semibold text-premium-text">
+                  Ajuste de Saldo
+                </h2>
+                <p className="mt-1 text-sm text-premium-muted">
+                  {balanceModal.user.full_name} —{" "}
+                  <span className="font-mono text-premium-text/80">
+                    {parseFloat(balanceModal.user.balance).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </span>
+                </p>
+
+                <div className="mt-5 space-y-4">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-premium-muted">
+                      Valor (positivo = crédito, negativo = débito)
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={balanceAmount}
+                      onChange={(e) => setBalanceAmount(e.target.value)}
+                      placeholder="ex: 10.00 ou -5.50"
+                      className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text placeholder:text-premium-muted/45 focus:border-premium-border/80 focus:outline-none"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-premium-muted">
+                      Descrição (opcional)
+                    </span>
+                    <input
+                      type="text"
+                      value={balanceDesc}
+                      onChange={(e) => setBalanceDesc(e.target.value)}
+                      placeholder="Motivo do ajuste"
+                      className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text placeholder:text-premium-muted/45 focus:border-premium-border/80 focus:outline-none"
+                    />
+                  </label>
+                </div>
+
+                {balanceError && (
+                  <p className="mt-3 text-xs text-red-400">{balanceError}</p>
+                )}
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={closeBalanceModal}
+                    disabled={balanceSaving}
+                    className="rounded-lg border border-premium-border/40 px-4 py-2 text-sm font-medium text-premium-muted transition-colors hover:text-premium-text disabled:opacity-40"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void submitBalanceAdjust()}
+                    disabled={balanceSaving || !balanceAmount}
+                    className="inline-flex items-center gap-2 rounded-lg bg-premium-accent px-4 py-2 text-sm font-bold text-black transition-opacity hover:opacity-90 disabled:opacity-40"
+                  >
+                    {balanceSaving && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
+                    Confirmar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── MODAL: Editar Usuário ──────────────────────── */}
+          {editUserModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+              <div className="w-full max-w-lg rounded-2xl border border-premium-border/70 bg-premium-surface p-7 shadow-[0_28px_72px_-16px_rgba(0,0,0,0.55)]">
+                <h2 className="text-base font-semibold text-premium-text">
+                  Editar Usuário
+                </h2>
+                <p className="mt-1 font-mono text-xs text-premium-muted/60">
+                  {editUserModal.user.id}
+                </p>
+
+                <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-premium-muted">Nome completo</span>
+                    <input
+                      type="text"
+                      value={editUserForm.full_name ?? ""}
+                      onChange={(e) => setEditUserForm((f) => ({ ...f, full_name: e.target.value }))}
+                      className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text focus:border-premium-border/80 focus:outline-none"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-premium-muted">E-mail</span>
+                    <input
+                      type="email"
+                      value={editUserForm.email ?? ""}
+                      onChange={(e) => setEditUserForm((f) => ({ ...f, email: e.target.value }))}
+                      className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text focus:border-premium-border/80 focus:outline-none"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-premium-muted">WhatsApp</span>
+                    <input
+                      type="tel"
+                      value={editUserForm.whatsapp ?? ""}
+                      onChange={(e) => setEditUserForm((f) => ({ ...f, whatsapp: e.target.value }))}
+                      className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text focus:border-premium-border/80 focus:outline-none"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-premium-muted">Chave PIX</span>
+                    <input
+                      type="text"
+                      value={editUserForm.pix_key ?? ""}
+                      onChange={(e) => setEditUserForm((f) => ({ ...f, pix_key: e.target.value }))}
+                      placeholder="CPF, e-mail, telefone ou chave aleatória"
+                      className="w-full rounded-lg border border-premium-border bg-premium-bg px-3 py-2 text-sm text-premium-text placeholder:text-premium-muted/40 focus:border-premium-border/80 focus:outline-none"
+                    />
+                  </label>
+                </div>
+
+                <label className="mt-4 flex cursor-pointer items-center gap-3">
+                  <div
+                    role="checkbox"
+                    aria-checked={editUserForm.is_admin ?? false}
+                    onClick={() => setEditUserForm((f) => ({ ...f, is_admin: !f.is_admin }))}
+                    className={`flex size-5 shrink-0 items-center justify-center rounded border transition-colors ${
+                      editUserForm.is_admin
+                        ? "border-premium-accent bg-premium-accent"
+                        : "border-premium-border bg-premium-bg"
+                    }`}
+                  >
+                    {editUserForm.is_admin && (
+                      <Check className="size-3 text-black" strokeWidth={3} aria-hidden />
+                    )}
+                  </div>
+                  <span className="text-sm text-premium-text">
+                    Conceder privilégios de administrador
+                  </span>
+                </label>
+
+                {editUserError && (
+                  <p className="mt-3 text-xs text-red-400">{editUserError}</p>
+                )}
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={closeEditUserModal}
+                    disabled={editUserSaving}
+                    className="rounded-lg border border-premium-border/40 px-4 py-2 text-sm font-medium text-premium-muted transition-colors hover:text-premium-text disabled:opacity-40"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void submitEditUser()}
+                    disabled={editUserSaving}
+                    className="inline-flex items-center gap-2 rounded-lg bg-premium-accent px-4 py-2 text-sm font-bold text-black transition-opacity hover:opacity-90 disabled:opacity-40"
+                  >
+                    {editUserSaving && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
+                    Guardar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === "transactions" ? (
             <div className="space-y-6">
               {/* KPI cards */}

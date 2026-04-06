@@ -69,7 +69,7 @@ export default function ProfileUploader({
     setPhase("compressing");
     try {
       const compressed = await imageCompression(file, {
-        maxSizeMB: 0.1,
+        maxSizeMB: 2,
         maxWidthOrHeight: 500,
         fileType: "image/webp",
         useWebWorker: true,
@@ -148,7 +148,7 @@ export default function ProfileUploader({
         <div className="text-sm text-premium-muted">
           <p className="font-medium text-premium-text">Foto de perfil</p>
           <p className="mt-0.5 text-xs text-premium-muted/85">
-            WebP no browser (até ~100KB, máx. 500px) → UploadThing → salva URL.
+            WebP no browser (até ~2 MB, máx. 500px) → UploadThing → salva URL.
           </p>
           {statusText ? (
             <p className="mt-1 text-xs text-premium-muted/85">{statusText}</p>

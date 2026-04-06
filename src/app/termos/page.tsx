@@ -61,7 +61,7 @@ export default function TermosPage() {
           comércio eletrónico.
         </li>
         <li>
-          É responsável pela veracidade dos dados de registo (nome, e-mail, contacto,
+          É responsável pela veracidade dos dados de registo (nome, e-mail, contato,
           chave PIX quando solicitada) e pela confidencialidade das credenciais da
           conta.
         </li>
@@ -184,7 +184,7 @@ export default function TermosPage() {
       <LegalSectionTitle>12. Contato</LegalSectionTitle>
       <p>
         Para questões sobre estes Termos, utilize os canais oficiais indicados no
-        site (suporte ou e-mail de contacto), quando disponíveis.
+        site (suporte ou e-mail de contato), quando disponíveis.
       </p>
 
       <p className="pt-4 text-sm text-premium-muted">

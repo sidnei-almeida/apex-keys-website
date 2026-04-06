@@ -5,8 +5,12 @@
  * @see FRONTEND_API.md
  */
 import type {
+  AdminDrawRandomOut,
   AdminRaffleCreate,
+  AdminRaffleOut,
   AdminReservationsListOut,
+  AdminUserPatch,
+  AdminWheelSegmentsOut,
   AdminWalletAdjust,
   AdminWalletAdjustResponse,
   HallOfFameEntryOut,
@@ -16,10 +20,10 @@ import type {
   MyTicketOut,
   NotificationOut,
   PixIntentResponse,
+  PublicLiveDrawOut,
   RaffleCancelResponse,
   RaffleDetailOut,
   RaffleListOut,
-  RafflePublic,
   RaffleStatusApi,
   ReservationStatusOut,
   ReserveRaffleTicketsResponse,
@@ -250,6 +254,11 @@ export async function getRaffleById(id: string): Promise<RaffleDetailOut> {
   return getJson<RaffleDetailOut>(`/raffles/${encodeURIComponent(id)}`);
 }
 
+/** Público: countdown + segmentos da roleta; dispara sorteio automático quando chega a hora. */
+export async function getPublicLiveDraw(raffleId: string): Promise<PublicLiveDrawOut> {
+  return getJson<PublicLiveDrawOut>(`/raffles/${encodeURIComponent(raffleId)}/live-draw`);
+}
+
 export async function getHallOfFame(): Promise<HallOfFameEntryOut[]> {
   return getJson<HallOfFameEntryOut[]>("/raffles/hall-of-fame");
 }
@@ -375,10 +384,20 @@ export async function adminCancelReservation(
 export async function adminCreateRaffle(
   token: string,
   body: AdminRaffleCreate,
-): Promise<RafflePublic> {
-  return postJson<RafflePublic, AdminRaffleCreate>(
+): Promise<AdminRaffleOut> {
+  return postJson<AdminRaffleOut, AdminRaffleCreate>(
     "/api/v1/admin/raffles",
     body,
+    token,
+  );
+}
+
+export async function adminGetRaffle(
+  token: string,
+  raffleId: string,
+): Promise<AdminRaffleOut> {
+  return getJson<AdminRaffleOut>(
+    `/api/v1/admin/raffles/${encodeURIComponent(raffleId)}`,
     token,
   );
 }
@@ -390,14 +409,15 @@ export type RaffleUpdateBody = {
   total_price?: number;
   total_tickets?: number;
   featured_tier?: "featured" | "carousel" | "none";
+  steam_redemption_code?: string | null;
 };
 
 export async function adminUpdateRaffle(
   token: string,
   raffleId: string,
   body: RaffleUpdateBody,
-): Promise<RafflePublic> {
-  return putJson<RafflePublic, RaffleUpdateBody>(
+): Promise<AdminRaffleOut> {
+  return putJson<AdminRaffleOut, RaffleUpdateBody>(
     `/api/v1/admin/raffles/${encodeURIComponent(raffleId)}`,
     body,
     token,
@@ -408,8 +428,8 @@ export async function adminPatchFeaturedTier(
   token: string,
   raffleId: string,
   featured_tier: "featured" | "carousel" | "none",
-): Promise<RafflePublic> {
-  return patchJson<RafflePublic, { featured_tier: typeof featured_tier }>(
+): Promise<AdminRaffleOut> {
+  return patchJson<AdminRaffleOut, { featured_tier: typeof featured_tier }>(
     `/api/v1/admin/raffles/${encodeURIComponent(raffleId)}/featured-tier`,
     { featured_tier },
     token,
@@ -432,6 +452,43 @@ export async function adminDeleteRaffle(
   raffleId: string,
 ): Promise<void> {
   await deleteRequest(`/api/v1/admin/raffles/${raffleId}`, token);
+}
+
+export async function adminGetWheelSegments(
+  token: string,
+  raffleId: string,
+): Promise<AdminWheelSegmentsOut> {
+  return getJson<AdminWheelSegmentsOut>(
+    `/api/v1/admin/raffles/${encodeURIComponent(raffleId)}/wheel-segments`,
+    token,
+  );
+}
+
+export async function adminDrawRandom(
+  token: string,
+  raffleId: string,
+): Promise<AdminDrawRandomOut> {
+  return postJson<AdminDrawRandomOut, Record<string, never>>(
+    `/api/v1/admin/raffles/${encodeURIComponent(raffleId)}/draw-random`,
+    {},
+    token,
+  );
+}
+
+export async function adminListUsers(token: string): Promise<UserPublic[]> {
+  return getJson<UserPublic[]>("/api/v1/admin/users", token);
+}
+
+export async function adminPatchUser(
+  token: string,
+  userId: string,
+  body: AdminUserPatch,
+): Promise<UserPublic> {
+  return patchJson<UserPublic, AdminUserPatch>(
+    `/api/v1/admin/users/${encodeURIComponent(userId)}`,
+    body,
+    token,
+  );
 }
 
 export async function adminAdjustBalance(

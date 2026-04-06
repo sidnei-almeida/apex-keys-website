@@ -3,6 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import AuthModal from "@/components/layout/AuthModal";
 import WalletDrawer from "@/components/layout/WalletDrawer";
+import { HeaderLiveDrawChip } from "@/components/layout/HeaderLiveDrawChip";
 import {
   Bell,
   ChevronDown,
@@ -222,6 +223,7 @@ export default function Header() {
 
         {/* 3. AÇÕES (direita) — sem pills, hierarquia tipográfica */}
         <div className="flex min-w-0 shrink-0 items-center justify-end gap-4 lg:gap-6">
+          <HeaderLiveDrawChip />
           {/* Carteira — label sutil + valor em destaque */}
           <button
             type="button"

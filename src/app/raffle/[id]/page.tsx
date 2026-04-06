@@ -42,6 +42,7 @@ import {
   UserRound,
   Users,
   Wallet,
+  Radio,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -751,6 +752,17 @@ export default function RafflePage() {
           <h1 className="text-3xl font-bold tracking-tight text-premium-text [text-shadow:0_2px_12px_rgba(0,0,0,0.55)] sm:text-4xl">
             {raffle.title}
           </h1>
+          {(raffle.status === "sold_out" || raffle.status === "finished") && (
+            <Link
+              href={`/raffle/${raffle.id}/sorteio`}
+              className="inline-flex items-center gap-2 rounded-xl border border-premium-accent/40 bg-premium-accent/10 px-4 py-2.5 text-sm font-semibold text-premium-accent transition-colors hover:border-premium-accent/60 hover:bg-premium-accent/15"
+            >
+              <Radio className="size-4 shrink-0" aria-hidden />
+              {raffle.status === "sold_out" && raffle.winning_ticket_number == null
+                ? "Sorteio ao vivo — countdown e roleta"
+                : "Ver resultado na roleta"}
+            </Link>
+          )}
           <p className="text-xl font-semibold text-premium-accent [text-shadow:0_1px_8px_rgba(0,0,0,0.45)]">
             {formatBRL(raffle.ticket_price)}{" "}
             <span className="text-base font-normal text-premium-accent/90">

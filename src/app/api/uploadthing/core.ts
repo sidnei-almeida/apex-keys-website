@@ -6,7 +6,7 @@ export const uploadRouter = {
   avatar: f(
     {
       image: {
-        maxFileSize: "1MB",
+        maxFileSize: "2MB",
         maxFileCount: 1,
       },
     },

@@ -137,3 +137,25 @@
 .group-marquee:hover .apex-marquee-track {
   animation-play-state: paused;
 }
+
+/* Painel admin — cartão de vitória da roleta */
+@keyframes apex-wheel-burst-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.apex-wheel-burst {
+  animation: apex-wheel-burst-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apex-wheel-burst {
+    animation: none;
+  }
+}

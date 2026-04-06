@@ -146,7 +146,7 @@ export default function Footer() {
             <FooterColumn title="Links Úteis" links={QUICK_LINKS} />
           </div>
 
-          {/* 3. Suporte (só contacto) */}
+          {/* 3. Suporte (só contato) */}
           <div className="flex flex-col items-stretch md:col-span-2">
             <FooterColumn title="Suporte" links={SUPPORT_LINKS} />
           </div>

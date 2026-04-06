@@ -30,7 +30,7 @@ export default function PrivacidadePage() {
       <p>
         O controlador dos dados pessoais tratados no âmbito desta Plataforma é a
         entidade responsável pela operação da Apex Keys. Para exercer direitos ou
-        esclarecimentos, utilize os canais oficiais de contacto indicados no site
+        esclarecimentos, utilize os canais oficiais de contato indicados no site
         (por exemplo, e-mail de privacidade ou suporte), quando publicados.
       </p>
 
@@ -38,7 +38,7 @@ export default function PrivacidadePage() {
       <p>Conforme a sua interação com os serviços, podemos tratar, entre outros:</p>
       <ul className="list-disc space-y-2 pl-6 marker:text-premium-muted">
         <li>
-          <span className="text-premium-text">Dados de identificação e contacto:</span>{" "}
+          <span className="text-premium-text">Dados de identificação e contato:</span>{" "}
           nome, e-mail, telefone/WhatsApp, dados de conta e, quando necessário para
           pagamentos ou reembolsos, chave PIX ou informações solicitadas pelo gateway.
         </li>
@@ -156,7 +156,7 @@ export default function PrivacidadePage() {
         <li>Revogação do consentimento, quando o tratamento se basear nele.</li>
       </ul>
       <p>
-        Pedidos podem ser feitos pelos canais oficiais de contacto. Poderemos solicitar
+        Pedidos podem ser feitos pelos canais oficiais de contato. Poderemos solicitar
         confirmação de identidade antes de atender, para proteção contra acessos
         indevidos.
       </p>

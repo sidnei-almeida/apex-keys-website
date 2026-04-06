@@ -88,6 +88,8 @@ export type RafflePublic = {
   /** Bilhete vencedor (rifas já sorteadas) */
   winning_ticket_number?: number | null;
   drawn_at?: string | null;
+  /** UTC ISO: sorteio automático na roleta após esgotar (10 min após 100% pagos) */
+  scheduled_live_draw_at?: string | null;
   /** Metadados IGDB / copy */
   summary?: string | null;
   genres?: string[];
@@ -96,6 +98,11 @@ export type RafflePublic = {
   player_perspectives?: string[];
   igdb_url?: string | null;
   igdb_game_id?: string | null;
+};
+
+/** GET/POST/PUT admin — inclui chave Steam (nunca expor em rotas só públicas). */
+export type AdminRaffleOut = RafflePublic & {
+  steam_redemption_code?: string | null;
 };
 
 /** RafflePublic + sold (quantidade vendida) — retorno de GET /raffles */
@@ -247,6 +254,8 @@ export type AdminRaffleCreate = {
   player_perspectives?: string[];
   igdb_url?: string | null;
   igdb_game_id?: string | null;
+  /** Chave/código Steam para o vencedor (notificação após sorteio). */
+  steam_redemption_code?: string | null;
 };
 
 export type RaffleCancelResponse = {
@@ -260,11 +269,59 @@ export type AdminWalletAdjust = {
   description?: string;
 };
 
+export type AdminUserPatch = {
+  full_name?: string;
+  email?: string;
+  whatsapp?: string;
+  pix_key?: string | null;
+  avatar_url?: string | null;
+  is_admin?: boolean;
+};
+
 export type AdminWalletAdjustResponse = {
   user_id: string;
   previous_balance: string;
   new_balance: string;
   amount_adjusted: string;
+};
+
+export type AdminWheelSegmentOut = {
+  ticket_number: number;
+  user_id: string;
+  full_name: string;
+  avatar_url?: string | null;
+};
+
+export type AdminWheelSegmentsOut = {
+  raffle_id: string;
+  raffle_title: string;
+  raffle_status: RaffleStatusApi;
+  winning_ticket_number: number | null;
+  segments: AdminWheelSegmentOut[];
+};
+
+export type AdminDrawRandomOut = {
+  raffle: AdminRaffleOut;
+  winner_ticket_number: number;
+  winner_user_id: string;
+  winner_full_name: string;
+};
+
+export type PublicWheelSegmentOut = {
+  ticket_number: number;
+  full_name: string;
+};
+
+export type PublicLiveDrawOut = {
+  raffle_id: string;
+  raffle_title: string;
+  status: string;
+  server_now: string;
+  scheduled_live_draw_at: string | null;
+  seconds_until_draw: number | null;
+  winner_ticket_number: number | null;
+  winner_full_name: string | null;
+  segments: PublicWheelSegmentOut[];
 };
 
 export type IgdbGameUrlRequest = {
