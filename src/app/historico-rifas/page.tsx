@@ -4,12 +4,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getMyTickets } from "@/lib/api/services";
 import { getAccessToken } from "@/lib/auth/token-storage";
 import type { MyTicketOut } from "@/types/api";
-import { ArrowLeft, Gamepad2, History, Loader2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Gamepad2, History, Loader2, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getApiBaseUrl } from "@/lib/api/config";
+import {
+  HISTORICO_MODAL_NUMBER_CELL_CLASS,
+  HISTORICO_TICKET_BADGE_CLASS,
+} from "@/lib/raffle-number-cell-classes";
 
 function formatBRL(value: string | number) {
   const n = typeof value === "string" ? parseFloat(value) : value;
@@ -55,9 +59,6 @@ function groupByRaffle(tickets: MyTicketOut[]): Map<string, MyTicketOut[]> {
   return map;
 }
 
-const chipClass =
-  "flex h-7 w-[2.1rem] shrink-0 items-center justify-center rounded-md border border-premium-accent bg-premium-accent text-[12px] font-bold leading-none text-[#0A0A0A] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]";
-
 type RaffleTicketsModalState = {
   title: string;
   ticketNumbers: Array<number | string>;
@@ -86,39 +87,39 @@ function RaffleTicketsModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-5 backdrop-blur-sm sm:p-8"
       role="dialog"
       aria-modal="true"
       aria-labelledby="raffle-tickets-modal-title"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl rounded-2xl border border-premium-border bg-premium-surface p-6 shadow-2xl"
+        className="relative w-full max-w-2xl rounded-2xl border border-premium-border/70 bg-premium-surface/94 p-8 shadow-[0_28px_72px_-16px_rgba(0,0,0,0.5),inset_0_0_0_1px_rgba(212,175,55,0.07)] ring-1 ring-premium-accent/10 sm:p-10"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-2 text-premium-muted transition-colors hover:text-premium-text"
+          className="absolute right-5 top-5 rounded-full p-2 text-premium-muted/30 transition-all duration-200 hover:bg-white/[0.05] hover:text-premium-muted"
           aria-label="Fechar"
         >
-          <X className="size-5" aria-hidden />
+          <X className="size-[1.15rem]" strokeWidth={1.75} aria-hidden />
         </button>
 
         <h2
           id="raffle-tickets-modal-title"
-          className="pr-12 font-heading text-xl font-bold tracking-tight text-premium-text"
+          className="pr-14 font-heading text-lg font-semibold leading-snug tracking-tight text-premium-text sm:text-xl"
         >
           {state.title}
         </h2>
-        <p className="mt-1 text-sm text-premium-muted">
+        <p className="mt-2.5 text-sm leading-relaxed text-premium-muted/88">
           Seus {count} bilhete{count === 1 ? "" : "s"} confirmados
         </p>
 
-        <div className="mt-6 max-h-64 overflow-y-auto rounded-lg border border-premium-border bg-premium-bg p-3 pr-2 sm:p-4 [scrollbar-width:thin]">
-          <div className="grid grid-cols-5 justify-items-center gap-2 sm:grid-cols-8 md:grid-cols-10">
+        <div className="mt-8 max-h-[min(20rem,52vh)] overflow-y-auto overscroll-y-contain rounded-lg border border-premium-border bg-premium-bg p-3 sm:p-4 [scrollbar-width:thin]">
+          <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12">
             {state.ticketNumbers.map((n) => (
-              <span key={String(n)} className={chipClass}>
+              <span key={String(n)} className={HISTORICO_MODAL_NUMBER_CELL_CLASS}>
                 {n}
               </span>
             ))}
@@ -129,38 +130,53 @@ function RaffleTicketsModal({
   );
 }
 
-function TicketChips({
+/** Pré-visualização: números à esquerda + reticências; ação à direita (no cartão). */
+function TicketNumbersPreview({
   ticketNumbers,
-  limit = 5,
+  limit = 6,
   onVerTodos,
-  className,
 }: {
   ticketNumbers: Array<number | string>;
   limit?: number;
   onVerTodos: () => void;
-  className?: string;
 }) {
   const hasMore = ticketNumbers.length > limit;
   const visible = ticketNumbers.slice(0, limit);
 
   return (
-    <div
-      className={`flex min-h-[2.15rem] flex-wrap gap-2 ${className ?? ""}`}
-      aria-label="Números do bilhete"
-    >
-      {visible.map((n) => (
-        <span key={String(n)} className={chipClass}>
-          {n}
-        </span>
-      ))}
-
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+      <div
+        className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5"
+        aria-label="Números do bilhete"
+      >
+        {visible.map((n) => (
+          <span key={String(n)} className={HISTORICO_TICKET_BADGE_CLASS}>
+            {n}
+          </span>
+        ))}
+        {hasMore ? (
+          <button
+            type="button"
+            onClick={onVerTodos}
+            className="select-none rounded-md px-2 py-1 text-base font-medium leading-none text-premium-muted/55 transition-colors hover:bg-premium-bg/60 hover:text-premium-text"
+            aria-label="Ver todos os números dos bilhetes"
+          >
+            …
+          </button>
+        ) : null}
+      </div>
       {hasMore ? (
         <button
           type="button"
           onClick={onVerTodos}
-          className="self-center rounded-lg border border-premium-accent/45 bg-transparent px-3 py-1 text-[12px] font-bold text-premium-accent transition-colors hover:bg-premium-accent hover:text-[#0A0A0A]"
+          className="group inline-flex shrink-0 cursor-pointer items-center gap-1.5 self-start rounded-lg border border-premium-border/45 bg-premium-bg/40 py-2 pl-3 pr-2.5 text-xs font-medium text-premium-muted transition-[color,background-color,border-color] duration-200 ease-out hover:border-premium-border/65 hover:bg-premium-bg/55 hover:text-premium-accent sm:self-center"
         >
           Ver todos
+          <ArrowRight
+            className="size-3.5 shrink-0 opacity-65 transition-[opacity,transform] duration-200 ease-out group-hover:translate-x-0.5 group-hover:opacity-90"
+            strokeWidth={2}
+            aria-hidden
+          />
         </button>
       ) : null}
     </div>
@@ -216,7 +232,7 @@ export default function HistoricoRifasPage() {
         <p className="mt-2 text-sm text-premium-muted md:text-base">
           {loading ? "Carregando…" : `${grouped.size} rifas no histórico`}
         </p>
-        <p className="mt-1 text-sm text-premium-muted/90">
+        <p className="mt-1 text-sm text-premium-muted/65">
           Rifas em que você já participou (após conclusão)
         </p>
       </header>
@@ -234,12 +250,12 @@ export default function HistoricoRifasPage() {
       )}
 
       {!loading && !error && grouped.size === 0 && (
-        <div className="mt-12 rounded-xl border border-premium-border bg-premium-surface p-12 text-center">
-          <History className="mx-auto size-14 text-premium-muted/50" aria-hidden />
-          <p className="mt-4 text-premium-muted">Nenhuma participação em rifas ainda.</p>
+        <div className="mt-12 rounded-2xl border border-premium-border/65 bg-gradient-to-br from-premium-surface/90 via-premium-bg/30 to-premium-surface/85 p-12 text-center shadow-[0_20px_56px_-20px_rgba(0,0,0,0.45)] ring-1 ring-premium-accent/10">
+          <History className="mx-auto size-14 text-premium-muted/40" aria-hidden />
+          <p className="mt-4 text-premium-muted/85">Nenhuma participação em rifas ainda.</p>
           <Link
             href="/rifas"
-            className="mt-4 inline-block text-sm font-medium text-premium-accent hover:underline"
+            className="mt-4 inline-block text-sm font-medium text-premium-muted transition-[color] duration-200 ease-out hover:text-premium-accent hover:underline hover:decoration-premium-accent/45 hover:underline-offset-4"
           >
             Ver rifas disponíveis
           </Link>
@@ -247,7 +263,7 @@ export default function HistoricoRifasPage() {
       )}
 
       {!loading && !error && grouped.size > 0 && (
-        <div className="mt-10 w-full space-y-4">
+        <div className="mt-10 w-full space-y-7 md:space-y-8">
           {Array.from(grouped.entries()).map(([raffleId, list]) => {
             const r = list[0]?.raffle;
             if (!r) return null;
@@ -266,86 +282,112 @@ export default function HistoricoRifasPage() {
             return (
               <article
                 key={raffleId}
-                className="group relative flex w-full flex-col overflow-hidden rounded-2xl border border-premium-border bg-premium-surface shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors hover:border-premium-muted/40 md:flex-row md:items-stretch"
+                className="group relative flex w-full flex-col overflow-hidden rounded-[1.35rem] border border-premium-border/60 bg-gradient-to-br from-premium-surface/92 via-premium-bg/92 to-premium-surface/85 shadow-[0_22px_60px_-20px_rgba(0,0,0,0.48),inset_0_0_0_1px_rgba(212,175,55,0.05)] ring-1 ring-premium-accent/10 transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-premium-accent/22 hover:shadow-[0_28px_72px_-18px_rgba(0,0,0,0.52),inset_0_0_0_1px_rgba(212,175,55,0.08)] md:flex-row md:items-stretch"
               >
-                {/* Âncora de altura: 16:9, sem padding — imagem colada à esquerda */}
-                <div className="relative aspect-video w-full shrink-0 overflow-hidden border-b border-premium-border bg-premium-bg md:w-72 md:border-b-0 md:border-r">
+                {/* Imagem 16:9 + overlay escuro suave + cantos alinhados ao card */}
+                <div className="relative aspect-video w-full shrink-0 overflow-hidden border-b border-premium-border/50 bg-premium-bg md:w-72 md:rounded-l-[1.35rem] md:border-b-0 md:border-r md:border-premium-border/40">
                   {imgUrl ? (
-                    <Image
-                      src={imgUrl}
-                      alt=""
-                      fill
-                      sizes="(max-width: 768px) 100vw, 18rem"
-                      className="absolute inset-0 h-full w-full object-cover"
-                      unoptimized
-                    />
+                    <>
+                      <Image
+                        src={imgUrl}
+                        alt=""
+                        fill
+                        sizes="(max-width: 768px) 100vw, 18rem"
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+                        unoptimized
+                      />
+                      <div
+                        className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-premium-bg/85 via-premium-bg/25 to-premium-bg/50"
+                        aria-hidden
+                      />
+                    </>
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-premium-bg">
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-premium-bg to-premium-surface/80">
                       <Gamepad2
-                        className="size-16 text-premium-muted/45"
+                        className="size-16 text-premium-muted/35"
                         aria-hidden
                       />
                     </div>
                   )}
 
-                  <div className="absolute right-2 top-2 z-10 inline-flex items-center gap-2 rounded-md border border-premium-border bg-premium-bg/95 px-2 py-0.5 text-xs font-medium text-premium-text backdrop-blur-sm">
+                  <div className="absolute right-2.5 top-2.5 z-10 inline-flex items-center gap-1.5 rounded-lg border border-premium-border/55 bg-premium-bg/88 px-2 py-1 text-[11px] font-medium text-premium-text/92 backdrop-blur-sm">
                     <span
-                      className="relative inline-flex size-2.5 items-center justify-center"
+                      className="relative inline-flex size-2 shrink-0 items-center justify-center"
                       aria-hidden
                     >
-                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-premium-accent/60 opacity-95" />
-                      <span className="relative inline-flex size-2.5 rounded-full bg-premium-accent/90" />
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-premium-accent/35 opacity-75" />
+                      <span className="relative inline-flex size-2 rounded-full bg-premium-accent/75" />
                     </span>
                     {statusLabel}
                   </div>
                 </div>
 
-                <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-between p-5">
-                  <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                        <h2 className="truncate font-heading text-lg font-bold text-premium-text">
-                          {r.title}
-                        </h2>
-                        <div className="mt-2">
-                          <TicketChips
-                            ticketNumbers={ticketNumbers}
-                            limit={5}
-                            className="mt-0"
-                            onVerTodos={() =>
-                              setTicketsModal({
-                                title: r.title,
-                                ticketNumbers,
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                      <p className="shrink-0 text-right text-sm font-semibold text-premium-text">
-                        Você tem {list.length} bilhete
-                        {list.length > 1 ? "s" : ""}
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-between px-7 py-7 sm:px-8 sm:py-8 md:pl-9">
+                  {/* Linha 1: título + contagem */}
+                  <div className="flex items-start justify-between gap-4">
+                    <h2 className="min-w-0 flex-1 font-heading text-xl font-semibold leading-snug tracking-tight text-premium-text sm:text-2xl">
+                      <span className="line-clamp-2">{r.title}</span>
+                    </h2>
+                    <div className="shrink-0 text-right">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-premium-muted/42">
+                        Bilhetes
+                      </p>
+                      <p className="mt-1 text-xl font-semibold tabular-nums leading-none text-premium-text sm:text-2xl">
+                        {list.length}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-4 flex shrink-0 flex-wrap items-end justify-between gap-x-4 gap-y-2 text-sm text-premium-muted">
-                    <p className="min-w-0">
-                      Participação em {formatDate(created)}
-                    </p>
-                    {Number.isFinite(totalPaid) ? (
-                      <p className="text-center">
-                        Total pago:{" "}
-                        <span className="font-semibold text-premium-text">
+                  {/* Linha 2: números + reticências (esq.) · Ver todos (dir.) */}
+                  <div className="mt-6">
+                    <TicketNumbersPreview
+                      ticketNumbers={ticketNumbers}
+                      limit={6}
+                      onVerTodos={() =>
+                        setTicketsModal({
+                          title: r.title,
+                          ticketNumbers,
+                        })
+                      }
+                    />
+                  </div>
+
+                  {/* Linha 3: metadados em grelha */}
+                  <div className="mt-8 grid grid-cols-1 gap-5 border-t border-premium-border/30 pt-7 sm:grid-cols-3 sm:items-end sm:gap-6">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-premium-muted/40">
+                        Participação
+                      </p>
+                      <p className="mt-1.5 text-sm text-premium-muted/72">
+                        {formatDate(created)}
+                      </p>
+                    </div>
+                    <div className="min-w-0 sm:text-center">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-premium-muted/40">
+                        Total pago
+                      </p>
+                      {Number.isFinite(totalPaid) ? (
+                        <p className="mt-1.5 text-sm font-semibold tabular-nums text-premium-text/88">
                           {formatBRL(totalPaid)}
+                        </p>
+                      ) : (
+                        <p className="mt-1.5 text-sm text-premium-muted/45">—</p>
+                      )}
+                    </div>
+                    <div className="min-w-0 sm:text-right">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-premium-muted/40">
+                        Valor da cota
+                      </p>
+                      <p className="mt-1.5 text-sm">
+                        <span className="font-mono font-medium tabular-nums text-premium-accent/68">
+                          {formatBRL(r.ticket_price)}
+                        </span>
+                        <span className="text-xs font-normal text-premium-muted/52">
+                          {" "}
+                          / cota
                         </span>
                       </p>
-                    ) : (
-                      <span className="text-center text-premium-muted/70">—</span>
-                    )}
-                    <p className="text-right font-mono font-semibold tabular-nums text-premium-text">
-                      {formatBRL(r.ticket_price)}{" "}
-                      <span className="text-premium-accent/90">/ cota</span>
-                    </p>
+                    </div>
                   </div>
                 </div>
               </article>

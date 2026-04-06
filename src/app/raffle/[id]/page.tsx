@@ -14,6 +14,11 @@ import {
   reserveRaffleTickets,
 } from "@/lib/api/services";
 import { getAccessToken } from "@/lib/auth/token-storage";
+import {
+  RAFFLE_NUMBER_GRID_CELL_BASE,
+  RAFFLE_NUMBER_STYLE_AVAILABLE,
+  RAFFLE_NUMBER_STYLE_SELECTED,
+} from "@/lib/raffle-number-cell-classes";
 import { dailymotionEmbedSrc } from "@/lib/video-embed";
 import type { PixIntentResponse, RaffleDetailOut } from "@/types/api";
 import type { LucideIcon } from "lucide-react";
@@ -842,8 +847,7 @@ export default function RafflePage() {
                 const blocked = unavailableSet.has(num);
                 const selected = selectedSet.has(num);
 
-                let className =
-                  "flex aspect-square min-h-[2.25rem] items-center justify-center rounded-md border text-sm font-medium transition-colors sm:min-h-0 sm:aspect-auto sm:py-2";
+                let className = RAFFLE_NUMBER_GRID_CELL_BASE;
 
                 const needsLogin = !isAuthenticated && !sold && !held;
 
@@ -857,11 +861,9 @@ export default function RafflePage() {
                   className +=
                     " cursor-not-allowed border-premium-border/50 bg-premium-bg text-premium-muted/50 opacity-75";
                 } else if (selected) {
-                  className +=
-                    " scale-[1.02] cursor-pointer border-premium-accent bg-premium-accent font-bold text-[#0A0A0A]";
+                  className += ` ${RAFFLE_NUMBER_STYLE_SELECTED}`;
                 } else {
-                  className +=
-                    " cursor-pointer border-premium-border bg-premium-cell text-premium-text hover:border-premium-muted/60 hover:bg-[#2a2a2a]";
+                  className += ` ${RAFFLE_NUMBER_STYLE_AVAILABLE}`;
                 }
 
                 return (
