@@ -7,12 +7,14 @@ import { getApiBaseUrl } from "@/lib/api/config";
 import { ApiError } from "@/lib/api/http";
 import {
   completeReservationWallet,
+  getMyTickets,
   getRaffleById,
   getReservationStatus,
   postReservationPixIntent,
   releaseReservation,
   reserveRaffleTickets,
 } from "@/lib/api/services";
+import type { MyTicketOut } from "@/types/api";
 import { getAccessToken } from "@/lib/auth/token-storage";
 import {
   RAFFLE_NUMBER_GRID_CELL_BASE,
@@ -235,7 +237,7 @@ async function pollReservationUntilPaid(
 
 export default function RafflePage() {
   const params = useParams<{ id: string }>();
-  const { user, isAuthenticated, refreshUser, isReady } = useAuth();
+  const { user, isAuthenticated, refreshUser, isReady, avatarUrlCacheBust } = useAuth();
   const raffleId = params?.id ?? null;
   const [raffle, setRaffle] = useState<RaffleDetailOut | null>(null);
   const [loading, setLoading] = useState(true);
@@ -252,6 +254,15 @@ export default function RafflePage() {
   const pixAbortRef = useRef<AbortController | null>(null);
   /** Hold ativo durante fluxo Pix da rifa (para libertar ao cancelar). */
   const activePaymentHoldIdRef = useRef<string | null>(null);
+  /** Bilhetes do utilizador nesta rifa (para overlay de avatar na grelha). */
+  const [myRaffleTickets, setMyRaffleTickets] = useState<MyTicketOut[]>([]);
+  /** Tooltip do número próprio — posição viewport para contornar overflow-clip. */
+  const [mineTooltip, setMineTooltip] = useState<{
+    num: number;
+    x: number;
+    y: number;
+    label: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (!raffleId) {
@@ -270,8 +281,15 @@ export default function RafflePage() {
   useEffect(() => {
     if (!isAuthenticated) {
       setSelectedNumbers([]);
+      setMyRaffleTickets([]);
+      return;
     }
-  }, [isAuthenticated]);
+    const token = getAccessToken();
+    if (!token || !raffleId) return;
+    getMyTickets(token)
+      .then((all) => setMyRaffleTickets(all.filter((t) => t.raffle_id === raffleId)))
+      .catch(() => {/* falha silenciosa — é só visual */});
+  }, [isAuthenticated, raffleId]);
 
   const soldSet = useMemo(
     () => new Set(raffle?.sold_numbers ?? []),
@@ -294,6 +312,23 @@ export default function RafflePage() {
     () => new Set(selectedNumbers),
     [selectedNumbers],
   );
+
+  /** Números que o utilizador actual comprou nesta rifa. */
+  const myNumbersSet = useMemo(
+    () => new Set(myRaffleTickets.map((t) => t.ticket_number)),
+    [myRaffleTickets],
+  );
+
+  /** Data de compra por número. */
+  const myTicketDateMap = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const t of myRaffleTickets) m.set(t.ticket_number, t.created_at);
+    return m;
+  }, [myRaffleTickets]);
+
+  const avatarSrc = user?.avatar_url
+    ? `${user.avatar_url}${avatarUrlCacheBust ? `?v=${avatarUrlCacheBust}` : ""}`
+    : null;
 
   const toggleNumber = useCallback(
     (num: number) => {
@@ -846,10 +881,56 @@ export default function RafflePage() {
                 const held = heldSet.has(num);
                 const blocked = unavailableSet.has(num);
                 const selected = selectedSet.has(num);
-
-                let className = RAFFLE_NUMBER_GRID_CELL_BASE;
+                const isMine = myNumbersSet.has(num);
 
                 const needsLogin = !isAuthenticated && !sold && !held;
+
+                if (isMine) {
+                  const purchasedAt = myTicketDateMap.get(num);
+                  const purchasedLabel = purchasedAt
+                    ? new Date(purchasedAt).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })
+                    : null;
+
+                  return (
+                    <div
+                      key={num}
+                      className={`${RAFFLE_NUMBER_GRID_CELL_BASE} relative cursor-default overflow-hidden border-premium-accent/55 bg-[#1a1500] font-semibold text-premium-accent/90`}
+                      aria-label={`Número ${num}, seu bilhete`}
+                      role="img"
+                      onMouseEnter={(e) => {
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        setMineTooltip({
+                          num,
+                          x: rect.left + rect.width / 2,
+                          y: rect.top,
+                          label: purchasedLabel,
+                        });
+                      }}
+                      onMouseLeave={() => setMineTooltip(null)}
+                    >
+                      {avatarSrc && (
+                        <span
+                          className="pointer-events-none absolute inset-0 z-0 opacity-[0.18]"
+                          aria-hidden
+                        >
+                          <img
+                            src={avatarSrc}
+                            alt=""
+                            className="h-full w-full object-cover"
+                            draggable={false}
+                          />
+                        </span>
+                      )}
+                      <span className="relative z-10">{num}</span>
+                    </div>
+                  );
+                }
+
+                let className = RAFFLE_NUMBER_GRID_CELL_BASE;
 
                 if (sold) {
                   className +=
@@ -1032,6 +1113,29 @@ export default function RafflePage() {
         amountLabel={formatBRL(totalPay)}
         raffleCheckout
       />
+
+      {/* Tooltip dos números próprios — fixed para escapar ao overflow-clip da grelha */}
+      {mineTooltip && (
+        <div
+          role="tooltip"
+          aria-hidden
+          className="pointer-events-none fixed z-[9999] w-max max-w-[11rem] -translate-x-1/2 -translate-y-full rounded-lg border border-premium-border/70 bg-premium-surface/96 px-3 py-2 text-center text-[11px] leading-snug text-premium-text shadow-2xl backdrop-blur-sm"
+          style={{ left: mineTooltip.x, top: mineTooltip.y - 8 }}
+        >
+          <p className="font-semibold text-premium-accent/90">
+            {user?.full_name ?? "Você"}
+          </p>
+          {mineTooltip.label && (
+            <p className="mt-0.5 text-[10px] text-premium-muted/80">
+              {mineTooltip.label}
+            </p>
+          )}
+          <span
+            className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-premium-border/65"
+            aria-hidden
+          />
+        </div>
+      )}
     </div>
   );
 }

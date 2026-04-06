@@ -6,12 +6,17 @@ import { raffleImageUrl } from "@/lib/raffle-image-url";
 import type { RaffleListOut } from "@/types/api";
 import {
   ChevronRight,
+  Crosshair,
   Flame,
   Gamepad2,
+  Key,
   Loader2,
-  Lock,
+  QrCode,
+  ShieldCheck,
   Sparkles,
   Ticket,
+  Trophy,
+  Zap,
 } from "lucide-react";
 import { LastWinnersHall } from "@/components/social/LastWinnersHall";
 import { LiveSalesPulse } from "@/components/social/LiveSalesPulse";
@@ -346,14 +351,22 @@ function HomeHeroSpotlight({ slides }: { slides: RaffleListOut[] }) {
                   <Ticket className="size-5 shrink-0" aria-hidden />
                   Garantir meu número
                 </Link>
-                <p className="mt-4 flex max-w-md flex-wrap items-center gap-1.5 font-body text-xs text-premium-muted">
-                  <Lock
-                    className="size-3.5 shrink-0 text-premium-muted"
-                    strokeWidth={2}
-                    aria-hidden
-                  />
-                  Pagamento 100% Seguro via Pix • Chave entregue na hora
-                </p>
+
+                {/* Micro-selos de confiança */}
+                <div className="mt-5 flex flex-wrap items-center gap-5 opacity-60">
+                  <span className="inline-flex items-center gap-1.5 font-body text-xs text-premium-muted">
+                    <ShieldCheck className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
+                    Compra 100% Segura
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 font-body text-xs text-premium-muted">
+                    <Zap className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
+                    Aprovação Imediata
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 font-body text-xs text-premium-muted">
+                    <Key className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
+                    Entrega Oficial Steam
+                  </span>
+                </div>
 
                 {slides.length > 1 ? (
                   <div
@@ -481,9 +494,85 @@ export default function Home() {
         </div>
       )}
 
+      {/* Como Funciona */}
+      {!loading && (
+        <section
+          className="relative mx-auto w-full max-w-7xl px-6 pt-20 pb-8 sm:pt-24 sm:pb-10 lg:px-10 xl:px-14"
+          aria-labelledby="como-funciona-heading"
+        >
+          <div className="mb-10 sm:mb-12">
+            <p className="font-body text-xs font-semibold uppercase tracking-[0.22em] text-premium-muted/60">
+              Simples assim
+            </p>
+            <h2
+              id="como-funciona-heading"
+              className="mt-3 font-heading text-2xl font-bold tracking-tight text-premium-text sm:text-3xl"
+            >
+              Como funciona a Apex Keys
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+            {/* Passo 1 */}
+            <article className="group border-l-2 border-white/10 pl-6 py-2 transition-colors duration-300 hover:border-apex-accent/50">
+              <div className="mb-4 inline-flex items-center justify-center rounded-lg p-0.5">
+                <Crosshair
+                  className="size-7 text-apex-accent"
+                  strokeWidth={1.5}
+                  aria-hidden
+                />
+              </div>
+              <h3 className="font-heading text-base font-bold text-premium-text sm:text-lg">
+                1. Escolha sua Rifa
+              </h3>
+              <p className="mt-2 font-body text-sm leading-relaxed text-premium-muted">
+                Selecione o jogo desejado e escolha seus números da sorte no nosso painel
+                de cotas — cada número é único e reservado exclusivamente para você.
+              </p>
+            </article>
+
+            {/* Passo 2 */}
+            <article className="group border-l-2 border-white/10 pl-6 py-2 transition-colors duration-300 hover:border-apex-accent/50">
+              <div className="mb-4 inline-flex items-center justify-center rounded-lg p-0.5">
+                <QrCode
+                  className="size-7 text-apex-accent"
+                  strokeWidth={1.5}
+                  aria-hidden
+                />
+              </div>
+              <h3 className="font-heading text-base font-bold text-premium-text sm:text-lg">
+                2. Pagamento Instantâneo
+              </h3>
+              <p className="mt-2 font-body text-sm leading-relaxed text-premium-muted">
+                Finalize via Pix com processamento blindado ou use seu saldo na carteira
+                Apex Keys. Seus números são confirmados e aparecem na grelha na hora.
+              </p>
+            </article>
+
+            {/* Passo 3 */}
+            <article className="group border-l-2 border-white/10 pl-6 py-2 transition-colors duration-300 hover:border-apex-accent/50">
+              <div className="mb-4 inline-flex items-center justify-center rounded-lg p-0.5">
+                <Trophy
+                  className="size-7 text-apex-accent"
+                  strokeWidth={1.5}
+                  aria-hidden
+                />
+              </div>
+              <h3 className="font-heading text-base font-bold text-premium-text sm:text-lg">
+                3. Resgate na Steam
+              </h3>
+              <p className="mt-2 font-body text-sm leading-relaxed text-premium-muted">
+                Sorteio transparente com resultado publicado e auditável. O vencedor
+                recebe a chave digital diretamente na conta para ativação imediata.
+              </p>
+            </article>
+          </div>
+        </section>
+      )}
+
       {/* Carrossel — sempre com estrutura + placeholders */}
       {!loading && onHome.length > 0 && (
-        <section className="relative mx-auto w-full max-w-none px-4 pt-12 pb-14 sm:px-6 md:pt-14 md:pb-16 lg:px-10 lg:pt-16 lg:pb-18 xl:px-12 2xl:px-14 min-[1800px]:px-16 min-[2400px]:px-20">
+        <section className="relative mx-auto w-full max-w-none px-4 pt-6 pb-14 sm:px-6 md:pt-8 md:pb-16 lg:px-10 lg:pt-10 lg:pb-18 xl:px-12 2xl:px-14 min-[1800px]:px-16 min-[2400px]:px-20">
           <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between md:mb-10">
             <div>
               <h2 className="font-heading text-2xl font-bold tracking-tight text-premium-text md:text-3xl">

@@ -1850,18 +1850,18 @@ function AdminPanel() {
                               {raffle.reservedPending} aguardando
                             </td>
                             <td className={`${tdClass} text-premium-text/90`}>
-                              <span className="text-premium-accent">
+                              <span className="text-premium-text/85">
                                 {raffle.priceLabel}
                               </span>
-                              <span className="text-premium-muted/70"> · </span>
-                              <span className="text-premium-accent/90 tabular-nums">
+                              <span className="text-premium-muted/50"> · </span>
+                              <span className="tabular-nums text-premium-muted/80">
                                 {raffle.totalPriceNum != null
                                   ? formatBrl(raffle.totalPriceNum)
                                   : "—"}
                               </span>
                             </td>
                             <td
-                              className={`${tdClass} font-medium tabular-nums text-premium-accent`}
+                              className={`${tdClass} font-medium tabular-nums text-premium-text/90`}
                             >
                               {formatBrl(collected)}
                             </td>
@@ -1877,7 +1877,7 @@ function AdminPanel() {
                                 <button
                                   type="button"
                                   onClick={() => loadRaffleIntoForm(raffle)}
-                                  className="rounded-md border border-premium-accent/45 bg-transparent p-2 text-premium-accent transition-colors hover:bg-premium-accent hover:text-black"
+                                  className="rounded-md border border-premium-border/40 bg-transparent p-2 text-premium-muted/55 transition-colors hover:border-premium-border/70 hover:text-premium-accent"
                                   aria-label="Editar dados da rifa"
                                   title="Editar rifa"
                                 >
@@ -1889,14 +1889,14 @@ function AdminPanel() {
                                     onClick={() =>
                                       copyRafflePublicLink(raffle.id)
                                     }
-                                    className="rounded-md border border-premium-accent/45 bg-transparent p-2 text-premium-accent transition-colors hover:bg-premium-accent hover:text-black"
+                                    className="rounded-md border border-premium-border/40 bg-transparent p-2 text-premium-muted/55 transition-colors hover:border-premium-border/70 hover:text-premium-text"
                                     aria-label="Copiar link público"
                                     title="Copiar link público"
                                   >
                                     <LinkIcon className="size-4" aria-hidden />
                                   </button>
                                   {copiedRaffleId === raffle.id ? (
-                                    <span className="pointer-events-none absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap rounded border border-premium-accent/35 bg-premium-surface px-1.5 py-0.5 text-[10px] font-semibold text-premium-accent">
+                                    <span className="pointer-events-none absolute right-0 top-full z-10 mt-0.5 whitespace-nowrap rounded border border-premium-border/60 bg-premium-surface px-1.5 py-0.5 text-[10px] font-semibold text-premium-text">
                                       Copiado
                                     </span>
                                   ) : null}
@@ -1904,10 +1904,10 @@ function AdminPanel() {
                                 <button
                                   type="button"
                                   onClick={() => toggleRafflePause(raffle.id)}
-                                  className={`rounded-md border bg-transparent p-2 transition-colors ${
+                                  className={`rounded-md border border-premium-border/40 bg-transparent p-2 transition-colors hover:border-premium-border/70 ${
                                     raffle.paused
-                                      ? "border-emerald-500/40 text-emerald-400/95 hover:bg-emerald-500/12 hover:text-emerald-200"
-                                      : "border-premium-accent/45 text-premium-accent hover:bg-premium-accent hover:text-black"
+                                      ? "text-premium-muted/55 hover:text-emerald-400"
+                                      : "text-premium-muted/55 hover:text-premium-text"
                                   }`}
                                   aria-label={
                                     raffle.paused
@@ -1939,7 +1939,7 @@ function AdminPanel() {
                                     void handleDeleteRaffle(raffle.id)
                                   }
                                   disabled={deletingRaffleId === raffle.id}
-                                  className="rounded-md border border-red-500/45 bg-transparent p-2 text-red-400/95 transition-colors hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-40"
+                                  className="rounded-md border border-premium-border/40 bg-transparent p-2 text-premium-muted/55 transition-colors hover:border-red-900/55 hover:text-red-400/85 disabled:cursor-not-allowed disabled:opacity-40"
                                   aria-label="Apagar rifa"
                                   title="Apagar rifa"
                                 >
@@ -2134,7 +2134,7 @@ function AdminPanel() {
                                             void approveTxn(t.holdId)
                                           }
                                           title="Aprovar pagamento"
-                                          className="rounded-lg border border-emerald-500/40 px-2.5 py-1.5 text-xs font-semibold text-emerald-400/95 transition-colors hover:bg-emerald-500/10 disabled:cursor-not-allowed disabled:opacity-35"
+                                          className="rounded-lg border border-premium-border/40 px-2.5 py-1.5 text-xs font-medium text-premium-muted/65 transition-colors hover:border-emerald-900/55 hover:text-emerald-400/85 disabled:cursor-not-allowed disabled:opacity-35"
                                         >
                                           Aprovar manualmente
                                         </button>
@@ -2149,7 +2149,7 @@ function AdminPanel() {
                                             void cancelTxnRelease(t.holdId)
                                           }
                                           title="Cancelar reserva"
-                                          className="inline-flex items-center gap-1 rounded-lg border border-amber-500/45 px-2.5 py-1.5 text-xs font-semibold text-amber-400/95 transition-colors hover:bg-amber-500/10 disabled:cursor-not-allowed disabled:opacity-35"
+                                          className="inline-flex items-center gap-1 rounded-lg border border-premium-border/40 px-2.5 py-1.5 text-xs font-medium text-premium-muted/65 transition-colors hover:border-premium-border/65 hover:text-premium-text/80 disabled:cursor-not-allowed disabled:opacity-35"
                                         >
                                           <XCircle
                                             className="size-3.5 shrink-0"
@@ -2177,7 +2177,7 @@ function AdminPanel() {
                                             t.transactionId,
                                           )
                                         }
-                                        className="inline-flex items-center gap-1 rounded-lg border border-red-500/50 px-2.5 py-1.5 text-xs font-semibold text-red-400/95 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-35"
+                                        className="inline-flex items-center gap-1 rounded-lg border border-premium-border/40 px-2.5 py-1.5 text-xs font-medium text-premium-muted/65 transition-colors hover:border-red-900/55 hover:text-red-400/80 disabled:cursor-not-allowed disabled:opacity-35"
                                       >
                                         <Trash2
                                           className="size-3.5 shrink-0"
