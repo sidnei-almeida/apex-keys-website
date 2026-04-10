@@ -13,9 +13,8 @@ import {
   VisaMark,
 } from "@/components/layout/FooterPaymentTrust";
 
-import { APEX_BRAND_LOGO_SRC } from "@/lib/apex-brand-logo";
-
-const FOOTER_LOGO = APEX_BRAND_LOGO_SRC;
+/** Mascote ao lado de “Transação Segura” (footer). */
+const FOOTER_TRUST_MASCOT_SRC = "/images/cat2.png";
 
 const QUICK_LINKS = [
   { href: "/", label: "Home" },
@@ -109,22 +108,20 @@ export default function Footer() {
         <div className="grid grid-cols-1 items-start gap-6 text-center md:grid-cols-12 md:gap-x-6 md:gap-y-5 md:text-left lg:gap-x-8">
           {/* 1. Marca + Segurança */}
           <div className="flex flex-col items-center gap-y-3 md:col-span-4 md:items-start">
-            <div className="flex items-start gap-3">
+            <div className="flex items-center gap-3">
               <Link
                 href="/"
                 aria-label="Apex Keys - Início"
-                className="shrink-0 opacity-95 transition-opacity hover:opacity-100"
+                className="shrink-0 leading-none opacity-95 transition-opacity hover:opacity-100"
               >
-                <div className="size-[42px] overflow-hidden">
-                  <img
-                    src={FOOTER_LOGO}
-                    alt="Apex Keys"
-                    className="size-full object-cover object-[50%_20%] [transform:scale(1.9)]"
-                  />
-                </div>
+                <img
+                  src={FOOTER_TRUST_MASCOT_SRC}
+                  alt=""
+                  className="h-[4.75rem] w-auto max-w-[6.25rem] object-contain object-center sm:h-[5.25rem] sm:max-w-[7rem]"
+                />
               </Link>
 
-              <div className="flex min-h-[42px] flex-col justify-center gap-1">
+              <div className="flex min-h-0 flex-col justify-center gap-1">
                 <div className="flex items-center gap-2">
                   <ShieldCheck
                     className="size-5 shrink-0 text-premium-accent"

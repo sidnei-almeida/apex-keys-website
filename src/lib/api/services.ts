@@ -23,6 +23,9 @@ import type {
   PublicLiveDrawOut,
   RaffleCancelResponse,
   RaffleDetailOut,
+  RankingCategoryApi,
+  RankingMeOut,
+  RankingPodiumEntryOut,
   RaffleListOut,
   RaffleStatusApi,
   ReservationStatusOut,
@@ -261,6 +264,27 @@ export async function getPublicLiveDraw(raffleId: string): Promise<PublicLiveDra
 
 export async function getHallOfFame(): Promise<HallOfFameEntryOut[]> {
   return getJson<HallOfFameEntryOut[]>("/raffles/hall-of-fame");
+}
+
+/** Posição do utilizador no ranking por categoria (`token` omitido = convidado). */
+export async function getRankingMe(
+  category: RankingCategoryApi,
+  token?: string | null,
+): Promise<RankingMeOut> {
+  const q = new URLSearchParams({ category });
+  return getJson<RankingMeOut>(`/rankings/me?${q.toString()}`, token ?? undefined);
+}
+
+/** Top do pódio por categoria (público). */
+export async function getRankingTop(
+  category: RankingCategoryApi,
+  limit = 5,
+): Promise<RankingPodiumEntryOut[]> {
+  const q = new URLSearchParams({
+    category,
+    limit: String(limit),
+  });
+  return getJson<RankingPodiumEntryOut[]>(`/rankings/top?${q.toString()}`);
 }
 
 export async function getRecentPurchasePulses(): Promise<

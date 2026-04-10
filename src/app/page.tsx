@@ -1,21 +1,19 @@
 "use client";
 
+import { HomeHowItWorksSection } from "@/components/home/HomeHowItWorksSection";
 import { HomeImagePreloads } from "@/components/home/HomeImagePreloads";
 import { getRaffles } from "@/lib/api/services";
 import { raffleImageUrl } from "@/lib/raffle-image-url";
 import type { RaffleListOut } from "@/types/api";
 import {
   ChevronRight,
-  Crosshair,
   Flame,
   Gamepad2,
   Key,
   Loader2,
-  QrCode,
   ShieldCheck,
   Sparkles,
   Ticket,
-  Trophy,
   Zap,
 } from "lucide-react";
 import { LastWinnersHall } from "@/components/social/LastWinnersHall";
@@ -494,97 +492,32 @@ export default function Home() {
         </div>
       )}
 
-      {/* Como Funciona */}
-      {!loading && (
-        <section
-          className="relative mx-auto w-full max-w-7xl px-6 pt-20 pb-8 sm:pt-24 sm:pb-10 lg:px-10 xl:px-14"
-          aria-labelledby="como-funciona-heading"
-        >
-          <div className="mb-10 sm:mb-12">
-            <p className="font-body text-xs font-semibold uppercase tracking-[0.22em] text-premium-muted/60">
-              Simples assim
-            </p>
-            <h2
-              id="como-funciona-heading"
-              className="mt-3 font-heading text-2xl font-bold tracking-tight text-premium-text sm:text-3xl"
-            >
-              Como funciona a Apex Keys
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            {/* Passo 1 */}
-            <article className="group border-l-2 border-white/10 pl-6 py-2 transition-colors duration-300 hover:border-apex-accent/50">
-              <div className="mb-4 inline-flex items-center justify-center rounded-lg p-0.5">
-                <Crosshair
-                  className="size-7 text-apex-accent"
-                  strokeWidth={1.5}
-                  aria-hidden
-                />
-              </div>
-              <h3 className="font-heading text-base font-bold text-premium-text sm:text-lg">
-                1. Escolha sua Rifa
-              </h3>
-              <p className="mt-2 font-body text-sm leading-relaxed text-premium-muted">
-                Selecione o jogo desejado e escolha seus números da sorte no nosso painel
-                de cotas — cada número é único e reservado exclusivamente para você.
-              </p>
-            </article>
-
-            {/* Passo 2 */}
-            <article className="group border-l-2 border-white/10 pl-6 py-2 transition-colors duration-300 hover:border-apex-accent/50">
-              <div className="mb-4 inline-flex items-center justify-center rounded-lg p-0.5">
-                <QrCode
-                  className="size-7 text-apex-accent"
-                  strokeWidth={1.5}
-                  aria-hidden
-                />
-              </div>
-              <h3 className="font-heading text-base font-bold text-premium-text sm:text-lg">
-                2. Pagamento Instantâneo
-              </h3>
-              <p className="mt-2 font-body text-sm leading-relaxed text-premium-muted">
-                Finalize via Pix com processamento blindado ou use seu saldo na carteira
-                Apex Keys. Seus números são confirmados e aparecem na grelha na hora.
-              </p>
-            </article>
-
-            {/* Passo 3 */}
-            <article className="group border-l-2 border-white/10 pl-6 py-2 transition-colors duration-300 hover:border-apex-accent/50">
-              <div className="mb-4 inline-flex items-center justify-center rounded-lg p-0.5">
-                <Trophy
-                  className="size-7 text-apex-accent"
-                  strokeWidth={1.5}
-                  aria-hidden
-                />
-              </div>
-              <h3 className="font-heading text-base font-bold text-premium-text sm:text-lg">
-                3. Resgate na Steam
-              </h3>
-              <p className="mt-2 font-body text-sm leading-relaxed text-premium-muted">
-                Sorteio transparente com resultado publicado e auditável. O vencedor
-                recebe a chave digital diretamente na conta para ativação imediata.
-              </p>
-            </article>
-          </div>
-        </section>
-      )}
+      {!loading ? <HomeHowItWorksSection /> : null}
 
       {/* Carrossel — sempre com estrutura + placeholders */}
       {!loading && onHome.length > 0 && (
-        <section className="relative mx-auto w-full max-w-none px-4 pt-6 pb-14 sm:px-6 md:pt-8 md:pb-16 lg:px-10 lg:pt-10 lg:pb-18 xl:px-12 2xl:px-14 min-[1800px]:px-16 min-[2400px]:px-20">
-          <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between md:mb-10">
-            <div>
-              <h2 className="font-heading text-2xl font-bold tracking-tight text-premium-text md:text-3xl">
-                Mais sorteios
+        <section
+          className="relative mx-auto w-full max-w-none px-4 pt-3 pb-14 sm:px-6 sm:pt-4 md:pt-5 md:pb-16 lg:px-10 lg:pt-6 lg:pb-18 xl:px-12 2xl:px-14 min-[1800px]:px-16 min-[2400px]:px-20"
+          aria-labelledby="catalogo-sorteios-heading"
+        >
+          <div className="mb-10 flex flex-col gap-6 sm:mb-11 sm:flex-row sm:items-end sm:justify-between md:mb-12 lg:mb-14">
+            <div className="max-w-2xl text-left">
+              <p className="font-heading text-[0.62rem] font-semibold uppercase tracking-[0.28em] text-premium-accent/80">
+                CATÁLOGO
+              </p>
+              <h2
+                id="catalogo-sorteios-heading"
+                className="mt-1.5 font-heading text-3xl font-bold leading-tight tracking-tight text-[#EAEAEA] md:text-[2rem] lg:text-[2.125rem]"
+              >
+                Sorteios disponíveis
               </h2>
-              <p className="mt-2 max-w-xl font-body text-sm text-premium-muted">
-                Explore outras oportunidades — novos jogos chegam em breve.
+              <p className="mt-2 max-w-lg font-body text-sm leading-relaxed text-premium-muted md:max-w-xl">
+                Explore novas oportunidades e escolha seu próximo jogo.
               </p>
             </div>
             <Link
               href="/rifas"
-              className="mt-4 inline-flex w-fit items-center gap-2 font-body text-sm font-semibold text-premium-muted transition-colors hover:text-premium-text sm:mt-0"
+              className="inline-flex w-fit shrink-0 items-center gap-2 self-start font-body text-sm font-semibold text-premium-muted transition-colors hover:text-premium-text sm:self-auto"
             >
               Ver catálogo completo
               <ChevronRight className="size-4" aria-hidden />
@@ -603,9 +536,9 @@ export default function Home() {
                 aria-hidden
               />
               <div
-                className="overflow-hidden pt-2 pb-8"
+                className="overflow-hidden pt-5 pb-8 sm:pt-6 md:pt-7"
                 role="region"
-                aria-label="Mais sorteios em movimento contínuo"
+                aria-label="Sorteios disponíveis em movimento contínuo"
               >
                 <div className="apex-marquee-track">
                   {carouselItems.map((item, i) =>

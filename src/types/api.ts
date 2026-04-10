@@ -146,6 +146,31 @@ export type HallOfFameEntryOut = {
   spotlight: HallOfFameSpotlightRaffle;
 };
 
+/** GET /rankings/me?category= — posição do utilizador na categoria (JWT opcional). */
+export type RankingCategoryApi = "victories" | "buyers" | "active" | "hot";
+
+export type RankingMeOut = {
+  authenticated: boolean;
+  category: string;
+  rank: number | null;
+  metric_label: string | null;
+  metric_value: number | null;
+  metric_display: string | null;
+  next_target_label: string;
+  progress_percent: number;
+  in_ranking: boolean;
+};
+
+/** GET /rankings/top?category= — pódio por categoria (dados reais). */
+export type RankingPodiumEntryOut = {
+  rank: number;
+  user_id: string;
+  full_name: string;
+  avatar_url?: string | null;
+  stat_line: string;
+  spotlight: HallOfFameSpotlightRaffle | null;
+};
+
 /** GET /recent-purchase-pulses — prova social (compras reais agregadas por minuto) */
 export type RecentPurchasePulseOut = {
   id: string;
@@ -323,6 +348,8 @@ export type PublicLiveDrawOut = {
   seconds_until_draw: number | null;
   winner_ticket_number: number | null;
   winner_full_name: string | null;
+  /** URL do avatar do vencedor (absoluta ou path relativo à API). */
+  winner_avatar_url?: string | null;
   segments: PublicWheelSegmentOut[];
 };
 

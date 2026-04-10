@@ -3,10 +3,17 @@
 import { RaffleWheelSvg } from "@/components/admin/RaffleWheelSvg";
 import { useWheelSound } from "@/components/admin/useWheelSound";
 import { getPublicLiveDraw } from "@/lib/api/services";
+import { resolveUserAvatarUrl } from "@/lib/resolve-user-avatar-url";
 import type { PublicLiveDrawOut, PublicWheelSegmentOut } from "@/types/api";
 import { ArrowLeft, Loader2, Radio } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 const SPIN_MS_DEFAULT = 9000;
 const SPIN_MS_REDUCED = 450;
@@ -40,6 +47,45 @@ function winnerInitials(name: string): string {
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
   return `${parts[0]![0]!}${parts[parts.length - 1]![0]!}`.toUpperCase();
+}
+
+function WinnerRevealAvatar({
+  fullName,
+  avatarUrl,
+}: {
+  fullName: string;
+  avatarUrl: string | null | undefined;
+}) {
+  const [failed, setFailed] = useState(false);
+  const resolved = resolveUserAvatarUrl(avatarUrl);
+  useEffect(() => {
+    setFailed(false);
+  }, [resolved]);
+
+  const showImg = Boolean(resolved && !failed);
+
+  return (
+    <div
+      className="mx-auto size-20 overflow-hidden rounded-full border border-premium-border bg-premium-cell ring-1 ring-black/20 sm:size-24"
+      aria-hidden
+    >
+      {showImg ? (
+        // eslint-disable-next-line @next/next/no-img-element -- URL da API / CDN
+        <img
+          src={resolved}
+          alt=""
+          width={96}
+          height={96}
+          className="size-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <div className="flex size-full items-center justify-center text-lg font-semibold tracking-tight text-premium-text sm:text-xl">
+          {winnerInitials(fullName)}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function LiveSorteioClient({ raffleId }: { raffleId: string }) {
@@ -353,12 +399,10 @@ export function LiveSorteioClient({ raffleId }: { raffleId: string }) {
           aria-label="Resultado do sorteio"
         >
           <div className="apex-wheel-burst w-full max-w-sm rounded-2xl border border-premium-border bg-premium-surface px-8 py-9 text-center shadow-[0_32px_64px_rgba(0,0,0,0.5)] sm:max-w-md">
-            <div
-              className="mx-auto flex size-20 items-center justify-center rounded-full border border-premium-border bg-premium-cell text-lg font-semibold tracking-tight text-premium-text sm:size-24 sm:text-xl"
-              aria-hidden
-            >
-              {winnerInitials(data.winner_full_name!)}
-            </div>
+            <WinnerRevealAvatar
+              fullName={data.winner_full_name ?? ""}
+              avatarUrl={data.winner_avatar_url}
+            />
             <h2 className="mt-6 font-heading text-xs font-semibold uppercase tracking-[0.22em] text-premium-accent">
               Vencedor da rifa
             </h2>
