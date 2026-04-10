@@ -261,8 +261,9 @@ export function AdminRoulettePanel() {
         <p className="mt-1 max-w-2xl text-sm text-premium-muted">
           No site público, quando a rifa esgota com{" "}
           <span className="font-medium text-premium-text">100% de cotas pagas</span>, abre-se automaticamente
-          uma janela de <span className="font-medium text-premium-accent/90">10 minutos</span> com countdown em{" "}
-          <span className="font-mono text-xs">/raffle/…/sorteio</span>; os compradores recebem notificação.
+          uma janela de <span className="font-medium text-premium-accent/90">5 minutos</span> com countdown em{" "}
+          <span className="font-mono text-xs">/raffle/…/sorteio</span> (referência de horário:{" "}
+          <span className="font-medium text-premium-text">Brasília</span>); os compradores recebem notificação.
           Depois disso o servidor sorteia e a roleta gira sozinha. Aqui podes forçar o sorteio manualmente antes
           do tempo (ou se o automático falhar) — só rifas{" "}
           <span className="font-medium text-premium-accent/90">sold out</span> sem vencedor.

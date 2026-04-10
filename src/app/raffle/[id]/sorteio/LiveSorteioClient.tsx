@@ -2,6 +2,7 @@
 
 import { RaffleWheelSvg } from "@/components/admin/RaffleWheelSvg";
 import { useWheelSound } from "@/components/admin/useWheelSound";
+import { formatBrasiliaHm } from "@/lib/format-brasilia-time";
 import { getPublicLiveDraw } from "@/lib/api/services";
 import { resolveUserAvatarUrl } from "@/lib/resolve-user-avatar-url";
 import type { PublicLiveDrawOut, PublicWheelSegmentOut } from "@/types/api";
@@ -312,6 +313,8 @@ export function LiveSorteioClient({ raffleId }: { raffleId: string }) {
   const winnerReady =
     phase === "done" && data.winner_ticket_number != null && data.winner_full_name;
 
+  const scheduledBrasiliaHm = formatBrasiliaHm(data.scheduled_live_draw_at);
+
   return (
     <div className="w-full px-3 pb-16 pt-8 sm:px-5 sm:pt-10">
       <div className="mx-auto max-w-[min(100%,88rem)]">
@@ -341,6 +344,13 @@ export function LiveSorteioClient({ raffleId }: { raffleId: string }) {
             <p className="font-mono text-4xl font-semibold tabular-nums tracking-tight text-premium-text sm:text-5xl">
               {formatHms(countdown)}
             </p>
+            {scheduledBrasiliaHm ? (
+              <p className="text-[11px] leading-relaxed text-premium-muted/90">
+                Sorteio previsto às{" "}
+                <span className="font-medium text-premium-text/90">{scheduledBrasiliaHm}</span>{" "}
+                (horário de Brasília)
+              </p>
+            ) : null}
             <p className="text-xs leading-relaxed text-premium-muted">
               A roleta gira automaticamente quando o tempo zerar.
             </p>

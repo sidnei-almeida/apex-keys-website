@@ -88,7 +88,7 @@ export type RafflePublic = {
   /** Bilhete vencedor (rifas já sorteadas) */
   winning_ticket_number?: number | null;
   drawn_at?: string | null;
-  /** UTC ISO: sorteio automático na roleta após esgotar (10 min após 100% pagos) */
+  /** UTC ISO: sorteio automático na roleta após esgotar (5 min após 100% pagos) */
   scheduled_live_draw_at?: string | null;
   /** Metadados IGDB / copy */
   summary?: string | null;
