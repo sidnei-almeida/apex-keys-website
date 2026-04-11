@@ -3,6 +3,7 @@
 import { Medal, Trophy, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api/http";
@@ -251,9 +252,19 @@ function UserRankingCard({
           aria-label="Progresso no ranking"
         >
           <div
-            className="h-full rounded-full bg-premium-accent/40 transition-[width] duration-500 ease-out"
+            className="relative h-full overflow-hidden rounded-full transition-[width] duration-700 ease-in-out"
             style={{ width: `${fill}%` }}
-          />
+          >
+            <div className="h-full w-full rounded-full bg-premium-accent/40" />
+            {data.authenticated ? (
+              <div
+                className="pointer-events-none absolute inset-0 overflow-hidden rounded-full"
+                aria-hidden
+              >
+                <div className="absolute inset-y-0 w-[55%] bg-gradient-to-r from-transparent via-amber-200/35 to-transparent apex-hall-progress-shimmer opacity-50" />
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
@@ -285,9 +296,9 @@ function RankingTabs({
             aria-selected={active}
             disabled={disabled}
             onClick={() => onChange(t.id)}
-            className={`rounded-xl border px-3.5 py-2.5 font-body text-xs font-semibold transition-colors duration-200 sm:px-4 sm:text-[0.8125rem] ${
+            className={`rounded-xl border px-3.5 py-2.5 font-body text-xs font-semibold transition-all duration-500 ease-in-out sm:px-4 sm:text-[0.8125rem] ${
               active
-                ? "border-premium-accent/30 bg-premium-accent/[0.06] text-premium-accent/95"
+                ? "border-premium-accent/35 bg-premium-accent/[0.08] text-premium-accent/95 shadow-[0_0_28px_-8px_rgba(212,175,55,0.35)]"
                 : "border-premium-border/50 bg-zinc-950/40 text-premium-muted hover:border-premium-border/70 hover:bg-zinc-900/45 hover:text-premium-text"
             } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
           >
@@ -508,6 +519,34 @@ export function LastWinnersHall() {
     [podiumLoading, podiumError, tabCards],
   );
 
+  const podiumStaggerDelays = useMemo(() => {
+    let sideIndex = 0;
+    const delays: Record<string, number> = {};
+    for (const w of displayOrdered) {
+      const isPlaceholder = w.id.startsWith("podium-vago-");
+      const isRealChamp = w.slot === "champion" && !isPlaceholder;
+      delays[w.id] = isRealChamp ? 0 : 52 + sideIndex++ * 72;
+    }
+    return delays;
+  }, [displayOrdered]);
+
+  const handleTabChange = useCallback((id: RankingTabId) => {
+    if (id === activeTab) return;
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const doc = document as Document & {
+      startViewTransition?: (cb: () => void) => void;
+    };
+    if (!reduceMotion && typeof doc.startViewTransition === "function") {
+      doc.startViewTransition(() => {
+        flushSync(() => setActiveTab(id));
+      });
+    } else {
+      setActiveTab(id);
+    }
+  }, [activeTab]);
+
   return (
     <section
       className="relative mx-auto w-full max-w-[min(100%,120rem)] px-4 pb-24 pt-10 sm:px-6 md:pb-28 md:pt-12 lg:px-10 lg:pt-14 xl:px-12 2xl:px-14 min-[1800px]:px-16 min-[2400px]:px-20"
@@ -533,7 +572,7 @@ export function LastWinnersHall() {
         <div className="mt-6 flex w-full justify-center sm:mt-7">
           <RankingTabs
             activeId={activeTab}
-            onChange={setActiveTab}
+            onChange={handleTabChange}
             disabled={podiumLoading}
           />
         </div>
@@ -575,25 +614,34 @@ export function LastWinnersHall() {
                   const BadgeIcon = badge.icon;
                   const isChamp = w.slot === "champion";
                   const isPlaceholder = w.id.startsWith("podium-vago-");
+                  const isRealChamp = isChamp && !isPlaceholder;
+                  const enterClass = isRealChamp
+                    ? "apex-hall-podium-champ-enter"
+                    : "apex-hall-podium-side-enter";
+                  const staggerMs = podiumStaggerDelays[w.id] ?? 0;
 
                   return (
                     <div
                       key={`${activeTab}-${w.id}`}
-                      className={`w-full max-w-md shrink-0 self-center transition-transform duration-300 lg:max-w-[13.5rem] lg:self-end xl:max-w-[15rem] ${w.liftClass} ${isPlaceholder ? "opacity-[0.58] lg:opacity-[0.52]" : ""}`}
+                      className={`relative w-full max-w-md shrink-0 self-center overflow-visible lg:max-w-[13.5rem] lg:self-end xl:max-w-[15rem] ${w.liftClass} ${isPlaceholder ? "opacity-[0.58] lg:opacity-[0.52]" : ""}`}
                     >
+                      {isRealChamp ? (
+                        <div
+                          className="pointer-events-none absolute left-1/2 top-[42%] z-0 hidden h-[min(32rem,135%)] w-[min(22rem,118%)] -translate-x-1/2 -translate-y-1/2 rounded-[2rem] bg-[radial-gradient(ellipse_at_center,rgba(212,175,55,0.2)_0%,rgba(212,175,55,0.06)_42%,transparent_72%)] blur-2xl apex-hall-champ-spotlight lg:block"
+                          aria-hidden
+                        />
+                      ) : null}
                       <div
-                        className="apex-podium-enter h-full"
-                        style={{
-                          animationDelay: `${w.animationDelayMs}ms`,
-                        }}
+                        className={`relative z-10 h-full transform-gpu ${enterClass}`}
+                        style={{ animationDelay: `${staggerMs}ms` }}
                       >
                         <article
-                          className={`group relative flex h-full flex-col rounded-2xl border p-5 transition-colors duration-300 sm:p-6 ${
+                          className={`group relative flex h-full flex-col rounded-2xl border p-5 transition-[transform,box-shadow,border-color,ring-color] duration-500 ease-[cubic-bezier(0.42,0,0.2,1)] will-change-transform sm:p-6 ${
                             isPlaceholder
-                              ? "border-premium-border/15 bg-zinc-950/50 shadow-none hover:border-premium-border/25"
+                              ? "border-premium-border/15 bg-zinc-950/50 shadow-none hover:z-[15] hover:scale-[1.01] hover:border-premium-border/30 hover:shadow-md hover:ring-1 hover:ring-premium-border/25"
                               : isChamp
-                                ? "border-premium-border bg-premium-surface ring-1 ring-premium-accent/15 shadow-[0_12px_40px_-10px_rgba(0,0,0,0.42),0_0_52px_-14px_rgba(212,175,55,0.2)] hover:border-premium-border"
-                                : "border-premium-border/80 bg-premium-surface/95 shadow-md hover:border-premium-border"
+                                ? "border-premium-border bg-premium-surface ring-1 ring-premium-accent/15 shadow-[0_12px_40px_-10px_rgba(0,0,0,0.42),0_0_52px_-14px_rgba(212,175,55,0.2)] hover:z-[15] hover:scale-[1.02] hover:border-premium-accent/25 hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.55),0_0_60px_-12px_rgba(212,175,55,0.28)] hover:ring-2 hover:ring-premium-accent/30"
+                                : "border-premium-border/80 bg-premium-surface/95 shadow-md hover:z-[15] hover:scale-[1.02] hover:border-premium-accent/20 hover:shadow-lg hover:ring-1 hover:ring-premium-accent/20"
                           } ${
                             isChamp
                               ? "lg:min-h-[28rem] xl:min-h-[30rem]"

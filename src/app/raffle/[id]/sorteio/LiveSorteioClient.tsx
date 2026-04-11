@@ -1,7 +1,8 @@
 "use client";
 
-import { RaffleWheelSvg } from "@/components/admin/RaffleWheelSvg";
+import { RaffleWheelSvg, type WheelVisualEnergy } from "@/components/admin/RaffleWheelSvg";
 import { useWheelSound } from "@/components/admin/useWheelSound";
+import { useRouletteBackgroundMusic } from "@/hooks/useRouletteBackgroundMusic";
 import { formatBrasiliaHm } from "@/lib/format-brasilia-time";
 import { getPublicLiveDraw } from "@/lib/api/services";
 import { resolveUserAvatarUrl } from "@/lib/resolve-user-avatar-url";
@@ -261,6 +262,54 @@ export function LiveSorteioClient({ raffleId }: { raffleId: string }) {
     return () => clearInterval(id);
   }, [idleSpin]);
 
+  const rouletteMusicActive = useMemo(() => {
+    if (!data) return false;
+    if (data.status !== "sold_out" || data.segments.length === 0) return false;
+    return phase !== "done";
+  }, [data, phase]);
+
+  const prevCountdownRef = useRef<number | null>(null);
+  useEffect(() => {
+    const prev = prevCountdownRef.current;
+    if (countdown != null && countdown > 0 && (prev == null || prev <= 0)) {
+      console.log("[roulette-music] LiveSorteio: countdown visível (>0)", countdown);
+    }
+    prevCountdownRef.current = countdown;
+  }, [countdown]);
+
+  useEffect(() => {
+    console.log("[roulette-music] LiveSorteio: shouldPlay BGM =", rouletteMusicActive, {
+      prefersReducedMotion,
+      phase,
+      status: data?.status,
+      segments: data?.segments?.length ?? 0,
+    });
+  }, [rouletteMusicActive, prefersReducedMotion, phase, data?.status, data?.segments?.length]);
+
+  useRouletteBackgroundMusic(rouletteMusicActive, {
+    disabled: prefersReducedMotion,
+  });
+
+  const wheelVisualEnergy = useMemo((): WheelVisualEnergy => {
+    if (!data || data.segments.length === 0) return "idle";
+    if (phase === "done" && data.winner_ticket_number != null) return "celebrate";
+    if (phase === "spinning") return "active";
+    const waitingAfterTimer =
+      data.status === "sold_out" &&
+      data.winner_ticket_number == null &&
+      (countdown ?? 0) <= 0;
+    if (waitingAfterTimer) return "anticipate";
+    if (
+      data.status === "sold_out" &&
+      countdown != null &&
+      countdown > 0 &&
+      countdown <= 30
+    ) {
+      return "anticipate";
+    }
+    return "idle";
+  }, [data, phase, countdown]);
+
   const formatHms = (sec: number) => {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
@@ -389,6 +438,11 @@ export function LiveSorteioClient({ raffleId }: { raffleId: string }) {
               rotationDeg={rotationDeg}
               transitionMs={spinMs}
               transitionEnabled={transitionEnabled}
+              highlightTicketNumber={data.winner_ticket_number ?? null}
+              emphasizeWinner={
+                phase === "done" && data.winner_ticket_number != null
+              }
+              visualEnergy={wheelVisualEnergy}
             />
           </div>
         )}

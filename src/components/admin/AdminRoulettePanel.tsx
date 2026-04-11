@@ -261,7 +261,10 @@ export function AdminRoulettePanel() {
         <p className="mt-1 max-w-2xl text-sm text-premium-muted">
           No site público, quando a rifa esgota com{" "}
           <span className="font-medium text-premium-text">100% de cotas pagas</span>, abre-se automaticamente
-          uma janela de <span className="font-medium text-premium-accent/90">5 minutos</span> com countdown em{" "}
+          uma janela de espera (por omissão{" "}
+          <span className="font-medium text-premium-accent/90">30 min</span> na API para desenvolvimento; em
+          produção definir <span className="font-mono text-[0.65rem]">LIVE_DRAW_DELAY_MINUTES=5</span>) com
+          countdown em{" "}
           <span className="font-mono text-xs">/raffle/…/sorteio</span> (referência de horário:{" "}
           <span className="font-medium text-premium-text">Brasília</span>); os compradores recebem notificação.
           Depois disso o servidor sorteia e a roleta gira sozinha. Aqui podes forçar o sorteio manualmente antes
@@ -370,6 +373,19 @@ export function AdminRoulettePanel() {
                 rotationDeg={rotationDeg}
                 transitionMs={spinMs}
                 transitionEnabled={transitionEnabled}
+                highlightTicketNumber={
+                  phase === "celebration" && winner ? winner.ticket : null
+                }
+                emphasizeWinner={phase === "celebration"}
+                visualEnergy={
+                  phase === "celebration"
+                    ? "celebrate"
+                    : phase === "spinning"
+                      ? "active"
+                      : drawLoading
+                        ? "anticipate"
+                        : "idle"
+                }
               />
 
               {phase === "celebration" && winner && (
