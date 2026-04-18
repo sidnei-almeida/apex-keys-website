@@ -1,7 +1,6 @@
 "use client";
 
 import { APEX_BRAND_LOGO_SRC } from "@/lib/apex-brand-logo";
-import { getApiBaseUrl } from "@/lib/api/config";
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
 
@@ -49,6 +48,137 @@ function WheelBackdrop() {
   );
 }
 
+/** Gradientes partilhados: côncavo do disco, bevel por fatia, corpos radiais (sem blur SVG). */
+function WheelDepthSvgDefs({ id }: { id: (name: string) => string }) {
+  return (
+    <>
+      <radialGradient id={id("wheel-concave")} gradientUnits="userSpaceOnUse" cx={0} cy={-20} r={R * 1.09}>
+        <stop offset="0%" stopColor="rgba(0,0,0,0)" />
+        <stop offset="44%" stopColor="rgba(0,0,0,0)" />
+        <stop offset="74%" stopColor="rgba(0,0,0,0.11)" />
+        <stop offset="100%" stopColor="rgba(0,0,0,0.36)" />
+      </radialGradient>
+      <radialGradient id={id("wheel-well-shade")} gradientUnits="userSpaceOnUse" cx={0} cy={24} r={R * 0.96}>
+        <stop offset="0%" stopColor="rgba(0,0,0,0)" />
+        <stop offset="50%" stopColor="rgba(0,0,0,0)" />
+        <stop offset="100%" stopColor="rgba(0,0,0,0.09)" />
+      </radialGradient>
+      <radialGradient id={id("wheel-apex-softlight")} gradientUnits="userSpaceOnUse" cx={0} cy={-24} r={R * 0.86}>
+        <stop offset="0%" stopColor="rgba(255,255,255,0.13)" />
+        <stop offset="30%" stopColor="rgba(255,255,255,0.038)" />
+        <stop offset="100%" stopColor="rgba(0,0,0,0)" />
+      </radialGradient>
+      <radialGradient id={id("seg-rim-vignette")} gradientUnits="userSpaceOnUse" cx={0} cy={0} r={R}>
+        <stop offset="0%" stopColor="rgba(0,0,0,0)" />
+        <stop offset="60%" stopColor="rgba(0,0,0,0)" />
+        <stop offset="100%" stopColor="rgba(0,0,0,0.135)" />
+      </radialGradient>
+      <linearGradient id={id("seg-bevel")} gradientUnits="userSpaceOnUse" x1={0} y1={-92} x2={0} y2={92}>
+        <stop offset="0%" stopColor="rgba(255,255,255,0.072)" />
+        <stop offset="100%" stopColor="rgba(0,0,0,0.2)" />
+      </linearGradient>
+      <linearGradient id={id("seg-facet-a")} gradientUnits="userSpaceOnUse" x1={0} y1={-98} x2={0} y2={98}>
+        <stop offset="0%" stopColor="rgba(255,255,255,0.06)" />
+        <stop offset="55%" stopColor="rgba(0,0,0,0.02)" />
+        <stop offset="100%" stopColor="rgba(0,0,0,0.1)" />
+      </linearGradient>
+      <linearGradient id={id("seg-facet-b")} gradientUnits="userSpaceOnUse" x1={0} y1={-98} x2={0} y2={98}>
+        <stop offset="0%" stopColor="rgba(255,255,255,0.038)" />
+        <stop offset="50%" stopColor="rgba(0,0,0,0.04)" />
+        <stop offset="100%" stopColor="rgba(0,0,0,0.12)" />
+      </linearGradient>
+      <radialGradient id={id("seg-live-a")} gradientUnits="userSpaceOnUse" cx={0} cy={0} r={R} fx={0} fy={-30}>
+        <stop offset="0%" stopColor="#161616" />
+        <stop offset="30%" stopColor="#0d0d0d" />
+        <stop offset="66%" stopColor="#040404" />
+        <stop offset="100%" stopColor="#000000" />
+      </radialGradient>
+      <radialGradient id={id("seg-live-b")} gradientUnits="userSpaceOnUse" cx={0} cy={0} r={R} fx={6} fy={-22}>
+        <stop offset="0%" stopColor="#121212" />
+        <stop offset="34%" stopColor="#080808" />
+        <stop offset="70%" stopColor="#030303" />
+        <stop offset="100%" stopColor="#010101" />
+      </radialGradient>
+      <radialGradient id={id("seg-live-win")} gradientUnits="userSpaceOnUse" cx={0} cy={0} r={R} fx={0} fy={-34}>
+        <stop offset="0%" stopColor="#211c12" />
+        <stop offset="40%" stopColor="#12100a" />
+        <stop offset="100%" stopColor="#040403" />
+      </radialGradient>
+      <radialGradient id={id("seg-adm-a")} gradientUnits="userSpaceOnUse" cx={0} cy={0} r={R} fx={0} fy={-26}>
+        <stop offset="0%" stopColor="#181818" />
+        <stop offset="34%" stopColor="#0e0e0e" />
+        <stop offset="100%" stopColor="#020202" />
+      </radialGradient>
+      <radialGradient id={id("seg-adm-b")} gradientUnits="userSpaceOnUse" cx={0} cy={0} r={R} fx={5} fy={-18}>
+        <stop offset="0%" stopColor="#111111" />
+        <stop offset="36%" stopColor="#080808" />
+        <stop offset="100%" stopColor="#010101" />
+      </radialGradient>
+      <radialGradient id={id("seg-adm-win")} gradientUnits="userSpaceOnUse" cx={0} cy={0} r={R} fx={0} fy={-28}>
+        <stop offset="0%" stopColor="#1c1810" />
+        <stop offset="44%" stopColor="#0e0c08" />
+        <stop offset="100%" stopColor="#050504" />
+      </radialGradient>
+    </>
+  );
+}
+
+/** Ouro metálico: anel exterior, bordos das fatias, reflexos (gradientes; sem glow difuso). */
+function PremiumMetallicGoldDefs({ id }: { id: (name: string) => string }) {
+  return (
+    <>
+      <linearGradient id={id("rim-gold-live")} gradientUnits="userSpaceOnUse" x1={-118} y1={-118} x2={118} y2={118}>
+        <stop offset="0%" stopColor="#161208" />
+        <stop offset="22%" stopColor="#5c4a1c" />
+        <stop offset="38%" stopColor="#c4a038" />
+        <stop offset="48%" stopColor="#f4f2ec" />
+        <stop offset="58%" stopColor="#b89228" />
+        <stop offset="78%" stopColor="#4a3814" />
+        <stop offset="100%" stopColor="#0e0c06" />
+      </linearGradient>
+      <linearGradient id={id("rim-gold-admin")} gradientUnits="userSpaceOnUse" x1={-120} y1={-112} x2={116} y2={120}>
+        <stop offset="0%" stopColor="#1a160c" />
+        <stop offset="24%" stopColor="#665220" />
+        <stop offset="40%" stopColor="#d4a82a" />
+        <stop offset="50%" stopColor="#f6f4f0" />
+        <stop offset="60%" stopColor="#c9a030" />
+        <stop offset="82%" stopColor="#524018" />
+        <stop offset="100%" stopColor="#100e08" />
+      </linearGradient>
+      <linearGradient id={id("slice-edge-live")} gradientUnits="userSpaceOnUse" x1={-108} y1={-108} x2={108} y2={108}>
+        <stop offset="0%" stopColor="#1c1608" />
+        <stop offset="28%" stopColor="#8a7028" />
+        <stop offset="42%" stopColor="#f0ece6" />
+        <stop offset="50%" stopColor="#ffffff" />
+        <stop offset="58%" stopColor="#c4a028" />
+        <stop offset="76%" stopColor="#403010" />
+        <stop offset="100%" stopColor="#0c0a06" />
+      </linearGradient>
+      <linearGradient id={id("slice-edge-admin")} gradientUnits="userSpaceOnUse" x1={-108} y1={-116} x2={112} y2={104}>
+        <stop offset="0%" stopColor="#20180c" />
+        <stop offset="26%" stopColor="#96782c" />
+        <stop offset="42%" stopColor="#ece8e2" />
+        <stop offset="50%" stopColor="#faf8f4" />
+        <stop offset="58%" stopColor="#c49828" />
+        <stop offset="76%" stopColor="#483818" />
+        <stop offset="100%" stopColor="#0e0c08" />
+      </linearGradient>
+      <linearGradient id={id("rim-inner-hilight")} gradientUnits="userSpaceOnUse" x1={0} y1={-122} x2={0} y2={122}>
+        <stop offset="0%" stopColor="rgba(255,252,248,0.55)" />
+        <stop offset="22%" stopColor="rgba(210,178,72,0.32)" />
+        <stop offset="55%" stopColor="rgba(90,74,36,0.18)" />
+        <stop offset="100%" stopColor="rgba(24,20,10,0.22)" />
+      </linearGradient>
+      <linearGradient id={id("rim-hairline")} gradientUnits="userSpaceOnUse" x1={-118} y1={-100} x2={118} y2={104}>
+        <stop offset="0%" stopColor="rgba(70,56,28,0.5)" />
+        <stop offset="36%" stopColor="rgba(248,242,230,0.72)" />
+        <stop offset="52%" stopColor="rgba(200,172,72,0.58)" />
+        <stop offset="100%" stopColor="rgba(48,38,18,0.48)" />
+      </linearGradient>
+    </>
+  );
+}
+
 function slicePath(i: number, n: number, r: number): string {
   if (n <= 0) return "";
   if (n === 1) {
@@ -72,24 +202,58 @@ function shortLabel(seg: RaffleWheelSegment, n: number): string {
   return short ? `${num} · ${short}` : num;
 }
 
-function resolveAvatarUrl(url: string | null | undefined): string | null {
-  const u = url?.trim();
-  if (!u) return null;
-  if (/^https?:\/\//i.test(u)) return u;
-  const base = getApiBaseUrl().replace(/\/+$/, "");
-  return `${base}${u.startsWith("/") ? "" : "/"}${u}`;
-}
-
-function initialsFromName(name: string): string {
-  const p = name.trim().split(/\s+/).filter(Boolean);
-  if (p.length === 0) return "?";
-  if (p.length === 1) return p[0]!.slice(0, 2).toUpperCase();
-  return `${p[0]![0]!}${p[p.length - 1]![0]!}`.toUpperCase();
-}
-
 /** Número na fatia live: sem "#", sempre pelo menos 2 caracteres (01, 07, 10, 123). */
 function formatSliceTicketNumber(n: number): string {
   return String(n).padStart(2, "0");
+}
+
+/** Coroa dourada — centro da roleta live. */
+function SvgCrownGold({ gradId }: { gradId: string }) {
+  return (
+    <g transform="translate(0,-0.5)">
+      <path
+        d="M-12 6.5 Q0 9.5 12 6.5 L12 3.5 L-12 3.5 Z"
+        fill={`url(#${gradId})`}
+        stroke="rgba(220,210,198,0.36)"
+        strokeWidth={0.22}
+      />
+      <path
+        d="M-12 3.5 L-8.5 -7 L-5 1 L0 -9 L5 1 L8.5 -7 L12 3.5 Z"
+        fill={`url(#${gradId})`}
+        stroke="rgba(255,252,232,0.44)"
+        strokeWidth={0.3}
+        strokeLinejoin="round"
+      />
+      <ellipse cx={0} cy={7.45} rx={9.85} ry={1.82} fill="rgba(0,0,0,0.38)" />
+    </g>
+  );
+}
+
+function LiveBezelDefs({ id }: { id: (name: string) => string }) {
+  return (
+    <linearGradient id={id("bezel-ring")} x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="rgba(48,40,22,0.55)" />
+      <stop offset="28%" stopColor="rgba(158,132,52,0.78)" />
+      <stop offset="48%" stopColor="rgba(228,224,216,0.9)" />
+      <stop offset="62%" stopColor="rgba(184,152,58,0.82)" />
+      <stop offset="100%" stopColor="rgba(40,34,16,0.5)" />
+    </linearGradient>
+  );
+}
+
+/** Anel interior discreto (referência visual, sem decoração extra). */
+function LiveWheelFixedBezel({ id }: { id: (name: string) => string }) {
+  return (
+    <g style={{ pointerEvents: "none" }} aria-hidden>
+      <circle
+        r={49.65}
+        fill="none"
+        stroke={`url(#${id("bezel-ring")})`}
+        strokeWidth={0.42}
+        opacity={0.87}
+      />
+    </g>
+  );
 }
 
 function WheelPointer({ variant }: { variant: "admin" | "live" }) {
@@ -98,76 +262,62 @@ function WheelPointer({ variant }: { variant: "admin" | "live" }) {
 
   if (variant === "admin") {
     return (
-      <svg
-        width={50}
-        height={58}
-        viewBox="0 0 50 58"
-        className="drop-shadow-[0_4px_18px_rgba(212,175,55,0.45)]"
-        aria-hidden
-      >
+      <svg width={48} height={56} viewBox="0 0 48 56" aria-hidden>
         <defs>
-          <linearGradient id={`${fid}-metal`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#f0d78c" />
-            <stop offset="35%" stopColor="#d4af37" />
-            <stop offset="70%" stopColor="#a67c00" />
-            <stop offset="100%" stopColor="#8a6a1e" />
+          <linearGradient id={`${fid}-metal`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="8%" stopColor="#e8e4dc" />
+            <stop offset="22%" stopColor="#e0c058" />
+            <stop offset="48%" stopColor="#b88810" />
+            <stop offset="100%" stopColor="#301808" />
           </linearGradient>
-          <filter id={fid} x="-50%" y="-50%" width="200%" height="200%">
-            <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#d4af37" floodOpacity="0.55" />
-            <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#000" floodOpacity="0.5" />
-          </filter>
         </defs>
+        <path d="M24 1.35 L42.55 39.55 L24 52.5 L5.45 39.55 Z" fill="rgba(0,0,0,0.4)" />
         <path
-          d="M25 2 L44 42 Q25 54 25 54 Q25 54 6 42 Z"
+          d="M24 0.25 L42.5 39.15 L24 52 L5.5 39.15 Z"
           fill={`url(#${fid}-metal)`}
-          stroke="rgba(255,248,220,0.35)"
-          strokeWidth={1.1}
-          filter={`url(#${fid})`}
+          stroke="rgba(255,252,240,0.98)"
+          strokeWidth={1.06}
+          strokeLinejoin="miter"
+          strokeMiterlimit={16}
         />
-        <path
-          d="M25 8 L36 38 Q25 46 25 46 Q25 46 14 38 Z"
-          fill="rgba(10,10,10,0.2)"
-        />
-        <circle cx={25} cy={20} r={5.5} fill="#0a0a0a" stroke="rgba(212,175,55,0.85)" strokeWidth={1} />
-        <circle cx={25} cy={20} r={2.4} fill="rgba(255,255,255,0.95)" />
+        <path d="M24 5.35 L37.05 37.3 L24 44.95 L10.95 37.3 Z" fill="rgba(0,0,0,0.24)" />
+        <circle cx={24} cy={20.15} r={4.95} fill="#060606" stroke="rgba(210,175,55,0.98)" strokeWidth={0.98} />
+        <circle cx={24} cy={20.85} r={1.92} fill="#f4f2ec" />
       </svg>
     );
   }
 
   return (
-    <svg
-      width={40}
-      height={48}
-      viewBox="0 0 40 48"
-      className="drop-shadow-[0_5px_22px_rgba(212,175,55,0.5)]"
-      aria-hidden
-    >
-      <defs>
-        <linearGradient id={`${fid}-live`} x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#f0d78c" />
-          <stop offset="45%" stopColor="#d4af37" />
-          <stop offset="100%" stopColor="#9a7b1a" />
+    <svg width={50} height={58} viewBox="0 0 50 58" aria-hidden>
+        <defs>
+        <linearGradient id={`${fid}-live`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="7%" stopColor="#eee6d4" />
+          <stop offset="20%" stopColor="#e8c048" />
+          <stop offset="46%" stopColor="#c09008" />
+          <stop offset="100%" stopColor="#381804" />
         </linearGradient>
-        <filter id={`${fid}-g`} x="-60%" y="-60%" width="220%" height="220%">
-          <feDropShadow dx="0" dy="2" stdDeviation="5" floodColor="#d4af37" floodOpacity="0.65" />
-          <feDropShadow dx="0" dy="3" stdDeviation="2" floodColor="#000" floodOpacity="0.45" />
-        </filter>
       </defs>
+      <path d="M25 1.4 L44.65 40.45 L25 54.55 L5.35 40.45 Z" fill="rgba(0,0,0,0.42)" />
       <path
-        d="M20 1.5 L35 38 Q20 46 20 46 Q20 46 5 38 Z"
+        d="M25 0.2 L44.4 39.95 L25 54.25 L5.6 39.95 Z"
         fill={`url(#${fid}-live)`}
-        stroke="rgba(255,248,220,0.4)"
-        strokeWidth={1.15}
-        strokeLinejoin="round"
-        filter={`url(#${fid}-g)`}
+        stroke="rgba(255,252,248,0.98)"
+        strokeWidth={1.1}
+        strokeLinejoin="miter"
+        strokeMiterlimit={16}
       />
-      <circle cx={20} cy={18} r={4.5} fill="#0a0a0a" stroke="rgba(212,175,55,0.9)" strokeWidth={0.9} />
-      <circle cx={20} cy={18} r={2} fill="rgba(255,255,255,0.92)" />
+      <path d="M25 5.75 L38.05 37.55 L25 45.75 L11.95 37.55 Z" fill="rgba(0,0,0,0.24)" />
+      <circle cx={25} cy={20.55} r={5.05} fill="#050505" stroke="rgba(212,178,58,1)" strokeWidth={1} />
+      <circle cx={25} cy={21.2} r={2} fill="#f2f0ea" />
     </svg>
   );
 }
 
 function LiveWheelHub({ energy }: { energy: WheelVisualEnergy }) {
+  const uid = useId().replace(/:/g, "");
+  const gid = `hub-crown-grad-${uid}`;
   const [failed, setFailed] = useState(false);
   const pulseHub =
     energy === "anticipate" || energy === "active"
@@ -180,23 +330,57 @@ function LiveWheelHub({ energy }: { energy: WheelVisualEnergy }) {
       aria-hidden
     >
       <div
-        className={`relative flex aspect-square w-[min(24%,8.75rem)] min-w-[4.75rem] items-center justify-center overflow-hidden rounded-full border border-premium-accent/35 bg-gradient-to-b from-zinc-800/50 via-premium-bg/92 to-zinc-950/95 shadow-[inset_0_2px_12px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08),0_0_40px_-8px_rgba(212,175,55,0.35),0_8px_24px_-6px_rgba(0,0,0,0.65)] ring-2 ring-black/40 backdrop-blur-sm ${pulseHub} ${energy === "celebrate" ? "shadow-[inset_0_2px_12px_rgba(0,0,0,0.45),0_0_52px_-6px_rgba(212,175,55,0.55),0_8px_28px_-6px_rgba(0,0,0,0.55)]" : ""}`}
+        className={`relative flex aspect-square w-[min(36%,12rem)] min-w-[7rem] items-center justify-center overflow-hidden rounded-full border-[1.5px] border-[rgba(205,172,78,0.88)] bg-[radial-gradient(circle_at_50%_22%,#303030_0%,#101010_38%,#010101_100%)] shadow-[0_0_0_1px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-16px_30px_rgba(0,0,0,0.78),inset_0_0_0_1px_rgba(195,165,70,0.18),0_0_22px_rgba(175,145,58,0.14)] ring-1 ring-black/92 ${pulseHub}`}
       >
-        <div className="apex-wheel-hub-inner-glow" />
-        <div className="absolute inset-[10%] rounded-full bg-[radial-gradient(circle_at_35%_28%,rgba(212,175,55,0.22)_0%,transparent_55%)]" />
+        <svg
+          viewBox="-18 -18 36 36"
+          className="relative z-[1] h-[72%] w-[72%] overflow-visible"
+        >
+          <defs>
+            <linearGradient id={gid} x1="8%" y1="0%" x2="92%" y2="100%">
+              <stop offset="0%" stopColor="#fffef8" />
+              <stop offset="12%" stopColor="#f2e088" />
+              <stop offset="32%" stopColor="#d8a010" />
+              <stop offset="52%" stopColor="#a07008" />
+              <stop offset="78%" stopColor="#4a2808" />
+              <stop offset="100%" stopColor="#140804" />
+            </linearGradient>
+          </defs>
+          <circle
+            cx={0}
+            cy={0}
+            r={15.75}
+            fill="none"
+            stroke="rgba(188,155,58,0.45)"
+            strokeWidth={0.42}
+          />
+          <circle
+            cx={0}
+            cy={0}
+            r={15.25}
+            fill="none"
+            stroke="rgba(0,0,0,0.42)"
+            strokeWidth={0.3}
+          />
+          <circle
+            cx={0}
+            cy={0}
+            r={14.78}
+            fill="none"
+            stroke="rgba(255,255,255,0.06)"
+            strokeWidth={0.22}
+          />
+          <SvgCrownGold gradId={gid} />
+        </svg>
         {!failed ? (
-          // eslint-disable-next-line @next/next/no-img-element -- asset local da marca
+          // eslint-disable-next-line @next/next/no-img-element -- asset local da marca (discreto sob a coroa)
           <img
             src={APEX_BRAND_LOGO_SRC}
             alt=""
-            className="relative z-[1] h-[78%] w-[78%] object-contain object-center drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+            className="absolute bottom-[14%] left-1/2 z-[2] h-[18%] w-[18%] -translate-x-1/2 object-contain opacity-[0.22] grayscale"
             onError={() => setFailed(true)}
           />
-        ) : (
-          <span className="relative z-[1] font-heading text-[0.7rem] font-semibold tracking-[0.2em] text-premium-accent">
-            APEX
-          </span>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -205,12 +389,10 @@ function LiveWheelHub({ energy }: { energy: WheelVisualEnergy }) {
 /** Conteúdo das fatias no modo live (baixa vs alta densidade). */
 function LiveSliceDecorations({
   segments,
-  clipPatternId,
   highlightTicketNumber,
   emphasizeWinner,
 }: {
   segments: RaffleWheelSegment[];
-  clipPatternId: string;
   highlightTicketNumber?: number | null;
   emphasizeWinner?: boolean;
 }) {
@@ -225,21 +407,12 @@ function LiveSliceDecorations({
   const winnerGlow =
     emphasizeWinner && winnerIdx >= 0
       ? {
-          filter: "drop-shadow(0 0 5px rgba(212,175,55,0.65))",
-          fill: "rgba(255,236,180,0.95)",
+          fill: "#fff8e8",
         }
       : null;
 
-  /** Número mais ao centro; avatar mais à borda; mesmo eixo radial. */
-  const AVATAR_R = 5.5;
-
   return (
     <>
-      <defs>
-        <clipPath id={clipPatternId} clipPathUnits="objectBoundingBox">
-          <circle cx={0.5} cy={0.5} r={0.5} />
-        </clipPath>
-      </defs>
       {segments.map((seg, i) => {
         const mid = (i + 0.5) / n;
         const ang = mid * 2 * Math.PI;
@@ -247,17 +420,11 @@ function LiveSliceDecorations({
         const isWinnerSlice = emphasizeWinner && winnerIdx === i;
 
         if (lowDensity) {
-          const fillIsA = i % 2 === 0;
-          const labelFill = fillIsA ? "rgba(255,255,255,0.88)" : "rgba(236,210,140,0.92)";
-          const rNum = R * 0.38;
-          const rAv = R * 0.71;
+          const labelFill = "#ffffff";
+          const rNum = R * 0.522;
           const nx = rNum * Math.sin(ang);
           const ny = -rNum * Math.cos(ang);
-          const ax = rAv * Math.sin(ang);
-          const ay = -rAv * Math.cos(ang);
-          const href = resolveAvatarUrl(seg.avatar_url);
-          const initials = initialsFromName(seg.full_name);
-          const fsLow = n <= 8 ? 7.4 : n <= 14 ? 6.5 : 5.8;
+          const fsLow = n <= 8 ? 8.55 : n <= 14 ? 7.38 : 6.58;
 
           return (
             <g key={`live-low-${seg.ticket_number}-${i}`}>
@@ -271,70 +438,25 @@ function LiveSliceDecorations({
                   fontFamily="var(--font-body), system-ui, sans-serif"
                   letterSpacing={isWinnerSlice ? "0.04em" : "0.02em"}
                   style={{
-                    textShadow: isWinnerSlice
-                      ? "0 0 10px rgba(212,175,55,0.55), 0 1px 3px rgba(0,0,0,0.9)"
-                      : "0 1px 3px rgba(0,0,0,0.85)",
-                    filter: isWinnerSlice ? winnerGlow?.filter : undefined,
+                    paintOrder: "stroke fill",
+                    stroke: "rgba(0,0,0,0.68)",
+                    strokeWidth: 0.4,
+                    textRendering: "geometricPrecision",
                   }}
                 >
                   {formatSliceTicketNumber(seg.ticket_number)}
                 </text>
               </g>
-              <g transform={`translate(${ax},${ay}) rotate(${rotDeg})`}>
-                {href ? (
-                  <>
-                    <image
-                      href={href}
-                      x={-AVATAR_R}
-                      y={-AVATAR_R}
-                      width={AVATAR_R * 2}
-                      height={AVATAR_R * 2}
-                      preserveAspectRatio="xMidYMid slice"
-                      clipPath={`url(#${clipPatternId})`}
-                    />
-                    <circle
-                      r={AVATAR_R}
-                      fill="none"
-                      stroke={
-                        isWinnerSlice ? "rgba(212,175,55,0.85)" : "rgba(212,175,55,0.55)"
-                      }
-                      strokeWidth={isWinnerSlice ? 0.65 : 0.45}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <circle
-                      r={AVATAR_R}
-                      fill={isWinnerSlice ? "#2a2418" : "#252525"}
-                      stroke={
-                        isWinnerSlice ? "rgba(212,175,55,0.75)" : "rgba(212,175,55,0.5)"
-                      }
-                      strokeWidth={isWinnerSlice ? 0.55 : 0.45}
-                    />
-                    <text
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                      fill="rgba(212,175,55,0.88)"
-                      fontSize={n <= 10 ? 4.1 : 3.7}
-                      fontWeight={600}
-                      fontFamily="var(--font-body), system-ui, sans-serif"
-                    >
-                      {initials}
-                    </text>
-                  </>
-                )}
-              </g>
             </g>
           );
         }
 
-        const fillIsA = i % 2 === 0;
-        const textFill = fillIsA ? "rgba(255,255,255,0.88)" : "rgba(236,210,140,0.9)";
-        const rOut = R * 0.87;
+        const textFill = "#ffffff";
+        const rOut = R * 0.922;
         const tx = rOut * Math.sin(ang);
         const ty = -rOut * Math.cos(ang);
         const fs =
-          n > 160 ? 3.12 : n > 120 ? 3.44 : n > 80 ? 4.08 : n > 50 ? 4.8 : 5.35;
+          n > 160 ? 3.62 : n > 120 ? 3.92 : n > 80 ? 4.55 : n > 50 ? 5.32 : 5.9;
 
         return (
           <g key={`live-hi-${seg.ticket_number}-${i}`}>
@@ -344,14 +466,14 @@ function LiveSliceDecorations({
                 dominantBaseline="middle"
                 fill={isWinnerSlice && winnerGlow ? winnerGlow.fill : textFill}
                 fontSize={fs}
-                fontWeight={isWinnerSlice ? 700 : 600}
+                fontWeight={isWinnerSlice ? 800 : 700}
                 fontFamily="var(--font-mono), ui-monospace, monospace"
                 letterSpacing="0.03em"
                 style={{
-                  textShadow: isWinnerSlice
-                    ? "0 0 8px rgba(212,175,55,0.5), 0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.9)"
-                    : "0 0 2px rgba(0,0,0,0.95), 0 1px 2px rgba(0,0,0,0.88)",
-                  filter: isWinnerSlice ? winnerGlow?.filter : undefined,
+                  paintOrder: "stroke fill",
+                  stroke: "rgba(0,0,0,0.7)",
+                  strokeWidth: 0.32,
+                  textRendering: "geometricPrecision",
                 }}
               >
                 {formatSliceTicketNumber(seg.ticket_number)}
@@ -390,7 +512,6 @@ export function RaffleWheelSvg({
   emphasizeWinner = false,
   visualEnergy = "idle",
 }: Props) {
-  const clipPatternId = useId().replace(/:/g, "");
   const uid = useId().replace(/:/g, "");
   const id = (name: string) => `${name}-${uid}`;
 
@@ -398,8 +519,8 @@ export function RaffleWheelSvg({
   const isLive = variant === "live";
   const showAdminLabels = !isLive;
 
-  const fontSize = n > 120 ? 5.2 : n > 60 ? 6.7 : n > 30 ? 8.2 : 10.2;
-  const labelR = n > 120 ? 61 : 57;
+  const fontSize = n > 120 ? 5.78 : n > 60 ? 7.25 : n > 30 ? 8.75 : 10.65;
+  const labelR = n > 120 ? 62.5 : 59.15;
 
   const winnerIdx =
     highlightTicketNumber != null
@@ -412,7 +533,7 @@ export function RaffleWheelSvg({
       : -1;
 
   const wrapSpinning = (inner: ReactNode) => (
-    <g filter={isLive ? `url(#${id("wh-sh-live")})` : `url(#${id("wh-sh")})`}>
+    <g filter={isLive ? "none" : `url(#${id("wh-sh")})`}>
       <g
         style={{
           transform: `rotate(${rotationDeg}deg)`,
@@ -436,16 +557,15 @@ export function RaffleWheelSvg({
   const celebrateVisual = emphasizeWinner || visualEnergy === "celebrate";
   const shellClass =
     `apex-wheel-shell relative mx-auto transition-transform duration-[780ms] motion-safe:ease-[cubic-bezier(0.25,0.85,0.35,1)] ${outerMax} ` +
+    (isLive ? "apex-wheel-shell--live " : "") +
     (celebrateVisual
-      ? "motion-safe:scale-[1.035] drop-shadow-[0_0_52px_rgba(212,175,55,0.38)] apex-wheel-shell--celebrate-motion"
-      : "scale-100 drop-shadow-[0_0_28px_rgba(212,175,55,0.08)]") +
-    " motion-reduce:scale-100 motion-reduce:transition-none motion-reduce:drop-shadow-none";
+      ? "motion-safe:scale-[1.035] apex-wheel-shell--celebrate-motion"
+      : "scale-100") +
+    " motion-reduce:scale-100 motion-reduce:transition-none";
 
   if (n === 1) {
     const seg = segments[0]!;
-    const href = isLive ? resolveAvatarUrl(seg.avatar_url) : null;
     const lowSingle = isLive;
-    const AV = 6;
     const singleWinner =
       showWinnerSlice && seg.ticket_number === highlightTicketNumber;
 
@@ -456,8 +576,12 @@ export function RaffleWheelSvg({
       >
         {isLive ? <WheelBackdrop /> : null}
         <div
-          className="pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-[2px]"
+          className={`pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 ${isLive ? "-translate-y-1" : "-translate-y-[3px]"}`}
           aria-hidden
+          style={{
+            filter:
+              "drop-shadow(0 2px 1px rgba(0,0,0,0.52)) drop-shadow(0 3px 0 rgba(0,0,0,0.2))",
+          }}
         >
           <WheelPointer variant={isLive ? "live" : "admin"} />
         </div>
@@ -468,63 +592,63 @@ export function RaffleWheelSvg({
           aria-label="Roleta com 1 bilhete pago"
         >
           <defs>
-            <radialGradient id={id("hub-s")} cx="38%" cy="32%" r="65%">
-              <stop offset="0%" stopColor="rgba(212,175,55,0.42)" />
-              <stop offset="45%" stopColor="rgba(45,38,22,0.92)" />
-              <stop offset="100%" stopColor="rgba(12,12,12,0.98)" />
+            <radialGradient id={id("hub-s")} cx="32%" cy="23%" r="62%">
+              <stop offset="0%" stopColor="rgba(255,252,236,0.82)" />
+              <stop offset="10%" stopColor="rgba(228,192,72,0.62)" />
+              <stop offset="28%" stopColor="rgba(32,28,14,0.96)" />
+              <stop offset="100%" stopColor="rgba(0,0,0,1)" />
             </radialGradient>
-            <linearGradient id={id("rim-gold")} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="rgba(180,150,70,0.5)" />
-              <stop offset="35%" stopColor="rgba(212,175,55,0.85)" />
-              <stop offset="65%" stopColor="rgba(140,115,45,0.75)" />
-              <stop offset="100%" stopColor="rgba(90,75,35,0.55)" />
-            </linearGradient>
-            <radialGradient id={id("face-1")} gradientUnits="userSpaceOnUse" cx="0" cy="0" r={R}>
-              <stop offset="0%" stopColor={isLive ? "#242424" : "rgba(212,175,55,0.22)"} />
-              <stop offset="55%" stopColor={isLive ? "#141414" : "rgba(212,175,55,0.08)"} />
-              <stop offset="100%" stopColor={isLive ? "#0a0a0a" : "rgba(8,8,8,0.95)"} />
+            <PremiumMetallicGoldDefs id={id} />
+            <radialGradient id={id("face-1")} gradientUnits="userSpaceOnUse" cx={0} cy={0} r={R} fx={0} fy={-26}>
+              <stop
+                offset="0%"
+                stopColor={isLive ? "#1e1e1e" : "rgba(228,200,108,0.18)"}
+              />
+              <stop offset="38%" stopColor={isLive ? "#121212" : "rgba(26,22,14,0.68)"} />
+              <stop
+                offset="58%"
+                stopColor={isLive ? "#0a0a0a" : "rgba(22,20,14,0.82)"}
+              />
+              <stop offset="100%" stopColor={isLive ? "#010101" : "rgba(5,5,5,0.99)"} />
             </radialGradient>
-            <filter id={id("wh-sh")} x="-25%" y="-25%" width="150%" height="150%">
-              <feDropShadow dx="0" dy="5" stdDeviation="10" floodOpacity="0.5" />
+            <WheelDepthSvgDefs id={id} />
+            <filter id={id("wh-sh")} x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#000" floodOpacity="0.35" />
             </filter>
-            <filter id={id("wh-sh-live")} x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="4" stdDeviation="8" floodOpacity="0.28" />
-            </filter>
-            <filter id={id("win-glow")} x="-40%" y="-40%" width="180%" height="180%">
-              <feGaussianBlur stdDeviation="2.2" result="b" />
-              <feMerge>
-                <feMergeNode in="b" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-            {lowSingle ? (
-              <clipPath id={`${clipPatternId}-one`} clipPathUnits="objectBoundingBox">
-                <circle cx={0.5} cy={0.5} r={0.5} />
-              </clipPath>
-            ) : null}
+            {lowSingle ? <LiveBezelDefs id={id} /> : null}
           </defs>
           {wrapSpinning(
             <>
               <circle
-                r={R - 1.2}
-                fill="none"
-                stroke="rgba(0,0,0,0.45)"
-                strokeWidth={4}
-                opacity={0.55}
-                style={{ filter: "blur(3px)" }}
+                r={R}
+                fill={`url(#${id("face-1")})`}
+                stroke={`url(#${isLive ? id("slice-edge-live") : id("slice-edge-admin")})`}
+                strokeWidth={isLive ? 0.36 : 0.88}
+              />
+              <circle
+                cx={CX}
+                cy={CY}
+                r={R}
+                fill={`url(#${id("wheel-apex-softlight")})`}
+                opacity={0.4}
+                style={{ mixBlendMode: "screen", pointerEvents: "none" }}
+              />
+              <circle
+                cx={CX}
+                cy={CY}
+                r={R}
+                fill={`url(#${id("wheel-well-shade")})`}
+                opacity={0.58}
+                style={{ mixBlendMode: "multiply", pointerEvents: "none" }}
               />
               <circle
                 r={R}
-                fill={`url(#${id("face-1")})`}
-                stroke={isLive ? "rgba(212,175,55,0.12)" : "rgba(212,175,55,0.38)"}
-                strokeWidth={isLive ? 0.4 : 1}
+                fill={`url(#${id("wheel-concave")})`}
+                opacity={0.68}
+                style={{ mixBlendMode: "multiply", pointerEvents: "none" }}
               />
               {singleWinner ? (
-                <circle
-                  r={R}
-                  fill="rgba(212,175,55,0.12)"
-                  filter={`url(#${id("win-glow")})`}
-                />
+                <circle r={R} fill="rgba(212,175,55,0.1)" />
               ) : null}
               {showAdminLabels ? (
                 <text
@@ -536,132 +660,117 @@ export function RaffleWheelSvg({
                   fontWeight={700}
                   fontFamily="var(--font-body), system-ui, sans-serif"
                   letterSpacing="0.02em"
-                  style={{ textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}
+                  style={{ textShadow: "0 1px 2px rgba(0,0,0,0.92)" }}
                 >
                   {shortLabel(seg, 1)}
                 </text>
               ) : null}
               {lowSingle ? (
-                <>
-                  <text
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    y={-38}
-                    fill={singleWinner ? "rgba(255,240,200,0.98)" : "rgba(212,175,55,0.9)"}
-                    fontSize={8.8}
-                    fontWeight={600}
-                    fontFamily="var(--font-body), system-ui, sans-serif"
-                    style={{
-                      textShadow: singleWinner
-                        ? "0 0 10px rgba(212,175,55,0.55), 0 1px 3px rgba(0,0,0,0.85)"
-                        : "0 1px 3px rgba(0,0,0,0.8)",
-                    }}
-                  >
-                    {formatSliceTicketNumber(seg.ticket_number)}
-                  </text>
-                  <g transform="translate(0,-62)">
-                    {href ? (
-                      <>
-                        <image
-                          href={href}
-                          x={-AV}
-                          y={-AV}
-                          width={AV * 2}
-                          height={AV * 2}
-                          preserveAspectRatio="xMidYMid slice"
-                          clipPath={`url(#${clipPatternId}-one)`}
-                        />
-                        <circle
-                          r={AV}
-                          fill="none"
-                          stroke={
-                            singleWinner ? "rgba(212,175,55,0.85)" : "rgba(212,175,55,0.55)"
-                          }
-                          strokeWidth={singleWinner ? 0.6 : 0.45}
-                        />
-                      </>
-                    ) : (
-                      <>
-                        <circle
-                          r={AV}
-                          fill="#252525"
-                          stroke="rgba(212,175,55,0.5)"
-                          strokeWidth={0.45}
-                        />
-                        <text
-                          textAnchor="middle"
-                          dominantBaseline="central"
-                          fill="rgba(212,175,55,0.82)"
-                          fontSize={5}
-                          fontWeight={500}
-                          fontFamily="var(--font-body), system-ui, sans-serif"
-                        >
-                          {initialsFromName(seg.full_name)}
-                        </text>
-                      </>
-                    )}
-                  </g>
-                </>
+                <text
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  y={-48}
+                  fill={singleWinner ? "#fff8e8" : "#ffffff"}
+                  fontSize={9.75}
+                  fontWeight={600}
+                  fontFamily="var(--font-body), system-ui, sans-serif"
+                  style={{
+                    paintOrder: "stroke fill",
+                    stroke: "rgba(0,0,0,0.65)",
+                    strokeWidth: 0.44,
+                    textRendering: "geometricPrecision",
+                  }}
+                >
+                  {formatSliceTicketNumber(seg.ticket_number)}
+                </text>
               ) : null}
             </>,
           )}
-          {isLive ? (
-            <g className="apex-wheel-rim-sweep" style={{ pointerEvents: "none" }}>
-              <circle
-                r={R + 5.5}
-                fill="none"
-                stroke="rgba(212,175,55,0.5)"
-                strokeWidth={2.4}
-                strokeDasharray="14 70"
-                strokeLinecap="round"
-                opacity={0.9}
-              />
-            </g>
-          ) : null}
+          {isLive ? <LiveWheelFixedBezel id={id} /> : null}
           <circle
-            r={R + 5.5}
+            r={R + 4.52}
             fill="none"
-            stroke={`url(#${id("rim-gold")})`}
-            strokeWidth={5.2}
-            opacity={0.92}
+            stroke="rgba(0,0,0,0.4)"
+            strokeWidth={0.44}
+            opacity={0.48}
           />
           <circle
-            r={R + 2.8}
+            r={R + 4.08}
             fill="none"
-            stroke="rgba(0,0,0,0.5)"
-            strokeWidth={2.2}
-            opacity={0.65}
+            stroke="rgba(0,0,0,0.38)"
+            strokeWidth={0.3}
+            opacity={0.55}
           />
           <circle
-            r={R + 7}
+            r={R + 4.18}
             fill="none"
-            stroke="rgba(212,175,55,0.15)"
-            strokeWidth={1.5}
-            style={{ filter: "blur(4px)" }}
+            stroke={`url(#${isLive ? id("rim-gold-live") : id("rim-gold-admin")})`}
+            strokeWidth={1.16}
+            opacity={0.97}
+          />
+          <circle
+            r={R + 4.28}
+            fill="none"
+            stroke={`url(#${id("rim-hairline")})`}
+            strokeWidth={0.11}
+            opacity={0.55}
+          />
+          <circle
+            r={R + 4.36}
+            fill="none"
+            stroke={`url(#${id("rim-hairline")})`}
+            strokeWidth={0.16}
+            opacity={0.86}
+          />
+          <circle
+            r={R + 3.76}
+            fill="none"
+            stroke={`url(#${id("rim-inner-hilight")})`}
+            strokeWidth={0.24}
+            opacity={0.9}
+          />
+          <circle
+            r={R + 0.38}
+            fill="none"
+            stroke={`url(#${isLive ? id("slice-edge-live") : id("slice-edge-admin")})`}
+            strokeWidth={0.32}
+            opacity={0.88}
           />
           {!isLive ? (
             <>
               <circle
-                r={24}
+                r={24.05}
                 fill={`url(#${id("hub-s")})`}
-                stroke="rgba(212,175,55,0.55)"
-                strokeWidth={1.6}
+                stroke={`url(#${id("slice-edge-admin")})`}
+                strokeWidth={1.56}
               />
               <circle
-                r={24}
+                r={22.58}
                 fill="none"
-                stroke="rgba(255,255,255,0.06)"
-                strokeWidth={1}
+                stroke="rgba(190,158,58,0.42)"
+                strokeWidth={0.36}
+              />
+              <circle
+                r={22.12}
+                fill="none"
+                stroke="rgba(0,0,0,0.45)"
+                strokeWidth={0.28}
+              />
+              <circle
+                r={24.05}
+                fill="none"
+                stroke="rgba(255,255,255,0.08)"
+                strokeWidth={0.88}
               />
               <text
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fill="#e8c84a"
-                fontSize={11.5}
+                fill="#e9ca4e"
+                fontSize={11.4}
                 fontWeight={700}
                 fontFamily="var(--font-heading), system-ui, sans-serif"
-                letterSpacing="0.14em"
-                style={{ textShadow: "0 0 12px rgba(212,175,55,0.35)" }}
+                letterSpacing="0.13em"
+                style={{ textShadow: "0 1px 2px rgba(0,0,0,0.85)" }}
               >
                 APEX
               </text>
@@ -688,8 +797,12 @@ export function RaffleWheelSvg({
     >
       {isLive ? <WheelBackdrop /> : null}
       <div
-        className="pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-[2px]"
+        className={`pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 ${isLive ? "-translate-y-1" : "-translate-y-[3px]"}`}
         aria-hidden
+        style={{
+          filter:
+            "drop-shadow(0 2px 1px rgba(0,0,0,0.52)) drop-shadow(0 3px 0 rgba(0,0,0,0.2))",
+        }}
       >
         <WheelPointer variant={isLive ? "live" : "admin"} />
       </div>
@@ -701,60 +814,18 @@ export function RaffleWheelSvg({
         aria-label={`Roleta com ${n} bilhetes pagos`}
       >
         <defs>
-          <radialGradient id={id("hub")} cx="38%" cy="32%" r="65%">
-            <stop offset="0%" stopColor="rgba(212,175,55,0.42)" />
-            <stop offset="45%" stopColor="rgba(45,38,22,0.92)" />
-            <stop offset="100%" stopColor="rgba(12,12,12,0.98)" />
+          <radialGradient id={id("hub")} cx="32%" cy="23%" r="62%">
+            <stop offset="0%" stopColor="rgba(255,252,236,0.82)" />
+            <stop offset="10%" stopColor="rgba(228,192,72,0.62)" />
+            <stop offset="28%" stopColor="rgba(32,28,14,0.96)" />
+            <stop offset="100%" stopColor="rgba(0,0,0,1)" />
           </radialGradient>
-          <linearGradient id={id("rim-gold")} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(180,150,70,0.5)" />
-            <stop offset="35%" stopColor="rgba(212,175,55,0.85)" />
-            <stop offset="65%" stopColor="rgba(140,115,45,0.75)" />
-            <stop offset="100%" stopColor="rgba(90,75,35,0.55)" />
-          </linearGradient>
-          <radialGradient id={id("sg-live-a")} gradientUnits="userSpaceOnUse" cx="0" cy="0" r={R}>
-            <stop offset="0%" stopColor="#2a2a2a" />
-            <stop offset="50%" stopColor="#141414" />
-            <stop offset="100%" stopColor="#080808" />
-          </radialGradient>
-          <radialGradient id={id("sg-live-b")} gradientUnits="userSpaceOnUse" cx="0" cy="0" r={R}>
-            <stop offset="0%" stopColor="#222222" />
-            <stop offset="50%" stopColor="#111111" />
-            <stop offset="100%" stopColor="#060606" />
-          </radialGradient>
-          <radialGradient id={id("sg-live-win")} gradientUnits="userSpaceOnUse" cx="0" cy="0" r={R}>
-            <stop offset="0%" stopColor="rgba(212,175,55,0.28)" />
-            <stop offset="45%" stopColor="rgba(55,48,28,0.88)" />
-            <stop offset="100%" stopColor="#0c0c0c" />
-          </radialGradient>
-          <radialGradient id={id("sg-adm-a")} gradientUnits="userSpaceOnUse" cx="0" cy="0" r={R}>
-            <stop offset="0%" stopColor="rgba(212,175,55,0.22)" />
-            <stop offset="55%" stopColor="rgba(212,175,55,0.06)" />
-            <stop offset="100%" stopColor="rgba(10,10,10,0.92)" />
-          </radialGradient>
-          <radialGradient id={id("sg-adm-b")} gradientUnits="userSpaceOnUse" cx="0" cy="0" r={R}>
-            <stop offset="0%" stopColor="rgba(255,255,255,0.09)" />
-            <stop offset="60%" stopColor="rgba(255,255,255,0.02)" />
-            <stop offset="100%" stopColor="rgba(8,8,8,0.9)" />
-          </radialGradient>
-          <radialGradient id={id("sg-adm-win")} gradientUnits="userSpaceOnUse" cx="0" cy="0" r={R}>
-            <stop offset="0%" stopColor="rgba(212,175,55,0.35)" />
-            <stop offset="50%" stopColor="rgba(212,175,55,0.12)" />
-            <stop offset="100%" stopColor="rgba(18,16,10,0.95)" />
-          </radialGradient>
-          <filter id={id("wh-sh")} x="-25%" y="-25%" width="150%" height="150%">
-            <feDropShadow dx="0" dy="5" stdDeviation="10" floodOpacity="0.5" />
+          <PremiumMetallicGoldDefs id={id} />
+          <filter id={id("wh-sh")} x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#000" floodOpacity="0.35" />
           </filter>
-          <filter id={id("wh-sh-live")} x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="4" stdDeviation="8" floodOpacity="0.28" />
-          </filter>
-          <filter id={id("win-glow")} x="-35%" y="-35%" width="170%" height="170%">
-            <feGaussianBlur stdDeviation="1.8" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
+          {isLive ? <LiveBezelDefs id={id} /> : null}
+          <WheelDepthSvgDefs id={id} />
         </defs>
 
         {wrapSpinning(
@@ -762,50 +833,96 @@ export function RaffleWheelSvg({
             {segments.map((seg, i) => {
               const isWinner = showWinnerSlice && winnerIdx === i;
               const nearPointer = !isWinner && i === sliceNearPointer;
-              const fill = isLive
-                ? isWinner
-                  ? `url(#${id("sg-live-win")})`
+              const fill = isWinner
+                ? isLive
+                  ? `url(#${id("seg-live-win")})`
+                  : `url(#${id("seg-adm-win")})`
+                : isLive
+                  ? i % 2 === 0
+                    ? `url(#${id("seg-live-a")})`
+                    : `url(#${id("seg-live-b")})`
                   : i % 2 === 0
-                    ? `url(#${id("sg-live-a")})`
-                    : `url(#${id("sg-live-b")})`
-                : isWinner
-                  ? `url(#${id("sg-adm-win")})`
-                  : i % 2 === 0
-                    ? `url(#${id("sg-adm-a")})`
-                    : `url(#${id("sg-adm-b")})`;
-              const stroke = isLive ? "rgba(255,255,255,0.06)" : "rgba(212,175,55,0.26)";
-              const sw = n > 200 ? 0.14 : isLive ? 0.32 : 0.38;
+                    ? `url(#${id("seg-adm-a")})`
+                    : `url(#${id("seg-adm-b")})`;
+              const edgeGrad = isLive ? id("slice-edge-live") : id("slice-edge-admin");
+              const goldStroke = `url(#${edgeGrad})`;
+              const sw = n > 200 ? 0.235 : 0.285;
               const d = slicePath(i, n, R);
               const winBurst = celebrateVisual && isWinner;
+              const facetId = i % 2 === 0 ? id("seg-facet-a") : id("seg-facet-b");
 
               return (
                 <g key={`slice-${seg.ticket_number}-${i}`}>
-                  <path d={d} fill={fill} stroke={stroke} strokeWidth={sw} />
+                  <path
+                    d={d}
+                    fill={fill}
+                    stroke={goldStroke}
+                    strokeWidth={sw}
+                    strokeLinejoin="miter"
+                  />
+                  <path
+                    d={d}
+                    fill={`url(#${id("seg-bevel")})`}
+                    opacity={isWinner ? 0.34 : 0.4}
+                    style={{ mixBlendMode: "multiply", pointerEvents: "none" }}
+                  />
+                  <path
+                    d={d}
+                    fill={`url(#${id("seg-rim-vignette")})`}
+                    opacity={0.46}
+                    style={{ mixBlendMode: "multiply", pointerEvents: "none" }}
+                  />
+                  <path
+                    d={d}
+                    fill={`url(#${facetId})`}
+                    opacity={0.5}
+                    style={{ mixBlendMode: "multiply", pointerEvents: "none" }}
+                  />
                   {nearPointer ? (
                     <path
                       d={d}
-                      fill="rgba(212,175,55,0.1)"
-                      stroke="rgba(212,175,55,0.28)"
-                      strokeWidth={Math.max(sw, 0.42)}
-                      className="apex-wheel-slice-near-pointer"
-                      style={{ mixBlendMode: "screen", pointerEvents: "none" }}
+                      fill="rgba(220,188,92,0.12)"
+                      stroke={`url(#${edgeGrad})`}
+                      strokeWidth={0.32}
+                      style={{ pointerEvents: "none" }}
                     />
                   ) : null}
                   {isWinner ? (
                     <path
                       d={d}
-                      fill={winBurst ? "rgba(212,175,55,0.28)" : "rgba(212,175,55,0.14)"}
-                      stroke={
-                        winBurst ? "rgba(255,228,160,0.72)" : "rgba(212,175,55,0.45)"
-                      }
-                      strokeWidth={winBurst ? Math.max(sw, 0.85) : Math.max(sw, 0.5)}
-                      filter={`url(#${id("win-glow")})`}
+                      fill={winBurst ? "rgba(212,175,55,0.2)" : "rgba(212,175,55,0.1)"}
+                      stroke={`url(#${edgeGrad})`}
+                      strokeWidth={0.36}
                       style={{ pointerEvents: "none" }}
                     />
                   ) : null}
                 </g>
               );
             })}
+            <circle
+              cx={CX}
+              cy={CY}
+              r={R}
+              fill={`url(#${id("wheel-apex-softlight")})`}
+              opacity={0.4}
+              style={{ mixBlendMode: "screen", pointerEvents: "none" }}
+            />
+            <circle
+              cx={CX}
+              cy={CY}
+              r={R}
+              fill={`url(#${id("wheel-well-shade")})`}
+              opacity={0.58}
+              style={{ mixBlendMode: "multiply", pointerEvents: "none" }}
+            />
+            <circle
+              cx={CX}
+              cy={CY}
+              r={R}
+              fill={`url(#${id("wheel-concave")})`}
+              opacity={0.68}
+              style={{ mixBlendMode: "multiply", pointerEvents: "none" }}
+            />
             {n > 1
               ? segments.map((_, i) => {
                   const a = (i / n) * 2 * Math.PI;
@@ -818,9 +935,9 @@ export function RaffleWheelSvg({
                       y1={CY}
                       x2={x}
                       y2={y}
-                      stroke="rgba(212,175,55,0.18)"
-                      strokeWidth={n > 200 ? 0.24 : 0.45}
-                      strokeLinecap="round"
+                      stroke={`url(#${isLive ? id("slice-edge-live") : id("slice-edge-admin")})`}
+                      strokeWidth={n > 200 ? 0.235 : 0.295}
+                      strokeLinecap="butt"
                     />
                   );
                 })
@@ -841,15 +958,15 @@ export function RaffleWheelSvg({
                       <text
                         textAnchor="middle"
                         dominantBaseline="middle"
-                        fill={isWinner ? "rgba(255,245,210,0.98)" : "#f0f0f0"}
+                        fill={isWinner ? "#fff8e8" : "#fafafa"}
                         fontSize={fontSize}
                         fontWeight={isWinner ? 700 : 600}
                         fontFamily="var(--font-body), system-ui, sans-serif"
                         letterSpacing="0.02em"
                         style={{
-                          textShadow: isWinner
-                            ? "0 0 10px rgba(212,175,55,0.45), 0 1px 4px rgba(0,0,0,0.95)"
-                            : "0 1px 4px rgba(0,0,0,0.92)",
+                          paintOrder: "stroke fill",
+                          stroke: "rgba(0,0,0,0.45)",
+                          strokeWidth: 0.28,
                         }}
                       >
                         {shortLabel(seg, n)}
@@ -861,7 +978,6 @@ export function RaffleWheelSvg({
             {isLive ? (
               <LiveSliceDecorations
                 segments={segments}
-                clipPatternId={clipPatternId}
                 highlightTicketNumber={highlightTicketNumber}
                 emphasizeWinner={emphasizeWinner}
               />
@@ -869,60 +985,83 @@ export function RaffleWheelSvg({
           </>,
         )}
 
-        {isLive ? (
-          <g className="apex-wheel-rim-sweep" style={{ pointerEvents: "none" }}>
-            <circle
-              r={R + 5.5}
-              fill="none"
-              stroke="rgba(212,175,55,0.5)"
-              strokeWidth={2.4}
-              strokeDasharray="14 70"
-              strokeLinecap="round"
-              opacity={0.9}
-            />
-          </g>
-        ) : null}
+        {isLive ? <LiveWheelFixedBezel id={id} /> : null}
 
         <circle
-          r={R + 5.5}
+          r={R + 4.52}
           fill="none"
-          stroke={`url(#${id("rim-gold")})`}
-          strokeWidth={5.2}
-          opacity={0.92}
+          stroke="rgba(0,0,0,0.4)"
+          strokeWidth={0.44}
+          opacity={0.48}
         />
         <circle
-          r={R + 2.8}
+          r={R + 4.08}
           fill="none"
-          stroke="rgba(0,0,0,0.55)"
-          strokeWidth={2.4}
-          opacity={0.7}
+          stroke="rgba(0,0,0,0.38)"
+          strokeWidth={0.3}
+          opacity={0.55}
         />
         <circle
-          r={R + 7}
+          r={R + 4.18}
           fill="none"
-          stroke="rgba(212,175,55,0.18)"
-          strokeWidth={1.8}
-          style={{ filter: "blur(5px)" }}
+          stroke={`url(#${isLive ? id("rim-gold-live") : id("rim-gold-admin")})`}
+          strokeWidth={1.16}
+          opacity={0.97}
+        />
+        <circle
+          r={R + 4.28}
+          fill="none"
+          stroke={`url(#${id("rim-hairline")})`}
+          strokeWidth={0.11}
+          opacity={0.55}
+        />
+        <circle
+          r={R + 4.36}
+          fill="none"
+          stroke={`url(#${id("rim-hairline")})`}
+          strokeWidth={0.16}
+          opacity={0.86}
+        />
+        <circle
+          r={R + 3.76}
+          fill="none"
+          stroke={`url(#${id("rim-inner-hilight")})`}
+          strokeWidth={0.24}
+          opacity={0.9}
+        />
+        <circle
+          r={R + 0.38}
+          fill="none"
+          stroke={`url(#${isLive ? id("slice-edge-live") : id("slice-edge-admin")})`}
+          strokeWidth={0.32}
+          opacity={0.88}
         />
 
         {!isLive ? (
           <>
             <circle
-              r={24}
+              r={24.05}
               fill={`url(#${id("hub")})`}
-              stroke="rgba(212,175,55,0.55)"
-              strokeWidth={1.6}
+              stroke={`url(#${id("slice-edge-admin")})`}
+              strokeWidth={1.56}
             />
-            <circle r={24} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={1} />
+            <circle
+              r={22.58}
+              fill="none"
+              stroke="rgba(190,158,58,0.42)"
+              strokeWidth={0.36}
+            />
+            <circle r={22.12} fill="none" stroke="rgba(0,0,0,0.45)" strokeWidth={0.28} />
+            <circle r={24.05} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={0.88} />
             <text
               textAnchor="middle"
               dominantBaseline="middle"
-              fill="#e8c84a"
-              fontSize={11.5}
+              fill="#e9ca4e"
+              fontSize={11.4}
               fontWeight={700}
               fontFamily="var(--font-heading), system-ui, sans-serif"
-              letterSpacing="0.14em"
-              style={{ textShadow: "0 0 14px rgba(212,175,55,0.4)" }}
+              letterSpacing="0.13em"
+              style={{ textShadow: "0 1px 2px rgba(0,0,0,0.85)" }}
             >
               APEX
             </text>
